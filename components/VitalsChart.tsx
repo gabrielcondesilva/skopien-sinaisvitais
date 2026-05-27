@@ -26,18 +26,18 @@ export function VitalsChart({ slots }: Props) {
   }
 
   return (
-    <div className="grid grid-cols-5 gap-3">
+    <div className="flex flex-col gap-3">
       {VITALS_CFG.map((v) => (
         <div
           key={v.key}
-          className="rounded-lg p-3 flex flex-col"
+          className="rounded-lg p-4 flex flex-col"
           style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
         >
-          <p className="text-xs mb-2" style={{ color: "var(--muted)" }}>
-            {v.label}&nbsp;<span style={{ opacity: 0.6 }}>({v.unit})</span>
+          <p className="text-sm font-medium mb-3" style={{ color: "var(--muted)" }}>
+            {v.label}&nbsp;<span style={{ opacity: 0.6, fontSize: 11 }}>({v.unit})</span>
           </p>
-          <ResponsiveContainer width="100%" height={90}>
-            <AreaChart data={slots} margin={{ top: 4, right: 2, left: -24, bottom: 0 }}>
+          <ResponsiveContainer width="100%" height={180}>
+            <AreaChart data={slots} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
               <defs>
                 <linearGradient id={`g-${v.key}`} x1="0" y1="0" x2="0" y2="1">
                   <stop offset="10%" stopColor={v.color} stopOpacity={0.35} />
@@ -51,14 +51,14 @@ export function VitalsChart({ slots }: Props) {
               <XAxis
                 dataKey="t"
                 tickFormatter={fmtTime}
-                tick={{ fontSize: 8, fill: "#666" }}
+                tick={{ fontSize: 10, fill: "#666" }}
                 tickLine={false}
                 axisLine={false}
                 interval="preserveStartEnd"
               />
               <YAxis
                 domain={v.domain}
-                tick={{ fontSize: 8, fill: "#666" }}
+                tick={{ fontSize: 10, fill: "#666" }}
                 tickLine={false}
                 axisLine={false}
                 width={34}

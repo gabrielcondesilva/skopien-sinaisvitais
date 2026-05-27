@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { AuthGuard } from "@/components/AuthGuard";
+import { useAuthStore } from "@/store/auth";
 
 const DASHBOARDS = [
   {
@@ -57,6 +59,9 @@ const DASHBOARDS = [
 ] as const;
 
 export default function CommandPage() {
+  const logout = useAuthStore((s) => s.logout);
+  const router = useRouter();
+
   return (
     <AuthGuard>
       <div
@@ -71,10 +76,20 @@ export default function CommandPage() {
           <span className="text-sm font-bold tracking-widest" style={{ color: "var(--accent)" }}>
             SKOPIEN
           </span>
-          <span className="text-xs font-medium px-2 py-0.5 rounded-full animate-pulse"
-            style={{ background: "rgba(34,197,94,0.15)", color: "var(--status-stable)" }}>
-            Ao vivo
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-medium px-2 py-0.5 rounded-full animate-pulse"
+              style={{ background: "rgba(34,197,94,0.15)", color: "var(--status-stable)" }}>
+              Ao vivo
+            </span>
+            <button
+              onClick={() => { logout(); router.replace("/login"); }}
+              className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded transition-colors hover:bg-white/5"
+              style={{ color: "var(--muted)", border: "1px solid var(--border)" }}
+            >
+              <span>↩</span>
+              Sair
+            </button>
+          </div>
         </div>
 
         <div className="p-6 max-w-6xl mx-auto">

@@ -13,10 +13,10 @@ const STATUS_COLOR: Record<string, string> = {
 };
 
 const ALERT_META: Record<string, { icon: string; color: string; label: string }> = {
-  "sinal-vital":   { icon: "⚠",  color: "var(--status-critical)",  label: "Sinal Vital Crítico"  },
-  "medicacao":     { icon: "💊", color: "var(--status-attention)", label: "Medicação Atrasada"    },
-  "alta":          { icon: "↑",  color: "var(--accent)",           label: "Previsão de Alta"      },
-  "bomba-infusao": { icon: "⊕",  color: "var(--status-elevated)",  label: "Alarme Bomba de Infusão" },
+  "sinal-vital":   { icon: "alert-triangle", color: "var(--status-critical)",  label: "Sinal Vital Crítico"     },
+  "medicacao":     { icon: "pill",           color: "var(--status-attention)", label: "Medicação Atrasada"       },
+  "alta":          { icon: "home",           color: "var(--accent)",           label: "Previsão de Alta"         },
+  "bomba-infusao": { icon: "device-heart-monitor", color: "var(--status-elevated)", label: "Alarme Bomba de Infusão" },
 };
 
 function formatElapsed(admittedAt: number): string {
@@ -35,10 +35,10 @@ function AlertBadge({ alert }: { alert: Alert }) {
   return (
     <span
       title={meta.label}
-      className="text-xs px-1 rounded animate-pulse select-none"
+      className="text-xs px-1 rounded animate-pulse select-none inline-flex items-center"
       style={{ background: `${meta.color}28`, color: meta.color }}
     >
-      {meta.icon}
+      <i className={`ti ti-${meta.icon}`} style={{ fontSize: 11 }} />
     </span>
   );
 }
@@ -67,6 +67,7 @@ export function BedCard({ bed, internacao }: Props) {
   }
 
   const statusColor = STATUS_COLOR[internacao.currentStatus] ?? "var(--muted)";
+  const isCritical  = internacao.currentStatus === "Crítico";
 
   return (
     <div
@@ -74,10 +75,10 @@ export function BedCard({ bed, internacao }: Props) {
       tabIndex={0}
       onClick={() => router.push(`/patients/${internacao.id}`)}
       onKeyDown={(e) => e.key === "Enter" && router.push(`/patients/${internacao.id}`)}
-      className="rounded-lg p-4 flex flex-col gap-2 cursor-pointer select-none hover:bg-white/[0.03] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500/60 transition-colors"
+      className={`rounded-lg p-4 flex flex-col gap-2 cursor-pointer select-none hover:bg-white/[0.03] focus-visible:outline-none transition-colors${isCritical ? " sk-crit-pulse" : ""}`}
       style={{
         background: "var(--surface)",
-        border: `1px solid ${statusColor}44`,
+        border: `1px solid ${isCritical ? "rgba(240,62,62,0.7)" : `${statusColor}44`}`,
       }}
     >
       {/* Bed label + badges */}
@@ -101,8 +102,8 @@ export function BedCard({ bed, internacao }: Props) {
       <div>
         <p className="text-sm font-medium leading-snug truncate">{internacao.patient.name}</p>
         <p className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>
-          {internacao.patient.age}a&nbsp;·&nbsp;
-          {internacao.patient.gender === "M" ? "Masc" : "Fem"}&nbsp;·&nbsp;
+          {internacao.patient.age} anos&nbsp;·&nbsp;
+          {internacao.patient.gender === "M" ? "Masculino" : "Feminino"}&nbsp;·&nbsp;
           {formatElapsed(internacao.patient.admittedAt)}
         </p>
       </div>
@@ -118,17 +119,13 @@ export function BedCard({ bed, internacao }: Props) {
         style={{ borderTop: "1px solid var(--border)" }}
       >
         <span className="text-xs" style={{ color: "var(--muted)" }}>EWS</span>
-        <div className="flex items-center gap-2">
-          <span className="text-base font-bold tabular-nums leading-none" style={{ color: statusColor }}>
-            {internacao.currentEws}
-          </span>
-          <span
-            className="text-xs px-1.5 py-0.5 rounded font-medium"
-            style={{ background: `${statusColor}22`, color: statusColor }}
-          >
-            {internacao.currentStatus}
-          </span>
-        </div>
+        <span
+          className="flex items-center gap-1.5 px-2 py-1 rounded-md font-semibold text-xs"
+          style={{ background: `${statusColor}22`, color: statusColor }}
+        >
+          <span className="text-xs tabular-nums leading-none font-bold">{internacao.currentEws}</span>
+          {internacao.currentStatus}
+        </span>
       </div>
     </div>
   );

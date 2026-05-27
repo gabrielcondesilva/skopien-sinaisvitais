@@ -139,6 +139,13 @@ function SinaisVitaisTab({ internacao, slotMin, windowMs }: {
   const current = currentSlotValues(rawHistory, slotMin, Date.now());
   const ews     = calculateEWS(current);
 
+  const minMax = Object.fromEntries(
+    VITALS.map((v) => {
+      const vals = slots.map((s) => s[v.key]).filter((x) => x != null) as number[];
+      return [v.key, vals.length ? { min: Math.min(...vals), max: Math.max(...vals) } : undefined];
+    })
+  ) as Record<string, { min: number; max: number } | undefined>;
+
   return (
     <div className="flex flex-col gap-5">
       {/* View toggle */}
@@ -157,6 +164,8 @@ function SinaisVitaisTab({ internacao, slotMin, windowMs }: {
             unit={v.unit}
             value={current[v.key]}
             score={ews.scores[v.key]}
+            min={minMax[v.key]?.min}
+            max={minMax[v.key]?.max}
           />
         ))}
       </div>
@@ -334,27 +343,30 @@ function PatientContent({ id }: { id: string }) {
             {bed && <span>&nbsp;·&nbsp;{bed.label}</span>}
           </button>
 
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h1 className="text-xl font-semibold">{internacao.patient.name}</h1>
-              <p className="text-sm mt-0.5" style={{ color: "var(--muted)" }}>
-                {internacao.patient.age}a&nbsp;·&nbsp;
-                {internacao.patient.gender === "M" ? "Masc" : "Fem"}&nbsp;·&nbsp;
-                {formatElapsed(internacao.patient.admittedAt)}
+          <div>
+            <h1 className="text-xl font-semibold">{internacao.patient.name}</h1>
+            <p className="text-sm mt-0.5 mb-3">{internacao.patient.admissionReason}</p>
+            <div className="flex flex-col gap-1">
+              {[
+                { label: "Idade",              value: `${internacao.patient.age} anos` },
+                { label: "Gênero",             value: internacao.patient.gender === "M" ? "Masculino" : "Feminino" },
+                { label: "Tempo de Internação", value: formatElapsed(internacao.patient.admittedAt) },
+              ].map(({ label, value }) => (
+                <p key={label} className="text-sm">
+                  <span style={{ color: "var(--muted)" }}>{label}: </span>
+                  <span style={{ color: "var(--foreground)" }}>{value}</span>
+                </p>
+              ))}
+              <p className="text-sm">
+                <span style={{ color: "var(--muted)" }}>EWS: </span>
+                <span
+                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-semibold"
+                  style={{ background: `${statusColor}22`, color: statusColor }}
+                >
+                  <span className="font-bold">{internacao.currentEws}</span>
+                  {internacao.currentStatus}
+                </span>
               </p>
-              <p className="text-sm mt-1">{internacao.patient.admissionReason}</p>
-            </div>
-
-            <div
-              className="shrink-0 flex flex-col items-center gap-1 px-4 py-2 rounded-lg"
-              style={{ background: `${statusColor}18`, border: `1px solid ${statusColor}44` }}
-            >
-              <span className="text-2xl font-bold tabular-nums" style={{ color: statusColor }}>
-                {internacao.currentEws}
-              </span>
-              <span className="text-xs font-medium" style={{ color: statusColor }}>
-                {internacao.currentStatus}
-              </span>
             </div>
           </div>
         </div>
@@ -364,7 +376,7 @@ function PatientContent({ id }: { id: string }) {
           const proxyUrl = process.env.NEXT_PUBLIC_CAMERA_PROXY_URL;
           const isLiveCamera = bed?.label === "PS-01" && !!proxyUrl;
           return (
-            <div className="shrink-0 rounded-lg overflow-hidden" style={{ width: 192, height: 108 }}>
+            <div className="shrink-0 rounded-lg overflow-hidden" style={{ width: 320, height: 200 }}>
               {isLiveCamera ? (
                 <CameraPlayer streamUrl={`${proxyUrl}/stream/index.m3u8`} />
               ) : (

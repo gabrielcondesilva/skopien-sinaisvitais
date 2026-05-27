@@ -155,6 +155,16 @@ body {
   box-sizing: border-box;
 }
 
+button, [role="button"] {
+  cursor: pointer;
+}
+
+/* Accessible focus ring — uses accent color, respects reduced-motion */
+:focus-visible {
+  outline: 2px solid var(--sk-accent);
+  outline-offset: 2px;
+}
+
 /* ─────────────────────────────────────────────────────────────────────────
  * SCROLLBAR
  * ───────────────────────────────────────────────────────────────────────── */
@@ -220,3 +230,9 @@ body {
 }
 
 .sk-pulse { animation: sk-pulse 1.2s infinite; }
+
+@keyframes sk-crit-pulse {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(240,62,62,0.7), 0 0 10px rgba(240,62,62,0.25); }
+  50%      { box-shadow: 0 0 0 1px rgba(240,62,62,0.2), 0 0 18px rgba(240,62,62,0.08); }
+}
+.sk-crit-pulse { animation: sk-crit-pulse 1.5s ease-in-out infinite; }

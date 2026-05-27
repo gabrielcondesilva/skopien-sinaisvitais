@@ -8,6 +8,8 @@ import { useAlertStore } from "@/store/alerts";
 import { useAdminStore, ADMIN_TABS } from "@/store/admin";
 import { useSimulationStore } from "@/store/simulation";
 import { AlertsPanel } from "./AlertsPanel";
+import { Icon } from "./ui/Icon";
+import Image from "next/image";
 import type { UserProfile } from "@/store/auth";
 
 const UNITS = [
@@ -29,16 +31,16 @@ function NavItem({
       onClick={onClick}
       className="flex items-center gap-3 px-5 py-2.5 text-sm transition-colors w-full text-left"
       style={{
-        background: active ? "rgba(59,130,246,0.08)" : "transparent",
-        color: active ? "var(--accent)" : "var(--foreground)",
-        borderLeft: active ? "2px solid var(--accent)" : "2px solid transparent",
+        background: active ? "rgba(255,255,255,0.06)" : "transparent",
+        color: active ? "var(--sk-g100)" : "var(--foreground)",
+        borderLeft: active ? "2px solid var(--sk-g300)" : "2px solid transparent",
       }}
     >
       <span
         className="text-xs font-mono w-9 text-center rounded px-1 py-0.5 shrink-0"
         style={{
-          background: active ? "var(--accent)" : "rgba(255,255,255,0.06)",
-          color: active ? "#fff" : "var(--muted)",
+          background: active ? "var(--sk-g300)" : "rgba(255,255,255,0.06)",
+          color: active ? "var(--sk-g900)" : "var(--muted)",
         }}
       >
         {abbr}
@@ -69,17 +71,21 @@ export function Sidebar() {
         style={{ background: "var(--surface)", borderRight: "1px solid var(--border)" }}
       >
         {/* Logo */}
-        <div className="px-5 py-4 shrink-0" style={{ borderBottom: "1px solid var(--border)" }}>
-          <span className="text-sm font-bold tracking-widest" style={{ color: "var(--accent)" }}>
-            SKOPIEN
-          </span>
+        <div className="flex items-center justify-center px-4 py-4 shrink-0" style={{ borderBottom: "1px solid var(--border)" }}>
+          <Image
+            src="/logo_branca.png"
+            alt="SKOPIEN"
+            width={140}
+            height={42}
+            priority
+          />
         </div>
 
         <nav className="flex-1 py-3 overflow-y-auto">
           {isExecutivo ? (
             /* ── Executivo: show only admin dashboards ── */
             <>
-              <p className="px-5 pb-1 text-xs uppercase tracking-widest" style={{ color: "var(--muted)" }}>
+              <p className="px-5 pb-1 text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--sk-text-secondary)" }}>
                 Visão Administrativa
               </p>
               {ADMIN_TABS.map((t) => (
@@ -98,7 +104,7 @@ export function Sidebar() {
           ) : (
             /* ── Other profiles: show clinical units ── */
             <>
-              <p className="px-5 pb-1 text-xs uppercase tracking-widest" style={{ color: "var(--muted)" }}>
+              <p className="px-5 pb-1 text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--sk-text-secondary)" }}>
                 Unidades
               </p>
               {UNITS.map((u) => {
@@ -109,16 +115,16 @@ export function Sidebar() {
                     href={`/units/${u.id}`}
                     className="flex items-center gap-3 px-5 py-2.5 text-sm transition-colors"
                     style={{
-                      background: active ? "rgba(59,130,246,0.08)" : "transparent",
-                      color: active ? "var(--accent)" : "var(--foreground)",
-                      borderLeft: active ? "2px solid var(--accent)" : "2px solid transparent",
+                      background: active ? "rgba(255,255,255,0.06)" : "transparent",
+                      color: active ? "var(--sk-g100)" : "var(--foreground)",
+                      borderLeft: active ? "2px solid var(--sk-g300)" : "2px solid transparent",
                     }}
                   >
                     <span
                       className="text-xs font-mono w-9 text-center rounded px-1 py-0.5 shrink-0"
                       style={{
-                        background: active ? "var(--accent)" : "rgba(255,255,255,0.06)",
-                        color: active ? "#fff" : "var(--muted)",
+                        background: active ? "var(--sk-g300)" : "rgba(255,255,255,0.06)",
+                        color: active ? "var(--sk-g900)" : "var(--muted)",
                       }}
                     >
                       {u.abbr}
@@ -132,23 +138,23 @@ export function Sidebar() {
               {showAdmin && (
                 <>
                   <div className="mx-5 mt-2" style={{ borderTop: "1px solid var(--border)" }} />
-                  <p className="px-5 pt-3 pb-1 text-xs uppercase tracking-widest" style={{ color: "var(--muted)" }}>
+                  <p className="px-5 pt-3 pb-1 text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--sk-text-secondary)" }}>
                     Gestão
                   </p>
                   <Link
                     href="/admin"
                     className="flex items-center gap-3 px-5 py-2.5 text-sm transition-colors"
                     style={{
-                      background: pathname.startsWith("/admin") ? "rgba(59,130,246,0.08)" : "transparent",
-                      color: pathname.startsWith("/admin") ? "var(--accent)" : "var(--foreground)",
-                      borderLeft: pathname.startsWith("/admin") ? "2px solid var(--accent)" : "2px solid transparent",
+                      background: pathname.startsWith("/admin") ? "rgba(255,255,255,0.06)" : "transparent",
+                      color: pathname.startsWith("/admin") ? "var(--sk-g100)" : "var(--foreground)",
+                      borderLeft: pathname.startsWith("/admin") ? "2px solid var(--sk-g300)" : "2px solid transparent",
                     }}
                   >
                     <span
                       className="text-xs font-mono w-9 text-center rounded px-1 py-0.5 shrink-0"
                       style={{
-                        background: pathname.startsWith("/admin") ? "var(--accent)" : "rgba(255,255,255,0.06)",
-                        color: pathname.startsWith("/admin") ? "#fff" : "var(--muted)",
+                        background: pathname.startsWith("/admin") ? "var(--sk-g300)" : "rgba(255,255,255,0.06)",
+                        color: pathname.startsWith("/admin") ? "var(--sk-g900)" : "var(--muted)",
                       }}
                     >
                       ADM
@@ -162,18 +168,19 @@ export function Sidebar() {
         </nav>
 
         {/* Bottom actions */}
-        <div className="shrink-0 p-4 flex flex-col gap-1" style={{ borderTop: "1px solid var(--border)" }}>
+        <div className="shrink-0 px-3 pt-3 pb-2 flex flex-col gap-0.5" style={{ borderTop: "1px solid var(--border)" }}>
           {/* Alerts bell */}
           <button
             onClick={() => setPanelOpen(true)}
-            className="relative flex items-center gap-2 px-3 py-2 rounded text-sm transition-colors hover:bg-white/5 w-full text-left"
+            aria-label="Abrir painel de alertas"
+            className="relative flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm transition-colors hover:bg-white/5 w-full text-left"
             style={{ color: activeCount > 0 ? "var(--status-critical)" : "var(--muted)" }}
           >
-            <span className="text-base leading-none">🔔</span>
+            <Icon name="bell-ringing" size={16} color="currentColor" />
             <span>Alertas</span>
             {activeCount > 0 && (
               <span
-                className="ml-auto text-xs w-5 h-5 flex items-center justify-center rounded-full font-bold"
+                className="sk-pulse ml-auto text-xs w-5 h-5 flex items-center justify-center rounded-full font-bold"
                 style={{ background: "var(--status-critical)", color: "#fff" }}
               >
                 {activeCount > 9 ? "9+" : activeCount}
@@ -181,13 +188,15 @@ export function Sidebar() {
             )}
           </button>
 
-          {/* Logout */}
+          {/* Logout — visually separated (destructive-nav-separation) */}
+          <div className="mx-1 my-1" style={{ borderTop: "1px solid var(--border)" }} />
           <button
             onClick={() => { logout(); router.replace("/login"); }}
-            className="flex items-center gap-2 px-3 py-2 rounded text-sm transition-colors hover:bg-white/5 w-full text-left"
+            aria-label="Sair da sessão"
+            className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm transition-colors hover:bg-white/5 w-full text-left"
             style={{ color: "var(--muted)" }}
           >
-            <span className="text-base leading-none">↩</span>
+            <Icon name="logout" size={16} color="currentColor" />
             <span>Sair</span>
           </button>
         </div>

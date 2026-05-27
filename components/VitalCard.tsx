@@ -11,15 +11,17 @@ interface Props {
   label: string;
   unit: string;
   value: number;
-  score: number; // 0–3 individual EWS score
+  score: number;
+  min?: number;
+  max?: number;
 }
 
-export function VitalCard({ label, unit, value, score }: Props) {
+export function VitalCard({ label, unit, value, score, min, max }: Props) {
   const color = SCORE_COLOR[Math.min(score, 3)] ?? SCORE_COLOR[0];
   return (
     <div
       className="rounded-lg p-3 flex flex-col gap-1 flex-1 min-w-0"
-      style={{ background: "var(--surface)", border: `1px solid ${color}55` }}
+      style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
     >
       <span className="text-xs" style={{ color: "var(--muted)" }}>{label}</span>
       <div className="flex items-baseline gap-1">
@@ -28,6 +30,16 @@ export function VitalCard({ label, unit, value, score }: Props) {
         </span>
         <span className="text-xs" style={{ color: "var(--muted)" }}>{unit}</span>
       </div>
+      {min !== undefined && max !== undefined && (
+        <div className="flex gap-2 mt-1 pt-1" style={{ borderTop: "1px solid var(--border)" }}>
+          <span className="text-[10px]" style={{ color: "var(--muted)" }}>
+            Mín&nbsp;<span className="font-semibold tabular-nums" style={{ color: "var(--sk-text-secondary)" }}>{min}</span>
+          </span>
+          <span className="text-[10px]" style={{ color: "var(--muted)" }}>
+            Máx&nbsp;<span className="font-semibold tabular-nums" style={{ color: "var(--sk-text-secondary)" }}>{max}</span>
+          </span>
+        </div>
+      )}
     </div>
   );
 }

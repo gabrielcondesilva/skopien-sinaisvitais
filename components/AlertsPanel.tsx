@@ -4,10 +4,10 @@ import { useAlertStore } from "@/store/alerts";
 import type { Alert } from "@/lib/simulation/types";
 
 const ALERT_META: Record<string, { icon: string; title: string; color: string }> = {
-  "sinal-vital":   { icon: "⚠",  title: "Sinal Vital Crítico",   color: "var(--status-critical)"  },
-  "medicacao":     { icon: "💊", title: "Medicação Atrasada",     color: "var(--status-attention)" },
-  "alta":          { icon: "↑",  title: "Previsão de Alta",       color: "var(--accent)"           },
-  "bomba-infusao": { icon: "⊕",  title: "Alarme Bomba de Infusão",color: "var(--status-elevated)"  },
+  "sinal-vital":   { icon: "alert-triangle",       title: "Sinal Vital Crítico",    color: "var(--status-critical)"  },
+  "medicacao":     { icon: "pill",                 title: "Medicação Atrasada",      color: "var(--status-attention)" },
+  "alta":          { icon: "home",                 title: "Previsão de Alta",        color: "var(--accent)"           },
+  "bomba-infusao": { icon: "device-heart-monitor", title: "Alarme Bomba de Infusão", color: "var(--status-elevated)"  },
 };
 
 function formatRelative(firedAt: number): string {
@@ -21,14 +21,11 @@ function AlertCard({ alert }: { alert: Alert }) {
   const dismiss = useAlertStore((s) => s.dismiss);
   const meta = ALERT_META[alert.type] ?? { icon: "!", title: "Alerta", color: "var(--muted)" };
   const isAlta = alert.type === "alta";
-  const isVital = alert.type === "sinal-vital";
 
   return (
     <div className="p-4 flex flex-col gap-3" style={{ borderBottom: "1px solid var(--border)" }}>
       <div className="flex items-start gap-3">
-        <span className="text-base mt-0.5 shrink-0" style={{ color: meta.color }}>
-          {meta.icon}
-        </span>
+        <i className={`ti ti-${meta.icon} mt-0.5 shrink-0`} style={{ fontSize: 16, color: meta.color }} />
         <div className="flex-1 min-w-0">
           <p className="text-xs font-semibold" style={{ color: meta.color }}>{meta.title}</p>
           <p className="text-sm font-medium mt-0.5 truncate">{alert.patientName}</p>
@@ -61,13 +58,13 @@ function AlertCard({ alert }: { alert: Alert }) {
         </div>
       )}
 
-      {!isAlta && !isVital && (
+      {!isAlta && (
         <button
-          onClick={() => dismiss(alert.id, "Reconhecido")}
+          onClick={() => dismiss(alert.id, "Ação tomada pela equipe")}
           className="w-full text-xs py-1.5 rounded font-medium transition-colors hover:bg-white/10"
           style={{ background: "rgba(255,255,255,0.06)", color: "var(--muted)" }}
         >
-          Reconhecer
+          Ação tomada pela equipe
         </button>
       )}
     </div>
