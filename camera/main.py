@@ -29,10 +29,25 @@ HLS_DIR = Path("/tmp/skopien-hls")
 _ffmpeg: subprocess.Popen | None = None
 
 
+def _ffmpeg_bin() -> str:
+    import shutil
+    found = shutil.which("ffmpeg")
+    if found:
+        return found
+    candidates = [
+        r"C:\Users\nocla\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1.1-full_build\bin\ffmpeg.exe",
+        r"C:\Program Files\ffmpeg\bin\ffmpeg.exe",
+    ]
+    for c in candidates:
+        if Path(c).exists():
+            return c
+    return "ffmpeg"
+
+
 def start_ffmpeg(rtsp_url: str) -> subprocess.Popen:
     HLS_DIR.mkdir(parents=True, exist_ok=True)
     cmd = [
-        "ffmpeg",
+        _ffmpeg_bin(),
         "-rtsp_transport", "tcp",       # TCP for reliability over NAT
         "-i", rtsp_url,
         "-c:v", "copy",                 # no re-encode — just remux
@@ -44,7 +59,7 @@ def start_ffmpeg(rtsp_url: str) -> subprocess.Popen:
         str(HLS_DIR / "index.m3u8"),
     ]
     log.info("Starting FFmpeg: %s", " ".join(cmd[:6]) + " ...")
-    return subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+    return subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=None)
 
 
 @asynccontextmanager
