@@ -209,11 +209,6 @@ export function buildSeed(): {
     makePatient("Adriana Lopes Cavalcanti", 49, "F", "Anemia Grave", 48),
     MILD_CONCERN
   );
-  addOccupied("ENF-16", "enfermaria",
-    makePatient("Sérgio Luiz Batista", 60, "M", "Colecistite Aguda", 30),
-    MILD_CONCERN
-  );
-  for (let i = 17; i <= 20; i++) addEmpty(`ENF-${i.toString().padStart(2, "0")}`, "enfermaria");
 
   // ── UTI ─────────────────────────────────────────────────────────────────────
   // UTI-01: vai deteriorar na Cena 1 (~5min)

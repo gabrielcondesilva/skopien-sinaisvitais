@@ -20,6 +20,7 @@ interface AlertState {
       bedLabel: string;
       unit: UnitId;
       currentStatus: string;
+      criticalMessage: string;
     }>
   ) => void;
 
@@ -65,7 +66,7 @@ export const useAlertStore = create<AlertState>()((set, get) => ({
           patientName: inv.patientName,
           bedLabel: inv.bedLabel,
           unit: inv.unit,
-          message: "Sinais vitais críticos — EWS elevado",
+          message: inv.criticalMessage,
           firedAt: Date.now(),
           status: "active",
         });

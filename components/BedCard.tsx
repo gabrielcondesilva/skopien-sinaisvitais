@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAlertStore } from "@/store/alerts";
 import { useShallow } from "zustand/react/shallow";
@@ -50,6 +51,7 @@ interface Props {
 
 export function BedCard({ bed, internacao }: Props) {
   const router = useRouter();
+  const [hovered, setHovered] = useState(false);
   const alerts = useAlertStore(useShallow((s) =>
     internacao ? s.active.filter((a) => a.internacaoId === internacao.id) : []
   ));
@@ -78,8 +80,10 @@ export function BedCard({ bed, internacao }: Props) {
       className={`rounded-lg p-4 flex flex-col gap-2 cursor-pointer select-none hover:bg-white/[0.03] focus-visible:outline-none transition-colors${isCritical ? " sk-crit-pulse" : ""}`}
       style={{
         background: "var(--surface)",
-        border: `1px solid ${isCritical ? "rgba(240,62,62,0.7)" : `${statusColor}44`}`,
+        border: `1px solid ${isCritical ? "rgba(240,62,62,0.7)" : hovered ? "var(--accent)" : `${statusColor}44`}`,
       }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
     >
       {/* Bed label + badges */}
       <div className="flex items-center justify-between gap-2">
