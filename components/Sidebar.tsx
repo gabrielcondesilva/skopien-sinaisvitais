@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/auth";
 import { useAlertStore } from "@/store/alerts";
 import { useAdminStore, ADMIN_TABS } from "@/store/admin";
+import { useSimulationStore } from "@/store/simulation";
 import { AlertsPanel } from "./AlertsPanel";
 import type { UserProfile } from "@/store/auth";
 
@@ -52,7 +53,8 @@ export function Sidebar() {
   const logout      = useAuthStore((s) => s.logout);
   const profile     = useAuthStore((s) => s.profile);
   const router      = useRouter();
-  const activeCount = useAlertStore((s) => s.activeCount);
+  const activeCount  = useAlertStore((s) => s.activeCount);
+  const lastUpdated  = useSimulationStore((s) => s.lastUpdated);
   const adminTab    = useAdminStore((s) => s.tab);
   const setAdminTab = useAdminStore((s) => s.setTab);
   const [panelOpen, setPanelOpen] = useState(false);
@@ -185,8 +187,31 @@ export function Sidebar() {
             className="flex items-center gap-2 px-3 py-2 rounded text-sm transition-colors hover:bg-white/5 w-full text-left"
             style={{ color: "var(--muted)" }}
           >
-            Sair
+            <span className="text-base leading-none">↩</span>
+            <span>Sair</span>
           </button>
+        </div>
+
+        {/* Last updated indicator */}
+        <div className="px-5 py-3 flex items-center gap-2" style={{ borderTop: "1px solid var(--border)" }}>
+          <span className="relative flex h-2 w-2 shrink-0">
+            <span
+              className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"
+              style={{ background: "var(--status-stable)" }}
+            />
+            <span
+              className="relative inline-flex rounded-full h-2 w-2"
+              style={{ background: "var(--status-stable)" }}
+            />
+          </span>
+          <div className="flex flex-col leading-tight">
+            <span className="text-[10px] uppercase tracking-widest" style={{ color: "var(--muted)" }}>
+              Tempo real
+            </span>
+            <span className="text-[11px] font-mono" style={{ color: "var(--foreground)" }}>
+              {new Date(lastUpdated).toLocaleTimeString("pt-BR")}
+            </span>
+          </div>
         </div>
       </aside>
 

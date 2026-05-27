@@ -7,6 +7,7 @@ import {
 } from "recharts";
 import { AuthGuard } from "@/components/AuthGuard";
 import { useSimulationStore } from "@/store/simulation";
+import { useShallow } from "zustand/react/shallow";
 import type { SurgicalInternacao } from "@/lib/simulation/types";
 
 // ─── static demo data ─────────────────────────────────────────────────────────
@@ -94,7 +95,7 @@ function KpiCard({ label, value, sub }: { label: string; value: string; sub?: st
 // ─── page ─────────────────────────────────────────────────────────────────────
 
 export default function OperatingRoomPage() {
-  const beds       = useSimulationStore((s) => s.beds.filter((b) => b.unit === "centro-cirurgico"));
+  const beds       = useSimulationStore(useShallow((s) => s.beds.filter((b) => b.unit === "centro-cirurgico")));
   const internacoes = useSimulationStore((s) => s.internacoes);
 
   const occupied = beds.filter((b) => b.internacaoId).length;

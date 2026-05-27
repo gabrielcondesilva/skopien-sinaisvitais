@@ -7,6 +7,7 @@ import {
 } from "recharts";
 import { AuthGuard } from "@/components/AuthGuard";
 import { useSimulationStore } from "@/store/simulation";
+import { useShallow } from "zustand/react/shallow";
 
 // ─── types ───────────────────────────────────────────────────────────────────
 
@@ -50,7 +51,7 @@ function KpiCard({ label, value, sub }: { label: string; value: string; sub?: st
 function Sparkline({ unitId, label, total, color }: {
   unitId: string; label: string; total: number; color: string;
 }) {
-  const beds     = useSimulationStore((s) => s.beds.filter((b) => b.unit === unitId));
+  const beds     = useSimulationStore(useShallow((s) => s.beds.filter((b) => b.unit === unitId)));
   const occupied = beds.filter((b) => b.internacaoId).length;
   const pct      = Math.round((occupied / total) * 100);
   const data     = SPARKLINE_DATA[unitId] ?? [];
@@ -84,7 +85,7 @@ function Sparkline({ unitId, label, total, color }: {
 interface LOSRow { bed: string; name: string; reason: string; elapsed: number; status: string }
 
 function LOSTable() {
-  const beds       = useSimulationStore((s) => s.beds.filter((b) => b.unit === "pronto-socorro"));
+  const beds       = useSimulationStore(useShallow((s) => s.beds.filter((b) => b.unit === "pronto-socorro")));
   const internacoes = useSimulationStore((s) => s.internacoes);
   const now        = Date.now();
 
@@ -141,7 +142,7 @@ function LOSTable() {
 }
 
 function WaitingForBedTable() {
-  const beds       = useSimulationStore((s) => s.beds.filter((b) => b.unit === "pronto-socorro"));
+  const beds       = useSimulationStore(useShallow((s) => s.beds.filter((b) => b.unit === "pronto-socorro")));
   const internacoes = useSimulationStore((s) => s.internacoes);
   const now        = Date.now();
 

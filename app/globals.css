@@ -2,29 +2,152 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #0a0a0a;
-  --foreground: #ededed;
-  --surface: #111111;
-  --border: #1f1f1f;
-  --muted: #888888;
-  --accent: #3b82f6;
-  --accent-foreground: #ffffff;
+/* ─────────────────────────────────────────────────────────────────────────
+ * SKOPIEN — Design System Tokens
+ * Migrated from _design_system/colors_and_type.css
+ * Fonts loaded via next/font/local in layout.tsx
+ * ───────────────────────────────────────────────────────────────────────── */
 
-  --status-stable: #22c55e;
-  --status-attention: #eab308;
-  --status-elevated: #f97316;
-  --status-critical: #ef4444;
+:root {
+  /* SURFACES */
+  --sk-base:    #1A171C;
+  --sk-s1:      #231F26;
+  --sk-s2:      #2C2830;
+  --sk-sidebar: #342F37;
+
+  /* BORDERS */
+  --sk-b-subtle:  #59505E;
+  --sk-b-default: #928698;
+
+  /* GREY SCALE */
+  --sk-g25:  #FAF9FA;
+  --sk-g50:  #F3F1F3;
+  --sk-g100: #E9E6EA;
+  --sk-g200: #DCD8DE;
+  --sk-g300: #CDC8D0;
+  --sk-g400: #BCB5C0;
+  --sk-g500: #A89FAD;
+  --sk-g600: #928698;
+  --sk-g700: #786C7F;
+  --sk-g800: #59505E;
+  --sk-g900: #342F37;
+  --sk-g950: #1A171C;
+
+  /* TEXT */
+  --sk-text-primary:   #E9E6EA;
+  --sk-text-secondary: #BCB5C0;
+  --sk-text-muted:     #928698;
+  --sk-text-disabled:  #59505E;
+
+  /* ACCENT */
+  --sk-accent:   #4DABF7;
+  --sk-accent-h: #74C0FC;
+  --sk-accent-m: #1971C2;
+
+  /* CLINICAL STATUS */
+  --sk-crit:   #F03E3E;
+  --sk-high:   #F76707;
+  --sk-warn:   #F59F00;
+  --sk-stable: #2F9E44;
+
+  /* ALERT-SPECIFIC */
+  --sk-allergy:   #9C36B5;
+  --sk-discharge: #1971C2;
+
+  /* DATA SEMANTICS */
+  --sk-data-real:     #E9E6EA;
+  --sk-data-forecast: #4DABF7;
+  --sk-data-target:   #63E6BE;
+
+  /* TRANSLUCENT FILLS */
+  --sk-crit-bg:    rgba(240,62,62,.12);
+  --sk-high-bg:    rgba(247,103,7,.12);
+  --sk-warn-bg:    rgba(245,159,0,.12);
+  --sk-stable-bg:  rgba(47,158,68,.12);
+  --sk-allergy-bg: rgba(156,54,181,.12);
+  --sk-info-bg:    rgba(25,113,194,.12);
+  --sk-accent-bg:  rgba(77,171,247,.10);
+
+  /* RADII */
+  --sk-r-sm:   4px;
+  --sk-r-md:   8px;
+  --sk-r-lg:   12px;
+  --sk-r-pill: 9999px;
+
+  /* SPACING */
+  --sk-space-1:   4px;
+  --sk-space-2:   8px;
+  --sk-space-3:  12px;
+  --sk-space-4:  16px;
+  --sk-space-5:  20px;
+  --sk-space-6:  24px;
+  --sk-space-8:  32px;
+  --sk-space-10: 40px;
+  --sk-space-12: 48px;
+  --sk-space-16: 64px;
+
+  /* SHADOWS */
+  --sk-shadow-1: 0 1px 2px rgba(0,0,0,.4);
+  --sk-shadow-2: 0 4px 12px rgba(0,0,0,.45);
+  --sk-shadow-3: 0 12px 32px rgba(0,0,0,.55);
+
+  /* TYPOGRAPHY */
+  --sk-font-sans: var(--font-segoe), system-ui, -apple-system, "Helvetica Neue", sans-serif;
+  --sk-font-mono: var(--font-jetbrains), "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  --sk-fs-3xl:  40px;
+  --sk-fs-2xl:  32px;
+  --sk-fs-xl:   24px;
+  --sk-fs-lg:   18px;
+  --sk-fs-md:   15px;
+  --sk-fs-base: 14px;
+  --sk-fs-sm:   13px;
+  --sk-fs-xs:   11px;
+
+  --sk-lh-tight:  1.2;
+  --sk-lh-snug:   1.4;
+  --sk-lh-normal: 1.55;
+
+  --sk-fw-regular:  400;
+  --sk-fw-medium:   500;
+  --sk-fw-semibold: 600;
+  --sk-fw-bold:     700;
+
+  --sk-tracking-eyebrow: .08em;
+  --sk-tracking-brand:   .18em;
+
+  /* ─────────────────────────────────────────────────────────────────────
+   * BACKWARD-COMPAT ALIASES — existing components use these var names.
+   * They now point to the canonical DS values.
+   * ───────────────────────────────────────────────────────────────────── */
+  --background:       #1A171C;
+  --foreground:       #E9E6EA;
+  --surface:          #231F26;
+  --border:           #59505E;
+  --muted:            #928698;
+  --accent:           #4DABF7;
+  --accent-foreground: #1A171C;
+
+  --status-stable:    #2F9E44;
+  --status-attention: #F59F00;
+  --status-elevated:  #F76707;
+  --status-critical:  #F03E3E;
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * BASE STYLES
+ * ───────────────────────────────────────────────────────────────────────── */
 
 html {
   color-scheme: dark;
 }
 
 body {
-  background-color: var(--background);
-  color: var(--foreground);
-  font-family: Inter, system-ui, sans-serif;
+  background-color: var(--sk-base);
+  color: var(--sk-text-primary);
+  font-family: var(--sk-font-sans);
+  font-size: var(--sk-fs-base);
+  line-height: var(--sk-lh-normal);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -32,16 +155,68 @@ body {
   box-sizing: border-box;
 }
 
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+/* ─────────────────────────────────────────────────────────────────────────
+ * SCROLLBAR
+ * ───────────────────────────────────────────────────────────────────────── */
+
+::-webkit-scrollbar       { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--sk-s1); }
+::-webkit-scrollbar-thumb { background: var(--sk-b-subtle); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--sk-b-default); }
+
+.sk-scroll::-webkit-scrollbar       { width: 6px; height: 6px; }
+.sk-scroll::-webkit-scrollbar-track { background: var(--sk-s1); }
+.sk-scroll::-webkit-scrollbar-thumb { background: var(--sk-b-subtle); border-radius: 3px; }
+.sk-scroll::-webkit-scrollbar-thumb:hover { background: var(--sk-b-default); }
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * SEMANTIC HELPERS
+ * ───────────────────────────────────────────────────────────────────────── */
+
+.sk-body {
+  background: var(--sk-base);
+  color: var(--sk-text-primary);
+  font-family: var(--sk-font-sans);
+  font-size: var(--sk-fs-base);
+  line-height: var(--sk-lh-normal);
+  -webkit-font-smoothing: antialiased;
 }
 
-::-webkit-scrollbar-track {
-  background: var(--surface);
+.sk-h1 { font-size: var(--sk-fs-3xl); font-weight: 700; line-height: var(--sk-lh-tight); color: var(--sk-text-primary); }
+.sk-h2 { font-size: var(--sk-fs-2xl); font-weight: 700; line-height: var(--sk-lh-tight); color: var(--sk-text-primary); }
+.sk-h3 { font-size: var(--sk-fs-xl);  font-weight: 600; line-height: var(--sk-lh-snug);  color: var(--sk-text-primary); }
+.sk-h4 { font-size: var(--sk-fs-lg);  font-weight: 600; line-height: var(--sk-lh-snug);  color: var(--sk-text-primary); }
+.sk-h5 { font-size: var(--sk-fs-md);  font-weight: 600; line-height: var(--sk-lh-snug);  color: var(--sk-text-primary); }
+
+.sk-body-md { font-size: var(--sk-fs-md); color: var(--sk-text-primary); }
+.sk-body-sm { font-size: var(--sk-fs-sm); color: var(--sk-text-secondary); }
+.sk-caption  { font-size: var(--sk-fs-xs); color: var(--sk-text-muted); }
+
+.sk-eyebrow {
+  font-size: var(--sk-fs-xs);
+  font-weight: 600;
+  letter-spacing: var(--sk-tracking-eyebrow);
+  text-transform: uppercase;
+  color: var(--sk-text-muted);
 }
 
-::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 3px;
+.sk-mono { font-family: var(--sk-font-mono); font-feature-settings: "tnum" 1; }
+.sk-num  { font-family: var(--sk-font-mono); font-variant-numeric: tabular-nums; }
+
+.sk-brand {
+  font-family: var(--sk-font-sans);
+  font-weight: 700;
+  letter-spacing: var(--sk-tracking-brand);
+  color: var(--sk-accent);
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * ANIMATIONS
+ * ───────────────────────────────────────────────────────────────────────── */
+
+@keyframes sk-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: .4; transform: scale(.7); }
+}
+
+.sk-pulse { animation: sk-pulse 1.2s infinite; }

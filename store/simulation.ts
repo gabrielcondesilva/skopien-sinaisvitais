@@ -21,6 +21,7 @@ interface SimulationState {
   internacoes: Record<string, Internacao | SurgicalInternacao>;
   startedAt: number;
   tick: number;
+  lastUpdated: number;
   firedScenes: number[];
 
   advance: () => void;
@@ -33,7 +34,7 @@ interface SimulationState {
 }
 
 function initState() {
-  return { ...buildSeed(), startedAt: Date.now(), tick: 0, firedScenes: [] as number[] };
+  return { ...buildSeed(), startedAt: Date.now(), tick: 0, lastUpdated: Date.now(), firedScenes: [] as number[] };
 }
 
 export const useSimulationStore = create<SimulationState>()((set, get) => ({
@@ -62,7 +63,7 @@ export const useSimulationStore = create<SimulationState>()((set, get) => ({
         };
       }
 
-      return { internacoes: updated, tick: state.tick + 1 };
+      return { internacoes: updated, tick: state.tick + 1, lastUpdated: now };
     });
   },
 

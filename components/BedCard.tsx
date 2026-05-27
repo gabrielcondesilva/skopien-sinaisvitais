@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useAlertStore } from "@/store/alerts";
+import { useShallow } from "zustand/react/shallow";
 import type { Alert, Bed, Internacao, SurgicalInternacao } from "@/lib/simulation/types";
 
 const STATUS_COLOR: Record<string, string> = {
@@ -49,9 +50,9 @@ interface Props {
 
 export function BedCard({ bed, internacao }: Props) {
   const router = useRouter();
-  const alerts = useAlertStore((s) =>
+  const alerts = useAlertStore(useShallow((s) =>
     internacao ? s.active.filter((a) => a.internacaoId === internacao.id) : []
-  );
+  ));
 
   if (!internacao) {
     return (

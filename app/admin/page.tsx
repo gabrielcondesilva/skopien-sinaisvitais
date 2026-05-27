@@ -8,6 +8,7 @@ import {
 import { AuthGuard } from "@/components/AuthGuard";
 import { Sidebar } from "@/components/Sidebar";
 import { useSimulationStore } from "@/store/simulation";
+import { useShallow } from "zustand/react/shallow";
 import { useAlertStore } from "@/store/alerts";
 import { useAdminStore, ADMIN_TABS } from "@/store/admin";
 
@@ -178,7 +179,7 @@ function ChartBox({ title, children, height = 160 }: { title: string; children: 
 // ─── PS Dashboard ─────────────────────────────────────────────────────────────
 
 function PSDashboard() {
-  const beds       = useSimulationStore((s) => s.beds.filter((b) => b.unit === "pronto-socorro"));
+  const beds       = useSimulationStore(useShallow((s) => s.beds.filter((b) => b.unit === "pronto-socorro")));
   const occupied   = beds.filter((b) => b.internacaoId).length;
   const total      = beds.length;
 
@@ -279,7 +280,7 @@ function PSDashboard() {
 // ─── ENF Dashboard ────────────────────────────────────────────────────────────
 
 function EnfDashboard() {
-  const beds      = useSimulationStore((s) => s.beds.filter((b) => b.unit === "enfermaria"));
+  const beds      = useSimulationStore(useShallow((s) => s.beds.filter((b) => b.unit === "enfermaria")));
   const occupied  = beds.filter((b) => b.internacaoId).length;
   const total     = beds.length;
   const occupancy = Math.round((occupied / total) * 100);
@@ -331,7 +332,7 @@ function EnfDashboard() {
 // ─── UTI Dashboard ────────────────────────────────────────────────────────────
 
 function UTIDashboard() {
-  const beds      = useSimulationStore((s) => s.beds.filter((b) => b.unit === "uti"));
+  const beds      = useSimulationStore(useShallow((s) => s.beds.filter((b) => b.unit === "uti")));
   const occupied  = beds.filter((b) => b.internacaoId).length;
   const total     = beds.length;
   const occupancy = Math.round((occupied / total) * 100);
@@ -383,7 +384,7 @@ function UTIDashboard() {
 // ─── CC Dashboard ─────────────────────────────────────────────────────────────
 
 function CCDashboard() {
-  const beds      = useSimulationStore((s) => s.beds.filter((b) => b.unit === "centro-cirurgico"));
+  const beds      = useSimulationStore(useShallow((s) => s.beds.filter((b) => b.unit === "centro-cirurgico")));
   const occupied  = beds.filter((b) => b.internacaoId).length;
   const total     = beds.length;
   const occupancy = Math.round((occupied / total) * 100);

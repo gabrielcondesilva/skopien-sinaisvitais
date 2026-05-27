@@ -6,6 +6,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { BedCard } from "@/components/BedCard";
 import { SurgicalRoomCard } from "@/components/SurgicalRoomCard";
 import { useSimulationStore } from "@/store/simulation";
+import { useShallow } from "zustand/react/shallow";
 
 const UNIT_LABELS: Record<string, string> = {
   "pronto-socorro":   "Pronto Socorro",
@@ -15,8 +16,8 @@ const UNIT_LABELS: Record<string, string> = {
 };
 
 function UnitGrid({ unit }: { unit: string }) {
-  const beds = useSimulationStore((s) => s.beds.filter((b) => b.unit === unit));
-  const internacoes = useSimulationStore((s) => s.internacoes);
+  const beds = useSimulationStore(useShallow((s) => s.beds.filter((b) => b.unit === unit)));
+  const internacoes = useSimulationStore(useShallow((s) => s.internacoes));
 
   if (unit === "centro-cirurgico") {
     return (

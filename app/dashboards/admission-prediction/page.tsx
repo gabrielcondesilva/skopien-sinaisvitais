@@ -8,6 +8,7 @@ import {
 } from "recharts";
 import { AuthGuard } from "@/components/AuthGuard";
 import { useSimulationStore } from "@/store/simulation";
+import { useShallow } from "zustand/react/shallow";
 
 // ─── static data ──────────────────────────────────────────────────────────────
 
@@ -52,7 +53,7 @@ const TS = { background:"var(--surface)", border:"1px solid var(--border)", bord
 // ─── page ─────────────────────────────────────────────────────────────────────
 
 export default function AdmissionPredictionPage() {
-  const beds       = useSimulationStore((s) => s.beds.filter((b) => b.unit === "pronto-socorro"));
+  const beds       = useSimulationStore(useShallow((s) => s.beds.filter((b) => b.unit === "pronto-socorro")));
   const internacoes = useSimulationStore((s) => s.internacoes);
 
   // Build patient table from live PS patients with admissionProbability >= 30
