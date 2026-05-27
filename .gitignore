@@ -1,0 +1,26 @@
+# dependencies
+node_modules/
+
+# Next.js build output
+.next/
+out/
+
+# environment variables
+.env
+.env.local
+.env.*.local
+
+# Python virtualenv
+venv/
+__pycache__/
+*.py[cod]
+
+# TypeScript build cache
+tsconfig.tsbuildinfo
+
+# IDE / OS
+.DS_Store
+*.log
+
+# Claude Code session data
+.claude/
