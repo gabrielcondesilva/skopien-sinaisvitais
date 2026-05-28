@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAlertStore } from "@/store/alerts";
 import { useShallow } from "zustand/react/shallow";
 import type { Alert, Bed, Internacao, SurgicalInternacao } from "@/lib/simulation/types";
+import { StreamlineIcon } from "./ui/StreamlineIcon";
 
 const STATUS_COLOR: Record<string, string> = {
   "Estável":      "var(--status-stable)",
@@ -13,11 +14,10 @@ const STATUS_COLOR: Record<string, string> = {
   "Crítico":      "var(--status-critical)",
 };
 
-const ALERT_META: Record<string, { icon: string; color: string; label: string }> = {
-  "sinal-vital":   { icon: "alert-triangle", color: "var(--status-critical)",  label: "Sinal Vital Crítico"     },
-  "medicacao":     { icon: "pill",           color: "var(--status-attention)", label: "Medicação Atrasada"       },
-  "alta":          { icon: "home",           color: "var(--accent)",           label: "Previsão de Alta"         },
-  "bomba-infusao": { icon: "device-heart-monitor", color: "var(--status-elevated)", label: "Alarme Bomba de Infusão" },
+const ALERT_META: Record<string, { icon: "sinal_vital" | "medicacao" | "predicao_alta"; color: string; label: string }> = {
+  "sinal-vital": { icon: "sinal_vital",   color: "var(--status-critical)",  label: "Sinal Vital Crítico" },
+  "medicacao":   { icon: "medicacao",     color: "var(--status-attention)", label: "Medicação Atrasada"  },
+  "alta":        { icon: "predicao_alta", color: "var(--accent)",           label: "Previsão de Alta"    },
 };
 
 function formatElapsed(admittedAt: number): string {
@@ -36,10 +36,9 @@ function AlertBadge({ alert }: { alert: Alert }) {
   return (
     <span
       title={meta.label}
-      className="text-xs px-1 rounded animate-pulse select-none inline-flex items-center"
-      style={{ background: `${meta.color}28`, color: meta.color }}
+      className="animate-pulse select-none inline-flex items-center justify-center"
     >
-      <i className={`ti ti-${meta.icon}`} style={{ fontSize: 11 }} />
+      <StreamlineIcon name={meta.icon} size={16} />
     </span>
   );
 }
@@ -59,17 +58,39 @@ export function BedCard({ bed, internacao }: Props) {
   if (!internacao) {
     return (
       <div
-        className="rounded-lg p-4 flex flex-col gap-1 min-h-[100px] justify-center"
-        style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
+        className="rounded-lg p-4 flex flex-col gap-2"
+        style={{ background: "var(--surface)", border: "1px solid var(--status-stable)" }}
       >
-        <span className="text-xs font-mono" style={{ color: "var(--muted)" }}>{bed.label}</span>
-        <span className="text-sm" style={{ color: "var(--muted)" }}>Leito Disponível</span>
+        {/* Bed label — same row as occupied card */}
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs font-mono" style={{ color: "var(--muted)" }}>{bed.label}</span>
+        </div>
+
+        {/* Patient info slot → "Leito Disponível" + invisible subtitle to match height */}
+        <div>
+          <p className="text-sm font-medium leading-snug" style={{ color: "var(--muted)" }}>Leito Disponível</p>
+          <p className="text-xs mt-0.5 invisible" aria-hidden>– · – · –</p>
+        </div>
+
+        {/* Admission reason slot — invisible to keep height */}
+        <p className="text-xs leading-tight line-clamp-1 invisible" aria-hidden>–</p>
+
+        {/* EWS footer slot — same border/padding as occupied */}
+        <div
+          className="flex items-center justify-between pt-2 mt-auto"
+          style={{ borderTop: "1px solid var(--border)" }}
+        >
+          <span className="text-xs invisible" aria-hidden>EWS</span>
+          <span className="text-xs px-2 py-0.5 rounded-md invisible" aria-hidden>0 –</span>
+        </div>
       </div>
     );
   }
 
-  const statusColor = STATUS_COLOR[internacao.currentStatus] ?? "var(--muted)";
-  const isCritical  = internacao.currentStatus === "Crítico";
+  const statusColor  = STATUS_COLOR[internacao.currentStatus] ?? "var(--muted)";
+  const isCritical   = internacao.currentStatus === "Crítico";
+  const hasAlerts    = alerts.length > 0;
+  const showRedPulse = isCritical || hasAlerts;
 
   return (
     <div
@@ -77,10 +98,10 @@ export function BedCard({ bed, internacao }: Props) {
       tabIndex={0}
       onClick={() => router.push(`/patients/${internacao.id}`)}
       onKeyDown={(e) => e.key === "Enter" && router.push(`/patients/${internacao.id}`)}
-      className={`rounded-lg p-4 flex flex-col gap-2 cursor-pointer select-none hover:bg-white/[0.03] focus-visible:outline-none transition-colors${isCritical ? " sk-crit-pulse" : ""}`}
+      className={`rounded-lg p-4 flex flex-col gap-2 cursor-pointer select-none hover:bg-white/[0.03] focus-visible:outline-none transition-colors${showRedPulse ? " sk-crit-pulse" : ""}`}
       style={{
         background: "var(--surface)",
-        border: `1px solid ${isCritical ? "rgba(240,62,62,0.7)" : hovered ? "var(--accent)" : `${statusColor}44`}`,
+        border: `1px solid ${showRedPulse ? "rgba(240,62,62,0.7)" : hovered ? "var(--accent)" : `${statusColor}44`}`,
       }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
@@ -90,12 +111,8 @@ export function BedCard({ bed, internacao }: Props) {
         <span className="text-xs font-mono" style={{ color: "var(--muted)" }}>{bed.label}</span>
         <div className="flex items-center gap-1 flex-wrap justify-end">
           {internacao.hasPump && (
-            <span
-              title="Bomba de Infusão ativa"
-              className="text-xs px-1 rounded select-none"
-              style={{ background: "rgba(249,115,22,0.16)", color: "var(--status-elevated)" }}
-            >
-              ⊕
+            <span title="Bomba de Infusão ativa" className="inline-flex items-center select-none">
+              <StreamlineIcon name="bomba_infusao" size={16} />
             </span>
           )}
           {alerts.map((a) => <AlertBadge key={a.id} alert={a} />)}

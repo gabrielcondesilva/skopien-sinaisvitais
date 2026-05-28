@@ -78,10 +78,10 @@ export interface Bed {
 // ─── Alert types ──────────────────────────────────────────────────────────────
 
 export type AlertType =
-  | "sinal-vital"      // EWS → Crítico; badge clears when status normalizes
-  | "medicacao"        // scripted delayed medication; badge clears on acknowledge
-  | "alta"             // scripted discharge prediction; badge clears on acknowledge, can re-fire
-  | "bomba-infusao";   // scripted pump alarm; badge clears on acknowledge
+  | "sinal-vital"  // EWS → Crítico; badge clears when status normalizes
+  | "medicacao"    // scripted delayed medication; badge clears on acknowledge
+  | "alta";        // scripted discharge prediction; badge clears on acknowledge, can re-fire
+// Note: hasPump on Internacao is the visual pump indicator — not an alert type
 
 export type AlertStatus = "active" | "dismissed" | "auto-cleared";
 

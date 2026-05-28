@@ -70,8 +70,8 @@ export function Sidebar() {
         className="fixed top-0 left-0 h-full w-56 flex flex-col z-30"
         style={{ background: "var(--surface)", borderRight: "1px solid var(--border)" }}
       >
-        {/* Logo */}
-        <div className="flex items-center justify-center px-4 py-4 shrink-0" style={{ borderBottom: "1px solid var(--border)" }}>
+        {/* Logo + hospital name */}
+        <div className="flex flex-col items-center justify-center px-4 pt-4 pb-3 shrink-0 gap-1.5" style={{ borderBottom: "1px solid var(--border)" }}>
           <Image
             src="/logo_branca.png"
             alt="SKOPIEN"
@@ -79,6 +79,31 @@ export function Sidebar() {
             height={42}
             priority
           />
+          <span
+            className="text-[10px] font-medium text-center leading-tight px-2"
+            style={{ color: "var(--muted)" }}
+          >
+            Hospital Demo Skopien
+          </span>
+        </div>
+
+        {/* Alerts bell — top priority, before nav */}
+        <div className="px-3 pt-2 pb-1 shrink-0" style={{ borderBottom: "1px solid var(--border)" }}>
+          <button
+            onClick={() => setPanelOpen(true)}
+            aria-label="Abrir painel de alertas"
+            className={`relative flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm w-full text-left ${activeCount > 0 ? "sk-alert-blink" : "hover:bg-white/5 transition-colors"}`}
+            style={{ color: activeCount > 0 ? "var(--status-critical)" : "var(--muted)" }}
+          >
+            <Icon name="bell-ringing" size={16} color="currentColor" />
+            <span>Alertas</span>
+            {activeCount > 0 && (
+              <span
+                className="sk-pulse ml-auto w-2 h-2 rounded-full shrink-0"
+                style={{ background: "var(--status-critical)" }}
+              />
+            )}
+          </button>
         </div>
 
         <nav className="flex-1 py-3 overflow-y-auto">
@@ -169,27 +194,6 @@ export function Sidebar() {
 
         {/* Bottom actions */}
         <div className="shrink-0 px-3 pt-3 pb-2 flex flex-col gap-0.5" style={{ borderTop: "1px solid var(--border)" }}>
-          {/* Alerts bell */}
-          <button
-            onClick={() => setPanelOpen(true)}
-            aria-label="Abrir painel de alertas"
-            className="relative flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm transition-colors hover:bg-white/5 w-full text-left"
-            style={{ color: activeCount > 0 ? "var(--status-critical)" : "var(--muted)" }}
-          >
-            <Icon name="bell-ringing" size={16} color="currentColor" />
-            <span>Alertas</span>
-            {activeCount > 0 && (
-              <span
-                className="sk-pulse ml-auto text-xs w-5 h-5 flex items-center justify-center rounded-full font-bold"
-                style={{ background: "var(--status-critical)", color: "#fff" }}
-              >
-                {activeCount > 9 ? "9+" : activeCount}
-              </span>
-            )}
-          </button>
-
-          {/* Logout — visually separated (destructive-nav-separation) */}
-          <div className="mx-1 my-1" style={{ borderTop: "1px solid var(--border)" }} />
           <button
             onClick={() => { logout(); router.replace("/login"); }}
             aria-label="Sair da sessão"

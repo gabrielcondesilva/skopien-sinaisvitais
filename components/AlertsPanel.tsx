@@ -2,12 +2,12 @@
 
 import { useAlertStore } from "@/store/alerts";
 import type { Alert } from "@/lib/simulation/types";
+import { StreamlineIcon } from "./ui/StreamlineIcon";
 
-const ALERT_META: Record<string, { icon: string; title: string; color: string }> = {
-  "sinal-vital":   { icon: "alert-triangle",       title: "Sinal Vital Crítico",    color: "var(--status-critical)"  },
-  "medicacao":     { icon: "pill",                 title: "Medicação Atrasada",      color: "var(--status-attention)" },
-  "alta":          { icon: "home",                 title: "Previsão de Alta",        color: "var(--accent)"           },
-  "bomba-infusao": { icon: "device-heart-monitor", title: "Alarme Bomba de Infusão", color: "var(--status-elevated)"  },
+const ALERT_META: Record<string, { icon: "sinal_vital" | "medicacao" | "predicao_alta"; title: string; color: string }> = {
+  "sinal-vital": { icon: "sinal_vital",   title: "Sinal Vital Crítico", color: "var(--status-critical)"  },
+  "medicacao":   { icon: "medicacao",     title: "Medicação Atrasada",  color: "var(--status-attention)" },
+  "alta":        { icon: "predicao_alta", title: "Previsão de Alta",    color: "var(--accent)"           },
 };
 
 function formatRelative(firedAt: number): string {
@@ -25,7 +25,7 @@ function AlertCard({ alert }: { alert: Alert }) {
   return (
     <div className="p-4 flex flex-col gap-3" style={{ borderBottom: "1px solid var(--border)" }}>
       <div className="flex items-start gap-3">
-        <i className={`ti ti-${meta.icon} mt-0.5 shrink-0`} style={{ fontSize: 16, color: meta.color }} />
+        <StreamlineIcon name={meta.icon} size={22} className="mt-0.5 shrink-0" />
         <div className="flex-1 min-w-0">
           <p className="text-xs font-semibold" style={{ color: meta.color }}>{meta.title}</p>
           <p className="text-sm font-medium mt-0.5 truncate">{alert.patientName}</p>

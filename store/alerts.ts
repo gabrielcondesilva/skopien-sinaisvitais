@@ -37,6 +37,12 @@ interface AlertState {
   // Dismiss an alert with an optional action note
   dismiss: (alertId: string, action?: string) => void;
 
+  // Seed all demo alert types at app startup (called once by SimulationProvider)
+  seedDemoAlerts: (
+    items: Array<Omit<Alert, "id" | "firedAt" | "status">>,
+    initialCriticalIds?: string[]
+  ) => void;
+
   // Derived helper: returns active alerts for a specific internação
   getAlertsForInternacao: (internacaoId: string) => Alert[];
 }
@@ -97,18 +103,22 @@ export const useAlertStore = create<AlertState>()((set, get) => ({
   },
 
   fireAlert({ type, internacaoId, patientName, bedLabel, unit, message }) {
-    const alert: Alert = {
-      id: alertId(),
-      type,
-      internacaoId,
-      patientName,
-      bedLabel,
-      unit,
-      message,
-      firedAt: Date.now(),
-      status: "active",
-    };
     set((state) => {
+      // Skip if an active alert of the same type already exists for this internação
+      if (state.active.some((a) => a.type === type && a.internacaoId === internacaoId)) {
+        return {};
+      }
+      const alert: Alert = {
+        id: alertId(),
+        type,
+        internacaoId,
+        patientName,
+        bedLabel,
+        unit,
+        message,
+        firedAt: Date.now(),
+        status: "active",
+      };
       const merged = [...state.active, alert];
       return { active: merged, activeCount: merged.length };
     });
@@ -130,6 +140,24 @@ export const useAlertStore = create<AlertState>()((set, get) => ({
         active: nowActive,
         history: [...state.history, dismissed],
         activeCount: nowActive.length,
+      };
+    });
+  },
+
+  seedDemoAlerts(items, initialCriticalIds = []) {
+    const now = Date.now();
+    const seeded: Alert[] = items.map((item) => ({
+      ...item,
+      id: alertId(),
+      firedAt: now,
+      status: "active" as const,
+    }));
+    set((state) => {
+      const merged = [...state.active, ...seeded];
+      return {
+        active: merged,
+        activeCount: merged.length,
+        _criticalSet: new Set([...state._criticalSet, ...initialCriticalIds]),
       };
     });
   },

@@ -72,6 +72,8 @@ const ATTENTION: VitalsBaseline     = { fr: 22, spo2: 95, pas: 99,  fc: 96, temp
 // UTI-01 starts at Atenção — will deteriorate in Cena 1
 const UTI_CENA1: VitalsBaseline     = { fr: 23, spo2: 95, pas: 102, fc: 98, temp: 37.6 };
 const UTI_STABLE: VitalsBaseline    = { fr: 14, spo2: 97, pas: 118, fc: 68, temp: 36.9 };
+// UTI-02 starts already critical — seeds the initial sinal-vital demo alert
+const UTI_CRITICAL: VitalsBaseline  = { fr: 27, spo2: 88, pas: 84, fc: 120, temp: 38.8 };
 
 // ─── Build units ──────────────────────────────────────────────────────────────
 
@@ -218,7 +220,7 @@ export function buildSeed(): {
   );
   addOccupied("UTI-02", "uti",
     makePatient("Beatriz Helena Cardoso", 62, "F", "Choque Séptico", 96),
-    UTI_STABLE, { hasPump: true }
+    UTI_CRITICAL, { hasPump: true }
   );
   addOccupied("UTI-03", "uti",
     makePatient("Manoel Augusto Vieira", 83, "M", "Insuficiência Respiratória", 72),

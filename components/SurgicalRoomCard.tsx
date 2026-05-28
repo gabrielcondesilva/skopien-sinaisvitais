@@ -1,6 +1,7 @@
 "use client";
 
 import type { Bed, Internacao, SurgicalInternacao, SurgicalStep } from "@/lib/simulation/types";
+import { StreamlineIcon } from "./ui/StreamlineIcon";
 
 function isSurgical(i: Internacao | SurgicalInternacao): i is SurgicalInternacao {
   return "surgicalFlow" in i;
@@ -108,12 +109,8 @@ export function SurgicalRoomCard({ bed, internacao }: Props) {
       <div className="flex items-center justify-between gap-2">
         <span className="text-xs font-mono" style={{ color: "var(--muted)" }}>{bed.label}</span>
         {internacao.hasPump && (
-          <span
-            title="Bomba de Infusão ativa"
-            className="text-xs px-1 rounded select-none"
-            style={{ background: "rgba(249,115,22,0.16)", color: "var(--status-elevated)" }}
-          >
-            ⊕
+          <span title="Bomba de Infusão ativa" className="inline-flex items-center select-none">
+            <StreamlineIcon name="bomba_infusao" size={16} />
           </span>
         )}
       </div>

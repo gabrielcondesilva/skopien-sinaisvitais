@@ -5,6 +5,7 @@ import { useSimulationStore } from "@/store/simulation";
 import { useAlertStore } from "@/store/alerts";
 import { currentSlotValues } from "@/lib/simulation/vitals";
 import { calculateEWS } from "@/lib/ews";
+import type { Alert } from "@/lib/simulation/types";
 
 const VITAL_META = [
   { key: "fr"   as const, label: "FR",   unit: "rpm",  fmt: (v: number) => `${v} rpm`  },
@@ -17,10 +18,66 @@ const VITAL_META = [
 const TICK_INTERVAL_MS = 15_000;
 
 export function SimulationProvider({ children }: { children: React.ReactNode }) {
-  const advance        = useSimulationStore((s) => s.advance);
-  const checkScenes    = useSimulationStore((s) => s.checkScenes);
+  const advance          = useSimulationStore((s) => s.advance);
+  const checkScenes      = useSimulationStore((s) => s.checkScenes);
   const checkVitalAlerts = useAlertStore((s) => s.checkVitalAlerts);
-  const fireAlert      = useAlertStore((s) => s.fireAlert);
+  const fireAlert        = useAlertStore((s) => s.fireAlert);
+  const seedDemoAlerts   = useAlertStore((s) => s.seedDemoAlerts);
+
+  // Seed one alert of each type at startup so demo always shows all alert kinds
+  useEffect(() => {
+    const { beds, internacoes } = useSimulationStore.getState();
+
+    const find = (label: string) => {
+      const bed = beds.find((b) => b.label === label);
+      if (!bed?.internacaoId) return null;
+      return internacoes[bed.internacaoId];
+    };
+
+    const uti02 = find("UTI-02");
+    const enf01 = find("ENF-01");
+    const ps01  = find("PS-01");
+
+    type Item = Omit<Alert, "id" | "firedAt" | "status">;
+    const items: Item[] = [];
+    const criticalIds: string[] = [];
+
+    if (uti02) {
+      items.push({
+        type: "sinal-vital",
+        internacaoId: uti02.id,
+        patientName: uti02.patient.name,
+        bedLabel: "UTI-02",
+        unit: "uti",
+        message: "SpO₂ 88% · FR 27 rpm · PAS 84 mmHg",
+      });
+      criticalIds.push(uti02.id);
+    }
+
+    if (enf01) {
+      items.push({
+        type: "medicacao",
+        internacaoId: enf01.id,
+        patientName: enf01.patient.name,
+        bedLabel: "ENF-01",
+        unit: "enfermaria",
+        message: "Furosemida 40mg — administração em atraso",
+      });
+    }
+
+    if (ps01) {
+      items.push({
+        type: "alta",
+        internacaoId: ps01.id,
+        patientName: ps01.patient.name,
+        bedLabel: "PS-01",
+        unit: "pronto-socorro",
+        message: "Alta prevista — 72% de probabilidade",
+      });
+    }
+
+    seedDemoAlerts(items, criticalIds);
+  }, [seedDemoAlerts]);
 
   useEffect(() => {
     const id = setInterval(() => {
