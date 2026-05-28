@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { AuthGuard } from "@/components/AuthGuard";
 import { useAuthStore } from "@/store/auth";
@@ -8,7 +9,7 @@ import { useAuthStore } from "@/store/auth";
 const DASHBOARDS = [
   {
     id: "emergency-unit",
-    label: "Emergency Unit",
+    label: "Unidade de Emergência",
     desc: "Fluxo de porta, LOS e boarding do Pronto Socorro",
   },
   {
@@ -18,12 +19,12 @@ const DASHBOARDS = [
   },
   {
     id: "operating-room",
-    label: "Operating Room",
+    label: "Centro Cirúrgico",
     desc: "Utilização de salas e turnover cirúrgico",
   },
   {
     id: "capacity-demand",
-    label: "Capacity × Demand",
+    label: "Capacidade × Demanda",
     desc: "Projeção de demanda vs capacidade disponível",
   },
   {
@@ -43,17 +44,17 @@ const DASHBOARDS = [
   },
   {
     id: "bed-cleaning",
-    label: "Bed Cleaning",
+    label: "Higienização de Leitos",
     desc: "Tempo de higienização e liberação de leitos",
   },
   {
     id: "patient-prediction",
-    label: "Patient Prediction",
+    label: "Predição de Deterioração",
     desc: "Previsão de deterioração clínica por modelo preditivo",
   },
   {
     id: "admission-prediction",
-    label: "Admission Prediction",
+    label: "Predição de Internações",
     desc: "Previsão de internações nas próximas 24 horas",
   },
 ] as const;
@@ -73,9 +74,7 @@ export default function CommandPage() {
           className="sticky top-0 z-10 px-6 py-4 flex items-center justify-between"
           style={{ background: "var(--surface)", borderBottom: "1px solid var(--border)" }}
         >
-          <span className="text-sm font-bold tracking-widest" style={{ color: "var(--accent)" }}>
-            SKOPIEN
-          </span>
+          <Image src="/logo_branca.png" alt="SKOPIEN" width={110} height={33} priority />
           <div className="flex items-center gap-3">
             <span className="text-xs font-medium px-2 py-0.5 rounded-full animate-pulse"
               style={{ background: "rgba(34,197,94,0.15)", color: "var(--status-stable)" }}>

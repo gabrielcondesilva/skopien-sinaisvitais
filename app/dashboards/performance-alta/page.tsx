@@ -49,10 +49,10 @@ function DischargeGauge({ label, pct }: { label: string; pct: number }) {
   const color = pct >= 75 ? "var(--status-stable)" : pct >= 60 ? "var(--status-attention)" : "var(--status-critical)";
 
   return (
-    <div className="rounded-lg p-5 flex flex-col items-center gap-2"
+    <div className="rounded-lg p-4 flex flex-col items-center justify-center gap-2"
       style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
       <p className="text-xs font-semibold">{label}</p>
-      <svg width={128} height={128}>
+      <svg viewBox="0 0 128 128" width="100%" style={{ maxWidth: 112 }}>
         <circle cx={CX} cy={CY} r={R} fill="none" stroke="var(--border)" strokeWidth={10} />
         <circle
           cx={CX} cy={CY} r={R} fill="none"
@@ -60,8 +60,8 @@ function DischargeGauge({ label, pct }: { label: string; pct: number }) {
           strokeDasharray={`${arc} ${CIRC}`}
           transform={`rotate(-90 ${CX} ${CY})`}
         />
-        <text x={CX} y={CY - 5} textAnchor="middle" fontSize={26} fontWeight="700" fill={color}>{pct}</text>
-        <text x={CX} y={CY + 13} textAnchor="middle" fontSize={10} fill="var(--muted)">%</text>
+        <text x={CX} y={CY - 8} textAnchor="middle" dominantBaseline="central" fontSize={26} fontWeight="700" fill={color}>{pct}</text>
+        <text x={CX} y={CY + 10} textAnchor="middle" dominantBaseline="central" fontSize={11} fill="var(--muted)">%</text>
       </svg>
       <p className="text-xs text-center" style={{ color: "var(--muted)" }}>altas até 10h</p>
     </div>
@@ -105,23 +105,23 @@ export default function PerformanceAltaPage() {
           </span>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-4">
           {/* KPIs */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <KpiCard label="Performance Hospital" value={`${hospitalPct}%`} sub="média de todas as alas" />
             <KpiCard label="Altas até 10h Hoje"   value="24"    sub="de 38 previstas" />
-            <KpiCard label="Meta Institucional"    value="80%"   sub="alvo mensal" accent={hospitalPct < 80} />
-            <KpiCard label="Gap para Meta"         value={`${80 - hospitalPct}pp`} sub="pontos percentuais" accent={hospitalPct < 80} />
+            <KpiCard label="Meta Institucional"    value="80%"   sub="alvo mensal" />
+            <KpiCard label="Gap para Meta"         value={`${80 - hospitalPct}`} sub="pontos percentuais" />
           </div>
 
-          {/* Main chart + gauges */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <div className="lg:col-span-2 rounded-lg p-4"
+          {/* Linha 1: gráfico de barras + 2 gauges */}
+          <div className="grid grid-cols-4 gap-4">
+            <div className="col-span-2 rounded-lg p-4"
               style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
               <p className="text-xs font-medium mb-3" style={{ color: "var(--muted)" }}>
                 % de Altas até 10h por Ala — Hoje
               </p>
-              <ResponsiveContainer width="100%" height={220}>
+              <ResponsiveContainer width="100%" height={175}>
                 <BarChart data={WARD_PERF} layout="vertical" margin={{ top: 4, right: 16, bottom: 0, left: 8 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
                   <XAxis type="number" tick={{ fill: "var(--muted)", fontSize: 10 }} domain={[0, 100]}
@@ -129,28 +129,22 @@ export default function PerformanceAltaPage() {
                   <YAxis type="category" dataKey="ala" tick={{ fill: "var(--muted)", fontSize: 10 }} width={88} />
                   <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => [`${v}%`, "Altas até 10h"]} />
                   <ReferenceLine x={80} stroke="rgba(239,68,68,0.5)" strokeDasharray="4 4" />
-                  <Bar dataKey="pct" radius={[0, 3, 3, 0]} isAnimationActive={false}
-                    fill="#3b82f6"
-                  />
+                  <Bar dataKey="pct" radius={[0, 3, 3, 0]} isAnimationActive={false} fill="#3b82f6" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
-
-            {/* Gauges */}
-            <div className="flex flex-col gap-3">
-              <DischargeGauge label="Maternidade" pct={78} />
-              <DischargeGauge label="Pediatria"   pct={65} />
-            </div>
+            <DischargeGauge label="Maternidade" pct={78} />
+            <DischargeGauge label="Pediatria"   pct={65} />
           </div>
 
-          {/* 3 smaller charts */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Linha 2: 3 gráficos menores */}
+          <div className="grid grid-cols-3 gap-4">
             <div className="rounded-lg p-4"
               style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
               <p className="text-xs font-medium mb-3" style={{ color: "var(--muted)" }}>
                 Tendência — últimos 7 dias (%)
               </p>
-              <ResponsiveContainer width="100%" height={130}>
+              <ResponsiveContainer width="100%" height={118}>
                 <AreaChart data={TREND_7D} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
                   <defs>
                     <linearGradient id="gtTrend" x1="0" y1="0" x2="0" y2="1">
@@ -173,7 +167,7 @@ export default function PerformanceAltaPage() {
               <p className="text-xs font-medium mb-3" style={{ color: "var(--muted)" }}>
                 Altas até 10h por Dia da Semana
               </p>
-              <ResponsiveContainer width="100%" height={130}>
+              <ResponsiveContainer width="100%" height={118}>
                 <BarChart data={BY_DOW} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                   <XAxis dataKey="day" tick={{ fill: "var(--muted)", fontSize: 9 }} />
@@ -189,7 +183,7 @@ export default function PerformanceAltaPage() {
               <p className="text-xs font-medium mb-3" style={{ color: "var(--muted)" }}>
                 Distribuição por Hora — Hoje
               </p>
-              <ResponsiveContainer width="100%" height={130}>
+              <ResponsiveContainer width="100%" height={118}>
                 <LineChart data={HOUR_DIST} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                   <XAxis dataKey="h" tick={{ fill: "var(--muted)", fontSize: 9 }} />

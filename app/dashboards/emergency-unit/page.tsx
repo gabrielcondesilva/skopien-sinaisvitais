@@ -110,7 +110,7 @@ function LOSTable() {
   return (
     <div className="rounded-lg overflow-hidden" style={{ border: "1px solid var(--border)" }}>
       <p className="text-xs font-semibold px-4 pt-4 pb-2" style={{ color: "var(--foreground)" }}>
-        LOS — Tempo de Permanência (PS)
+        Tempo de Permanência (PS)
       </p>
       <div className="overflow-x-auto">
         <table className="w-full text-xs">
@@ -161,7 +161,7 @@ function WaitingForBedTable() {
   return (
     <div className="rounded-lg overflow-hidden" style={{ border: "1px solid var(--border)" }}>
       <p className="text-xs font-semibold px-4 pt-4 pb-2" style={{ color: "var(--foreground)" }}>
-        Waiting for Bed — Aguardando Internação
+        Aguardando Internação
       </p>
       <div className="overflow-x-auto">
         <table className="w-full text-xs">
@@ -208,7 +208,7 @@ export default function EmergencyUnitPage() {
           <Link href="/command" className="text-xs transition-colors hover:text-white" style={{ color: "var(--muted)" }}>
             ← Comando
           </Link>
-          <span className="text-sm font-semibold">Emergency Unit</span>
+          <span className="text-sm font-semibold">Unidade de Emergência</span>
           <span
             className="text-xs font-medium px-2 py-0.5 rounded-full animate-pulse ml-auto"
             style={{ background: "rgba(34,197,94,0.12)", color: "var(--status-stable)" }}
@@ -222,8 +222,8 @@ export default function EmergencyUnitPage() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <KpiCard label="Porta → Triagem" value="8 min" sub="média hoje" />
             <KpiCard label="Porta → Médico"  value="27 min" sub="média hoje" />
-            <KpiCard label="LOS Médio"        value="4,2 h"  sub="em atendimento" />
-            <KpiCard label="Boarding Time"    value="2,1 h"  sub="aguardando leito" />
+            <KpiCard label="Permanência Média" value="4,2 h"  sub="em atendimento" />
+            <KpiCard label="Espera por Leito" value="2,1 h"  sub="aguardando leito" />
           </div>
 
           {/* Sparklines */}

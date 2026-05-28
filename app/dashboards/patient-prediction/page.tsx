@@ -51,7 +51,7 @@ export default function PatientPredictionPage() {
         <div className="sticky top-0 z-10 px-6 py-3 flex items-center gap-4"
           style={{ background:"var(--surface)", borderBottom:"1px solid var(--border)" }}>
           <Link href="/command" className="text-xs hover:text-white transition-colors" style={{ color:"var(--muted)" }}>← Comando</Link>
-          <span className="text-sm font-semibold">Patient Prediction</span>
+          <span className="text-sm font-semibold">Predição de Deterioração</span>
           <span className="text-xs font-medium px-2 py-0.5 rounded-full animate-pulse ml-auto"
             style={{ background:"rgba(34,197,94,0.12)", color:"var(--status-stable)" }}>Ao vivo</span>
         </div>

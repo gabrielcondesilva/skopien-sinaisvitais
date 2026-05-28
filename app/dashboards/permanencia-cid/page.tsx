@@ -81,9 +81,9 @@ export default function PermanenciaCIDPage() {
         <div className="p-6 space-y-6">
           {/* KPIs */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <KpiCard label="LOS Médio Geral"    value="6,8 dias" sub="todos os CIDs" />
+            <KpiCard label="Permanência Média Geral"    value="6,8 dias" sub="todos os CIDs" />
             <KpiCard label="Total Internações"  value="479"      sub="últimos 30 dias" />
-            <KpiCard label="LOS Mediana"        value="6,2 dias" />
+            <KpiCard label="Permanência Mediana"        value="6,2 dias" />
             <KpiCard label="Desvio Padrão"      value="3,1 dias" />
           </div>
 
@@ -97,7 +97,7 @@ export default function PermanenciaCIDPage() {
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
                   <XAxis type="number" tick={{ fill:"var(--muted)", fontSize:10 }} domain={[0,14]} />
                   <YAxis type="category" dataKey="cid" tick={{ fill:"var(--muted)", fontSize:9 }} width={130} />
-                  <Tooltip contentStyle={TS} formatter={(v) => [`${v} dias`, "LOS"]} />
+                  <Tooltip contentStyle={TS} formatter={(v) => [`${v} dias`, "Permanência"]} />
                   <Bar dataKey="los" radius={[0,3,3,0]} isAnimationActive={false} fill="#3b82f6" />
                 </BarChart>
               </ResponsiveContainer>
@@ -152,7 +152,7 @@ export default function PermanenciaCIDPage() {
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                   <XAxis dataKey="nome" tick={{ fill:"var(--muted)", fontSize:9 }} />
                   <YAxis tick={{ fill:"var(--muted)", fontSize:9 }} domain={[0,10]} />
-                  <Tooltip contentStyle={TS} formatter={(v) => [`${v} dias`, "LOS"]} />
+                  <Tooltip contentStyle={TS} formatter={(v) => [`${v} dias`, "Permanência"]} />
                   <Bar dataKey="los" isAnimationActive={false} radius={[3,3,0,0]}>
                     {CONVENIO.map((e) => (
                       <Cell key={e.nome} fill={e.nome === "SUS" ? "#ef4444" : "#06b6d4"} />

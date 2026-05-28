@@ -137,7 +137,7 @@ export default function AgendamentoAnestesicoPage() {
               <table className="w-full text-xs">
                 <thead>
                   <tr style={{ background:"rgba(255,255,255,0.03)" }}>
-                    {["Hora","Procedimento (PT)","Procedimento (EN)","Setor","Status","Tipo"].map((h) => (
+                    {["Hora","Procedimento","Procedimento (Inglês)","Setor","Status","Tipo"].map((h) => (
                       <th key={h} className="px-3 py-2.5 text-left font-medium whitespace-nowrap"
                         style={{ color:"var(--muted)", borderBottom:"1px solid var(--border)" }}>{h}</th>
                     ))}

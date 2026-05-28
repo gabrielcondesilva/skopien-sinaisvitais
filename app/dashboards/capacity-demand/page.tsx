@@ -41,7 +41,7 @@ const BADGE: {
   { key: "total",       label: "Total",        bg: "rgba(255,255,255,0.06)", color: "var(--foreground)"     },
   { key: "available",   label: "Disponíveis",  bg: "rgba(34,197,94,0.10)",   color: "var(--status-stable)"  },
   { key: "altasPrev",   label: "Alta Prev.",   bg: "rgba(59,130,246,0.10)",  color: "var(--accent)"         },
-  { key: "altasConf",   label: "Alta Conf.",   bg: "rgba(34,197,94,0.14)",   color: "var(--status-stable)"  },
+  { key: "altasConf",   label: "Alta Conf.",   bg: "rgba(249,115,22,0.14)",  color: "var(--status-elevated)" },
   { key: "pendentes",   label: "Pendentes",    bg: "rgba(234,179,8,0.12)",   color: "var(--status-attention)"},
   { key: "demandaPrev", label: "Dem. Prev.",   bg: "rgba(239,68,68,0.12)",   color: "var(--status-critical)" },
 ];
@@ -56,7 +56,7 @@ export default function CapacityDemandPage() {
           <Link href="/command" className="text-xs hover:text-white transition-colors" style={{ color: "var(--muted)" }}>
             ← Comando
           </Link>
-          <span className="text-sm font-semibold">Capacity × Demand</span>
+          <span className="text-sm font-semibold">Capacidade × Demanda</span>
           <span className="text-xs font-medium px-2 py-0.5 rounded-full animate-pulse ml-auto"
             style={{ background: "rgba(34,197,94,0.12)", color: "var(--status-stable)" }}>
             Ao vivo

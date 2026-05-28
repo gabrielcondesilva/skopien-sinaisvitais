@@ -59,7 +59,7 @@ export default function BedCleaningPage() {
         <div className="sticky top-0 z-10 px-6 py-3 flex items-center gap-4"
           style={{ background:"var(--surface)", borderBottom:"1px solid var(--border)" }}>
           <Link href="/command" className="text-xs hover:text-white transition-colors" style={{ color:"var(--muted)" }}>← Comando</Link>
-          <span className="text-sm font-semibold">Bed Cleaning</span>
+          <span className="text-sm font-semibold">Higienização de Leitos</span>
           <span className="text-xs font-medium px-2 py-0.5 rounded-full animate-pulse ml-auto"
             style={{ background:"rgba(34,197,94,0.12)", color:"var(--status-stable)" }}>Ao vivo</span>
         </div>
@@ -82,12 +82,11 @@ export default function BedCleaningPage() {
             ))}
           </div>
 
-          {/* 2×2 grid of charts */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* Espera por hora */}
+          {/* Linha 1: Espera + Aceite */}
+          <div className="grid grid-cols-2 gap-4">
             <div className="rounded-lg p-4" style={{ background:"var(--surface)", border:"1px solid var(--border)" }}>
               <p className="text-xs font-medium mb-3" style={{ color:"var(--muted)" }}>Espera por Hora (leitos)</p>
-              <ResponsiveContainer width="100%" height={150}>
+              <ResponsiveContainer width="100%" height={130}>
                 <LineChart data={ESPERA_H} margin={{ top:4, right:4, bottom:0, left:-20 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                   <XAxis dataKey="h" tick={{ fill:"var(--muted)", fontSize:9 }} />
@@ -98,10 +97,9 @@ export default function BedCleaningPage() {
               </ResponsiveContainer>
             </div>
 
-            {/* Aceite por hora */}
             <div className="rounded-lg p-4" style={{ background:"var(--surface)", border:"1px solid var(--border)" }}>
               <p className="text-xs font-medium mb-3" style={{ color:"var(--muted)" }}>Aceite por Hora (leitos)</p>
-              <ResponsiveContainer width="100%" height={150}>
+              <ResponsiveContainer width="100%" height={130}>
                 <LineChart data={ACEITE_H} margin={{ top:4, right:4, bottom:0, left:-20 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                   <XAxis dataKey="h" tick={{ fill:"var(--muted)", fontSize:9 }} />
@@ -111,11 +109,13 @@ export default function BedCleaningPage() {
                 </LineChart>
               </ResponsiveContainer>
             </div>
+          </div>
 
-            {/* Desempenho por etapa */}
+          {/* Linha 2: Desempenho + Status + Donut */}
+          <div className="grid grid-cols-3 gap-4">
             <div className="rounded-lg p-4" style={{ background:"var(--surface)", border:"1px solid var(--border)" }}>
               <p className="text-xs font-medium mb-3" style={{ color:"var(--muted)" }}>Desempenho por Etapa (min)</p>
-              <ResponsiveContainer width="100%" height={150}>
+              <ResponsiveContainer width="100%" height={140}>
                 <BarChart data={ETAPAS} layout="vertical" margin={{ top:4, right:16, bottom:0, left:8 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
                   <XAxis type="number" tick={{ fill:"var(--muted)", fontSize:9 }} />
@@ -126,10 +126,9 @@ export default function BedCleaningPage() {
               </ResponsiveContainer>
             </div>
 
-            {/* Status higiene */}
             <div className="rounded-lg p-4" style={{ background:"var(--surface)", border:"1px solid var(--border)" }}>
               <p className="text-xs font-medium mb-3" style={{ color:"var(--muted)" }}>Status de Higiene — Leitos</p>
-              <ResponsiveContainer width="100%" height={150}>
+              <ResponsiveContainer width="100%" height={140}>
                 <BarChart data={STATUS_HIGIENE} margin={{ top:4, right:4, bottom:0, left:-20 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                   <XAxis dataKey="status" tick={{ fill:"var(--muted)", fontSize:9 }} />
@@ -141,29 +140,24 @@ export default function BedCleaningPage() {
                 </BarChart>
               </ResponsiveContainer>
             </div>
-          </div>
 
-          {/* Donut */}
-          <div className="rounded-lg p-4 flex flex-col items-center"
-            style={{ background:"var(--surface)", border:"1px solid var(--border)", maxWidth:380 }}>
-            <p className="text-xs font-medium mb-2 self-start" style={{ color:"var(--muted)" }}>
-              Status dos Funcionários — Equipe de Higiene
-            </p>
-            <ResponsiveContainer width="100%" height={200}>
-              <PieChart>
-                <Pie
-                  data={STAFF} cx="50%" cy="50%"
-                  innerRadius={55} outerRadius={80}
-                  dataKey="value" nameKey="name"
-                  paddingAngle={3}
-                  isAnimationActive={false}
-                >
-                  {STAFF.map((entry) => <Cell key={entry.name} fill={entry.color} />)}
-                </Pie>
-                <Tooltip contentStyle={TS} formatter={(v, name) => [`${v}`, name]} />
-                <Legend wrapperStyle={{ fontSize:11, color:"var(--muted)" }} />
-              </PieChart>
-            </ResponsiveContainer>
+            <div className="rounded-lg p-4 flex flex-col" style={{ background:"var(--surface)", border:"1px solid var(--border)" }}>
+              <p className="text-xs font-medium mb-2" style={{ color:"var(--muted)" }}>Funcionários — Equipe de Higiene</p>
+              <ResponsiveContainer width="100%" height={140}>
+                <PieChart>
+                  <Pie
+                    data={STAFF} cx="50%" cy="45%"
+                    innerRadius={38} outerRadius={56}
+                    dataKey="value" nameKey="name"
+                    paddingAngle={3} isAnimationActive={false}
+                  >
+                    {STAFF.map((entry) => <Cell key={entry.name} fill={entry.color} />)}
+                  </Pie>
+                  <Tooltip contentStyle={TS} formatter={(v, name) => [`${v}`, name]} />
+                  <Legend wrapperStyle={{ fontSize:10, color:"var(--muted)" }} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         </div>
       </div>

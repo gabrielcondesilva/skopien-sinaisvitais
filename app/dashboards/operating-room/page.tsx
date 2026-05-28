@@ -114,7 +114,7 @@ export default function OperatingRoomPage() {
           <Link href="/command" className="text-xs hover:text-white transition-colors" style={{ color: "var(--muted)" }}>
             ← Comando
           </Link>
-          <span className="text-sm font-semibold">Operating Room</span>
+          <span className="text-sm font-semibold">Centro Cirúrgico</span>
           <span className="text-xs font-medium px-2 py-0.5 rounded-full animate-pulse ml-auto"
             style={{ background: "rgba(34,197,94,0.12)", color: "var(--status-stable)" }}>
             Ao vivo
@@ -131,7 +131,7 @@ export default function OperatingRoomPage() {
           </div>
           {/* KPIs row 2 */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <KpiCard label="Turnover"           value="22 min" sub="entre cirurgias" />
+            <KpiCard label="Giro de Sala"        value="22 min" sub="entre cirurgias" />
             <KpiCard label="Sala Ociosa"        value="18 min" sub="tempo médio ocioso" />
             <KpiCard label="Aderência ao Mapa"  value="89%"   sub="semana atual" />
             <KpiCard label="Agendadas × Realiz." value="16 × 14" sub="hoje" />
