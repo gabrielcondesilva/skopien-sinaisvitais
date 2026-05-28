@@ -73,6 +73,7 @@ export interface Bed {
   label: string;
   unit: UnitId;
   internacaoId: string | null;
+  inoperante?: boolean;
 }
 
 // ─── Alert types ──────────────────────────────────────────────────────────────

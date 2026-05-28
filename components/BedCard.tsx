@@ -56,26 +56,26 @@ export function BedCard({ bed, internacao }: Props) {
   ));
 
   if (!internacao) {
+    const borderColor = bed.inoperante ? "rgba(255,255,255,0.12)" : "var(--status-stable)";
+    const label       = bed.inoperante ? "Leito Inoperante"       : "Leito Disponível";
+    const labelColor  = bed.inoperante ? "var(--muted)"           : "var(--foreground)";
+
     return (
       <div
         className="rounded-lg p-4 flex flex-col gap-2"
-        style={{ background: "var(--surface)", border: "1px solid var(--status-stable)" }}
+        style={{
+          background: bed.inoperante ? "rgba(255,255,255,0.02)" : "var(--surface)",
+          border: `1px solid ${borderColor}`,
+        }}
       >
-        {/* Bed label — same row as occupied card */}
         <div className="flex items-center justify-between gap-2">
           <span className="text-xs font-mono" style={{ color: "var(--muted)" }}>{bed.label}</span>
         </div>
-
-        {/* Patient info slot → "Leito Disponível" + invisible subtitle to match height */}
         <div>
-          <p className="text-sm font-medium leading-snug" style={{ color: "var(--muted)" }}>Leito Disponível</p>
+          <p className="text-sm font-medium leading-snug" style={{ color: labelColor }}>{label}</p>
           <p className="text-xs mt-0.5 invisible" aria-hidden>– · – · –</p>
         </div>
-
-        {/* Admission reason slot — invisible to keep height */}
         <p className="text-xs leading-tight line-clamp-1 invisible" aria-hidden>–</p>
-
-        {/* EWS footer slot — same border/padding as occupied */}
         <div
           className="flex items-center justify-between pt-2 mt-auto"
           style={{ borderTop: "1px solid var(--border)" }}

@@ -103,6 +103,10 @@ export function buildSeed(): {
     beds.push(makeBed(label, unit, null));
   }
 
+  function addInoperante(label: string, unit: UnitId) {
+    beds.push({ ...makeBed(label, unit, null), inoperante: true });
+  }
+
   // ── Pronto Socorro ──────────────────────────────────────────────────────────
   // PS-01: câmera + alta probabilidade de alta (Cena 3 ~12min)
   addOccupied("PS-01", "pronto-socorro",
@@ -147,7 +151,7 @@ export function buildSeed(): {
     STABLE, { manchesterClass: "Amarelo" }
   );
   addEmpty("PS-11", "pronto-socorro");
-  addEmpty("PS-12", "pronto-socorro");
+  addInoperante("PS-12", "pronto-socorro");
 
   // ── Enfermaria ──────────────────────────────────────────────────────────────
   // ENF-01: medicação atrasada (Cena 2 ~8min)
@@ -250,7 +254,7 @@ export function buildSeed(): {
     makePatient("Armando Luiz Tavares", 58, "M", "Politrauma", 36),
     MILD_CONCERN, { hasPump: true }
   );
-  addEmpty("UTI-10", "uti");
+  addInoperante("UTI-10", "uti");
 
   // ── Centro Cirúrgico ─────────────────────────────────────────────────────────
   const now = NOW();
@@ -344,7 +348,7 @@ export function buildSeed(): {
   }
 
   addEmpty("CC-05", "centro-cirurgico");
-  addEmpty("CC-06", "centro-cirurgico");
+  addInoperante("CC-06", "centro-cirurgico");
 
   return { beds, internacoes };
 }
