@@ -4,7 +4,7 @@ import { nextReading, currentSlotValues, computeSlots } from "@/lib/simulation/v
 import { calculateEWS } from "@/lib/ews";
 import type { Bed, Internacao, SurgicalInternacao, SlotReading, UnitId } from "@/lib/simulation/types";
 
-const THREE_HOURS_MS = 3 * 60 * 60 * 1000;
+const HISTORY_RETENTION_MS = 12 * 60 * 60 * 1000;
 
 // Returned by checkScenes for each alert that should fire
 export interface SceneAlert {
@@ -42,7 +42,7 @@ export const useSimulationStore = create<SimulationState>()((set, get) => ({
 
   advance() {
     const now = Date.now();
-    const cutoff = now - THREE_HOURS_MS;
+    const cutoff = now - HISTORY_RETENTION_MS;
 
     set((state) => {
       const updated: Record<string, Internacao | SurgicalInternacao> = {};

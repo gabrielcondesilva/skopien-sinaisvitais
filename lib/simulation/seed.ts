@@ -33,7 +33,7 @@ function makeInternacao(
   } = {}
 ): Internacao {
   const now = NOW();
-  const windowMs = 3 * 3_600_000; // 3h history
+  const windowMs = 12 * 3_600_000; // 12h history
   const rawHistory = buildHistory(baseline, now, windowMs);
   const last = rawHistory[rawHistory.length - 1];
   const ews = calculateEWS(last);
@@ -309,7 +309,7 @@ export function buildSeed(): {
 
   for (const s of surgeries) {
     const bed = makeBed(s.label, "centro-cirurgico", "TBD");
-    const rawHistory = buildHistory(STABLE, now, 3 * 3_600_000);
+    const rawHistory = buildHistory(STABLE, now, 12 * 3_600_000);
     const ews = calculateEWS(rawHistory[rawHistory.length - 1]);
 
     const surgicalFlow = SURGICAL_STEP_NAMES.map((name, i) => {

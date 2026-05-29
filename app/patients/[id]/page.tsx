@@ -40,7 +40,12 @@ function formatAdmissionDate(ts: number): string {
 }
 
 const SLOT_OPTS  = [{ label: "5min", min: 5 }, { label: "15min", min: 15 }, { label: "1h", min: 60 }] as const;
-const WINDOW_OPTS = [{ label: "1h", ms: 3_600_000 }, { label: "3h", ms: 10_800_000 }] as const;
+const WINDOW_OPTS = [
+  { label: "1h",  ms:  3_600_000 },
+  { label: "3h",  ms: 10_800_000 },
+  { label: "6h",  ms: 21_600_000 },
+  { label: "12h", ms: 43_200_000 },
+] as const;
 
 const VITALS = [
   { key: "fr"   as const, label: "FR",   unit: "rpm"  },
@@ -126,7 +131,7 @@ function ControlsBar({ slotMin, setSlotMin, windowMs, setWindowMs }: {
             {o.label}
           </SelBtn>
         ))}
-        <SelBtn disabled>Custom</SelBtn>
+
       </div>
     </div>
   );
@@ -160,6 +165,20 @@ function SinaisVitaisTab({ internacao, slotMin, windowMs }: {
         <span className="text-xs" style={{ color: "var(--muted)" }}>Visualização</span>
         <SelBtn active={view === "graficos"} onClick={() => setView("graficos")}>Gráficos</SelBtn>
         <SelBtn active={view === "heatmap"}  onClick={() => setView("heatmap")}>Heatmap</SelBtn>
+      </div>
+
+      {/* Legenda */}
+      <div className="flex items-center gap-4">
+        {[
+          { color: "#888888", label: "Normal" },
+          { color: "#eab308", label: "Atenção" },
+          { color: "#ef4444", label: "Crítico" },
+        ].map(({ color, label }) => (
+          <span key={label} className="flex items-center gap-1.5 text-xs" style={{ color: "var(--muted)" }}>
+            <span style={{ width: 8, height: 8, borderRadius: "50%", background: color, display: "inline-block" }} />
+            {label}
+          </span>
+        ))}
       </div>
 
       {/* Vital cards */}

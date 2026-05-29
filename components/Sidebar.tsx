@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/auth";
 import { useAdminStore, ADMIN_TABS } from "@/store/admin";
 import { useSidebarStore } from "@/store/sidebar";
+import { useSimulationStore } from "@/store/simulation";
 import { Icon } from "./ui/Icon";
 import Image from "next/image";
 import type { UserProfile } from "@/store/auth";
@@ -127,8 +128,18 @@ export function Sidebar() {
   const router      = useRouter();
   const adminTab    = useAdminStore((s) => s.tab);
   const setAdminTab = useAdminStore((s) => s.setTab);
-  const collapsed   = useSidebarStore((s) => s.collapsed);
-  const toggle      = useSidebarStore((s) => s.toggle);
+  const collapsed    = useSidebarStore((s) => s.collapsed);
+  const toggle       = useSidebarStore((s) => s.toggle);
+  const internacoes  = useSimulationStore((s) => s.internacoes);
+
+  // Mantém a unidade destacada mesmo dentro de /patients/[id]
+  let activeUnit: string | null = null;
+  if (pathname.startsWith("/units/")) {
+    activeUnit = pathname.split("/")[2] ?? null;
+  } else if (pathname.startsWith("/patients/")) {
+    const internacaoId = pathname.split("/")[2];
+    activeUnit = internacoes[internacaoId]?.unit ?? null;
+  }
 
   const isExecutivo = profile === "executivo";
   const showAdmin   = profile !== null && ADMIN_PROFILES.includes(profile);
@@ -210,7 +221,7 @@ export function Sidebar() {
                 abbr={u.abbr}
                 label={u.label}
                 collapsed={collapsed}
-                active={pathname.startsWith(`/units/${u.id}`)}
+                active={activeUnit === u.id}
               />
             ))}
 
