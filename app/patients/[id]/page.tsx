@@ -10,6 +10,7 @@ import { VitalsChart } from "@/components/VitalsChart";
 import { VitalsHeatmap } from "@/components/VitalsHeatmap";
 import { EWSForecastChart } from "@/components/EWSForecastChart";
 import { CameraPlayer } from "@/components/CameraPlayer";
+import { BradenModal } from "@/components/BradenModal";
 import { Icon } from "@/components/ui/Icon";
 import { useSimulationStore } from "@/store/simulation";
 import { useSidebarStore } from "@/store/sidebar";
@@ -343,6 +344,7 @@ function PatientContent({ id }: { id: string }) {
   const [windowMs, setWindowMs]       = useState(10_800_000);
   const [camOpen, setCamOpen]         = useState(false);
   const [camFullscreen, setCamFullscreen] = useState(false);
+  const [bradenOpen, setBradenOpen]   = useState(false);
 
   const internacao = useSimulationStore((s) => s.internacoes[id] ?? null);
   const bed = useSimulationStore((s) => s.beds.find((b) => b.internacaoId === id) ?? null);
@@ -393,6 +395,26 @@ function PatientContent({ id }: { id: string }) {
           >
             EWS {internacao.currentEws} · {internacao.currentStatus}
           </span>
+
+          {/* Badge Braden — apenas para UTI-01 */}
+          {bed?.label === "UTI-01" && (
+            <button
+              onClick={() => setBradenOpen(true)}
+              className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-medium transition-opacity hover:opacity-80"
+              style={{
+                background: "rgba(56,189,248,0.12)",
+                border: "1px solid rgba(56,189,248,0.4)",
+                color: "#38bdf8",
+                cursor: "pointer",
+              }}
+            >
+              <span
+                className="w-1.5 h-1.5 rounded-full shrink-0"
+                style={{ background: "#38bdf8" }}
+              />
+              Braden 10 · Alto Risco
+            </button>
+          )}
         </div>
 
         {/* Compact metadata row */}
@@ -544,6 +566,11 @@ function PatientContent({ id }: { id: string }) {
           <InternacaoTab internacao={internacao} slotMin={slotMin} />
         )}
       </div>
+
+      {/* ── Braden / SkinOne modal ── */}
+      {bradenOpen && (
+        <BradenModal onClose={() => setBradenOpen(false)} />
+      )}
     </div>
   );
 }
