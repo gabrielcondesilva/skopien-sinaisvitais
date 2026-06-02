@@ -144,131 +144,170 @@ export function Sidebar() {
   const isExecutivo = profile === "executivo";
   const showAdmin   = profile !== null && ADMIN_PROFILES.includes(profile);
 
+  const sidebarW = collapsed ? COLLAPSED_W : EXPANDED_W;
+
   return (
-    <aside
-      className="fixed top-0 left-0 h-full flex flex-col z-30 overflow-hidden"
-      style={{
-        width: collapsed ? COLLAPSED_W : EXPANDED_W,
-        transition: "width 200ms ease",
-        background: "var(--surface)",
-        borderRight: "1px solid var(--border)",
-      }}
+    <div
+      className="fixed top-0 left-0 h-full z-30"
+      style={{ width: sidebarW, transition: "width 200ms ease" }}
     >
-      {/* Logo */}
-      <div
-        className="flex items-center justify-center px-3 pt-4 pb-3 shrink-0"
-        style={{ minHeight: 72 }}
+      <aside
+        className="h-full flex flex-col overflow-hidden"
+        style={{
+          width: "100%",
+          background: "var(--surface)",
+          borderRight: "1px solid var(--border)",
+        }}
       >
-        {collapsed ? (
-          <Image
-            src="/logo-circulo.png"
-            alt="SKOPIEN"
-            width={34}
-            height={34}
-            priority
-          />
-        ) : (
-          <Image
-            src="/logo_branca.png"
-            alt="SKOPIEN"
-            width={140}
-            height={42}
-            priority
-          />
-        )}
-      </div>
-
-      {/* Nav */}
-      <nav className="flex-1 py-3 overflow-y-auto overflow-x-hidden">
-        {isExecutivo ? (
-          <>
-            {!collapsed && (
-              <p
-                className="px-5 pb-1 text-xs font-semibold uppercase tracking-widest"
-                style={{ color: "var(--sk-text-secondary)" }}
-              >
-                Visão Administrativa
-              </p>
-            )}
-            {ADMIN_TABS.map((t) => (
-              <NavBtn
-                key={t.id}
-                abbr={t.abbr}
-                label={t.label}
-                collapsed={collapsed}
-                active={pathname.startsWith("/admin") && adminTab === t.id}
-                onClick={() => {
-                  setAdminTab(t.id);
-                  if (!pathname.startsWith("/admin")) router.push("/admin");
-                }}
-              />
-            ))}
-          </>
-        ) : (
-          <>
-            {!collapsed && (
-              <p
-                className="px-5 pb-1 text-xs font-semibold uppercase tracking-widest"
-                style={{ color: "var(--sk-text-secondary)" }}
-              >
-                Unidades
-              </p>
-            )}
-            {UNITS.map((u) => (
-              <NavLink
-                key={u.id}
-                href={`/units/${u.id}`}
-                abbr={u.abbr}
-                label={u.label}
-                collapsed={collapsed}
-                active={activeUnit === u.id}
-              />
-            ))}
-
-            {showAdmin && (
-              <>
-                {!collapsed && (
-                  <>
-                    <div className="mx-5 mt-2" style={{ borderTop: "1px solid var(--border)" }} />
-                    <p
-                      className="px-5 pt-3 pb-1 text-xs font-semibold uppercase tracking-widest"
-                      style={{ color: "var(--sk-text-secondary)" }}
-                    >
-                      Gestão
-                    </p>
-                  </>
-                )}
-                <NavLink
-                  href="/admin"
-                  abbr="ADM"
-                  label="Vis. Admin."
-                  collapsed={collapsed}
-                  active={pathname.startsWith("/admin")}
-                />
-              </>
-            )}
-          </>
-        )}
-      </nav>
-
-      {/* Toggle button */}
-      <div
-        className="shrink-0 flex items-center justify-center py-3"
-        style={{}}
-      >
-        <button
-          onClick={toggle}
-          aria-label={collapsed ? "Expandir menu" : "Recolher menu"}
-          className="flex items-center justify-center w-8 h-8 rounded-lg transition-colors hover:bg-white/5"
-          style={{ color: "var(--muted)" }}
+        {/* Logo */}
+        <div
+          className="flex items-center justify-center px-3 pt-4 pb-3 shrink-0"
+          style={{ minHeight: 72 }}
         >
-          <Icon
-            name={collapsed ? "chevron-right" : "chevron-left"}
-            size={15}
-            color="currentColor"
-          />
-        </button>
-      </div>
-    </aside>
+          {collapsed ? (
+            <Image
+              src="/logo-circulo.png"
+              alt="SKOPIEN"
+              width={34}
+              height={34}
+              priority
+            />
+          ) : (
+            <Image
+              src="/logo_branca.png"
+              alt="SKOPIEN"
+              width={140}
+              height={42}
+              priority
+            />
+          )}
+        </div>
+
+        {/* Nav */}
+        <nav className="flex-1 py-3 overflow-y-auto overflow-x-hidden">
+          {isExecutivo ? (
+            <>
+              {!collapsed && (
+                <p
+                  className="px-5 pb-1 text-xs font-semibold uppercase tracking-widest"
+                  style={{ color: "var(--sk-text-secondary)" }}
+                >
+                  Visão Administrativa
+                </p>
+              )}
+              {ADMIN_TABS.map((t) => (
+                <NavBtn
+                  key={t.id}
+                  abbr={t.abbr}
+                  label={t.label}
+                  collapsed={collapsed}
+                  active={pathname.startsWith("/admin") && adminTab === t.id}
+                  onClick={() => {
+                    setAdminTab(t.id);
+                    if (!pathname.startsWith("/admin")) router.push("/admin");
+                  }}
+                />
+              ))}
+            </>
+          ) : (
+            <>
+              {!collapsed && (
+                <p
+                  className="px-5 pb-1 text-xs font-semibold uppercase tracking-widest"
+                  style={{ color: "var(--sk-text-secondary)" }}
+                >
+                  Unidades
+                </p>
+              )}
+              {UNITS.map((u) => (
+                <NavLink
+                  key={u.id}
+                  href={`/units/${u.id}`}
+                  abbr={u.abbr}
+                  label={u.label}
+                  collapsed={collapsed}
+                  active={activeUnit === u.id}
+                />
+              ))}
+
+              {showAdmin && (
+                <>
+                  {!collapsed && (
+                    <>
+                      <div className="mx-5 mt-2" style={{ borderTop: "1px solid var(--border)" }} />
+                      <p
+                        className="px-5 pt-3 pb-1 text-xs font-semibold uppercase tracking-widest"
+                        style={{ color: "var(--sk-text-secondary)" }}
+                      >
+                        Gestão
+                      </p>
+                    </>
+                  )}
+                  <NavLink
+                    href="/admin"
+                    abbr="ADM"
+                    label="Vis. Admin."
+                    collapsed={collapsed}
+                    active={pathname.startsWith("/admin")}
+                  />
+                </>
+              )}
+            </>
+          )}
+        </nav>
+
+        {/* SkinOne integration logo */}
+        <div
+          className="shrink-0 flex items-center justify-center py-4"
+          style={{ borderTop: "1px solid var(--border)" }}
+        >
+          {collapsed ? (
+            <Image
+              src="/logo-skin.png"
+              alt="skinOne"
+              width={28}
+              height={34}
+            />
+          ) : (
+            <div className="flex flex-col items-center gap-1.5">
+              <span className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: "var(--muted)" }}>
+                Integrado com
+              </span>
+              <Image
+                src="/skinone.png"
+                alt="skinOne"
+                width={100}
+                height={28}
+              />
+            </div>
+          )}
+        </div>
+      </aside>
+
+      {/* Toggle button — flutuante na divisa sidebar/conteúdo */}
+      <button
+        onClick={toggle}
+        aria-label={collapsed ? "Expandir menu" : "Recolher menu"}
+        className="absolute flex items-center justify-center transition-colors"
+        style={{
+          top: 18,
+          right: -10,
+          width: 20,
+          height: 20,
+          borderRadius: "50%",
+          background: "var(--surface)",
+          border: "1px solid var(--border)",
+          color: "var(--muted)",
+          cursor: "pointer",
+          zIndex: 1,
+        }}
+      >
+        <Icon
+          name={collapsed ? "chevron-right" : "chevron-left"}
+          size={11}
+          color="currentColor"
+        />
+      </button>
+    </div>
   );
 }
