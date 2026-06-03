@@ -1,7 +1,7 @@
 "use client";
 
 import { useAlertStore } from "@/store/alerts";
-import type { Alert } from "@/lib/simulation/types";
+import type { Alert, UnitId } from "@/lib/simulation/types";
 import { StreamlineIcon } from "./ui/StreamlineIcon";
 
 const ALERT_META: Record<string, { icon: "sinal_vital" | "medicacao" | "predicao_alta"; title: string; color: string }> = {
@@ -73,10 +73,12 @@ function AlertCard({ alert }: { alert: Alert }) {
 
 interface Props {
   onClose: () => void;
+  unitFilter?: UnitId | null;
 }
 
-export function AlertsPanel({ onClose }: Props) {
-  const active = useAlertStore((s) => s.active);
+export function AlertsPanel({ onClose, unitFilter }: Props) {
+  const all = useAlertStore((s) => s.active);
+  const active = unitFilter ? all.filter((a) => a.unit === unitFilter) : all;
 
   return (
     <div
@@ -89,7 +91,9 @@ export function AlertsPanel({ onClose }: Props) {
         style={{ borderBottom: "1px solid var(--border)" }}
       >
         <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold">Alertas Ativos</span>
+          <span className="text-sm font-semibold">
+            {unitFilter ? `Alertas — ${unitFilter.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase())}` : "Alertas Ativos"}
+          </span>
           {active.length > 0 && (
             <span
               className="text-xs w-5 h-5 flex items-center justify-center rounded-full font-bold"

@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useMemo } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import { useAuthStore } from "@/store/auth";
 import { useAlertStore } from "@/store/alerts";
+import { useSimulationStore } from "@/store/simulation";
 import { AlertsPanel } from "./AlertsPanel";
 import { Icon } from "./ui/Icon";
+import type { UnitId } from "@/lib/simulation/types";
 
 const HOSPITAL_NAME = "Hospital Demo Skopien";
 
@@ -29,9 +31,23 @@ export function TopBar() {
   const logout = useAuthStore((s) => s.logout);
   const profile = useAuthStore((s) => s.profile);
   const router = useRouter();
-  const activeCount = useAlertStore((s) => s.activeCount);
+  const pathname = usePathname();
+  const active = useAlertStore((s) => s.active);
+  const internacoes = useSimulationStore((s) => s.internacoes);
   const [panelOpen, setPanelOpen] = useState(false);
   const [dateStr, setDateStr] = useState("");
+
+  const unitFilter = useMemo((): UnitId | null => {
+    const unitMatch = pathname.match(/^\/units\/([^/]+)/);
+    if (unitMatch) return unitMatch[1] as UnitId;
+    const patientMatch = pathname.match(/^\/patients\/([^/]+)/);
+    if (patientMatch) return internacoes[patientMatch[1]]?.unit ?? null;
+    return null;
+  }, [pathname, internacoes]);
+
+  const activeCount = unitFilter
+    ? active.filter((a) => a.unit === unitFilter).length
+    : active.length;
 
   useEffect(() => {
     setDateStr(formatDate());
@@ -114,7 +130,7 @@ export function TopBar() {
             style={{ background: "rgba(0,0,0,0.35)" }}
             onClick={() => setPanelOpen(false)}
           />
-          <AlertsPanel onClose={() => setPanelOpen(false)} />
+          <AlertsPanel onClose={() => setPanelOpen(false)} unitFilter={unitFilter} />
         </>
       )}
     </>

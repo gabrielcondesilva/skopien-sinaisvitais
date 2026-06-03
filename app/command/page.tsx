@@ -8,6 +8,11 @@ import { useAuthStore } from "@/store/auth";
 
 const DASHBOARDS = [
   {
+    id: "cuidados-com-a-pele",
+    label: "Cuidados com a Pele",
+    desc: "LPP, Braden, mudança de decúbito e curativos em tempo real",
+  },
+  {
     id: "emergency-unit",
     label: "Unidade de Emergência",
     desc: "Fluxo de porta, LOS e boarding do Pronto Socorro",
@@ -122,12 +127,14 @@ export default function CommandPage() {
                 <p className="text-xs leading-relaxed" style={{ color: "var(--muted)" }}>
                   {d.desc}
                 </p>
-                <span
-                  className="text-xs font-medium mt-auto"
-                  style={{ color: "var(--accent)" }}
-                >
-                  Abrir →
-                </span>
+                <div className="flex items-center justify-between mt-auto">
+                  <span className="text-xs font-medium" style={{ color: "var(--accent)" }}>
+                    Abrir →
+                  </span>
+                  {d.id === "cuidados-com-a-pele" && (
+                    <Image src="/skinone.png" alt="skinOne" width={68} height={18} />
+                  )}
+                </div>
               </Link>
             ))}
           </div>
