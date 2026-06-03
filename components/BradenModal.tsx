@@ -55,7 +55,7 @@ const MOCK_LESIONS: Lesion[] = [
     local: "Calcâneo Esquerdo",
     type: "Prevenção",
     side: "back",
-    cx: 38, cy: 229,
+    cx: 44, cy: 195,
     surgiu: "09/02/2026", diasDesde: 109,
     ultimoExame: "06/05/2026 15:30",
     proximoExame: "13/05/2026 15:30",
@@ -83,7 +83,7 @@ const MOCK_LESIONS: Lesion[] = [
     local: "Calcâneo Direito",
     type: "Pressão",
     side: "back",
-    cx: 62, cy: 229,
+    cx: 71, cy: 195,
     surgiu: "10/03/2026", diasDesde: 83,
     ultimoExame: "06/05/2026 15:30",
     proximoExame: "13/05/2026 15:30",
@@ -103,7 +103,7 @@ const MOCK_LESIONS: Lesion[] = [
     local: "Orelha Esquerda",
     type: "Dispositivos Médicos",
     side: "front",
-    cx: 38, cy: 15,
+    cx: 44, cy: 13,
     surgiu: "07/03/2026", diasDesde: 86,
     ultimoExame: "27/04/2026 16:24",
     proximoExame: "12/05/2026 09:00",
@@ -127,7 +127,7 @@ const MOCK_LESIONS: Lesion[] = [
     local: "Ombro Direito",
     type: "Pressão",
     side: "back",
-    cx: 22, cy: 40,
+    cx: 25, cy: 34,
     surgiu: "23/01/2026", diasDesde: 127,
     ultimoExame: "09/05/2026 12:08",
     proximoExame: "16/05/2026 12:08",
@@ -146,7 +146,8 @@ const MOCK_LESIONS: Lesion[] = [
 
 // ── Body SVG ──────────────────────────────────────────────────────────────────
 
-const F = "rgba(255,255,255,0.18)";
+// F kept for reference but body now uses image
+const _F = "rgba(255,255,255,0.18)";
 
 function BodySilhouette({
   lesions,
@@ -169,23 +170,16 @@ function BodySilhouette({
 }) {
   const visible = lesions.filter((l) => l.side === side);
   return (
-    <svg viewBox="0 0 100 250" width={w} height={h} style={{ display: "block", overflow: "visible" }}>
-      <ellipse cx="50" cy="15" rx="12" ry="13" fill={F} />
-      <rect x="45" y="26" width="10" height="8" rx="2" fill={F} />
-      <path d="M24 33 C20 34 20 38 20 42 L21 106 L79 106 L80 42 C80 38 80 34 76 33 C70 32 57 30 50 30 C43 30 30 32 24 33 Z" fill={F} />
-      <rect x="8" y="36" width="13" height="42" rx="6" fill={F} />
-      <rect x="7" y="76" width="12" height="34" rx="5" fill={F} />
-      <ellipse cx="13" cy="115" rx="7" ry="9" fill={F} />
-      <rect x="79" y="36" width="13" height="42" rx="6" fill={F} />
-      <rect x="81" y="76" width="12" height="34" rx="5" fill={F} />
-      <ellipse cx="87" cy="115" rx="7" ry="9" fill={F} />
-      <path d="M21 104 L79 104 L81 132 L19 132 Z" fill={F} />
-      <rect x="20" y="129" width="24" height="62" rx="9" fill={F} />
-      <rect x="21" y="189" width="21" height="46" rx="7" fill={F} />
-      <ellipse cx="31" cy="238" rx="14" ry="6" fill={F} />
-      <rect x="56" y="129" width="24" height="62" rx="9" fill={F} />
-      <rect x="58" y="189" width="21" height="46" rx="7" fill={F} />
-      <ellipse cx="69" cy="238" rx="14" ry="6" fill={F} />
+    <svg viewBox="0 0 115 213" width={w} height={h} style={{ display: "block", overflow: "visible" }}>
+      {/* Body image — exact image dimensions as viewBox, flipped for back view */}
+      <image
+        href="/lesions/avatar-lesion.png"
+        x="0" y="0"
+        width="115" height="213"
+        preserveAspectRatio="none"
+        opacity={0.85}
+        transform={side === "back" ? "translate(115 0) scale(-1 1)" : undefined}
+      />
       {visible.map((l) => {
         const color = LESION_COLORS[l.type];
         const sel = selectedId === l.id;
