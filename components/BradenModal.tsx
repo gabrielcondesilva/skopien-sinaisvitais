@@ -173,12 +173,11 @@ function BodySilhouette({
     <svg viewBox="0 0 115 213" width={w} height={h} style={{ display: "block", overflow: "visible" }}>
       {/* Body image — exact image dimensions as viewBox, flipped for back view */}
       <image
-        href="/lesions/avatar-lesion.png"
+        href={side === "front" ? "/lesions/frente.png" : "/lesions/costas.png"}
         x="0" y="0"
         width="115" height="213"
         preserveAspectRatio="none"
         opacity={0.85}
-        transform={side === "back" ? "translate(115 0) scale(-1 1)" : undefined}
       />
       {visible.map((l) => {
         const color = LESION_COLORS[l.type];
