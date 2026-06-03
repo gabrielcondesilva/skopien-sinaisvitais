@@ -259,7 +259,6 @@ export function Sidebar() {
         {/* SkinOne integration logo */}
         <div
           className="shrink-0 flex items-center justify-center py-4"
-          style={{ borderTop: "1px solid var(--border)" }}
         >
           {collapsed ? (
             <Image
@@ -269,15 +268,15 @@ export function Sidebar() {
               height={34}
             />
           ) : (
-            <div className="flex flex-col items-center gap-1.5">
-              <span className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: "var(--muted)" }}>
+            <div className="flex flex-col items-center gap-0.5">
+              <span className="text-[8px] uppercase tracking-wider font-semibold" style={{ color: "var(--muted)" }}>
                 Integrado com
               </span>
               <Image
                 src="/skinone.png"
                 alt="skinOne"
-                width={100}
-                height={28}
+                width={82}
+                height={22}
               />
             </div>
           )}
