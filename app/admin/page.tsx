@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo } from "react";
+import React, { useMemo } from "react";
 import {
   AreaChart, Area, BarChart, Bar, ComposedChart, Line, LineChart,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine,
 } from "recharts";
 import { AuthGuard } from "@/components/AuthGuard";
 import { Sidebar } from "@/components/Sidebar";
@@ -13,6 +13,7 @@ import { useSimulationStore } from "@/store/simulation";
 import { useShallow } from "zustand/react/shallow";
 import { useAlertStore } from "@/store/alerts";
 import { useAdminStore, ADMIN_TABS } from "@/store/admin";
+import type { Alert, AlertType, UnitId } from "@/lib/simulation/types";
 
 // ─── static demo data ───────────────────────────────────────────────────────
 
@@ -444,90 +445,394 @@ function CCDashboard() {
 
 // ─── Alertas Dashboard ────────────────────────────────────────────────────────
 
-const ALERT_TYPE_LABEL: Record<string, string> = {
-  "sinal-vital":    "Sinais Vitais",
-  "medicacao":      "Medicação",
-  "alta":           "Previsão de Alta",
-  "bomba-infusao":  "Bomba de Infusão",
-};
+type PeriodKey  = "hoje" | "7d" | "30d" | "custom";
+type UnitFilter = "todas" | "pronto-socorro" | "enfermaria" | "uti" | "centro-cirurgico";
+type TypeFilter = "todos" | "sinal-vital" | "medicacao" | "alta";
+
+const PERIOD_OPTIONS: { key: PeriodKey; label: string }[] = [
+  { key: "hoje",   label: "Hoje" },
+  { key: "7d",     label: "7 dias" },
+  { key: "30d",    label: "30 dias" },
+  { key: "custom", label: "Personalizado" },
+];
+
+const UNIT_OPTIONS: { key: UnitFilter; label: string }[] = [
+  { key: "todas",            label: "Todas" },
+  { key: "pronto-socorro",   label: "Pronto Socorro" },
+  { key: "enfermaria",       label: "Enfermaria" },
+  { key: "uti",              label: "UTI" },
+  { key: "centro-cirurgico", label: "Centro Cirúrgico" },
+];
+
+const TYPE_OPTIONS: { key: TypeFilter; label: string }[] = [
+  { key: "todos",       label: "Todos" },
+  { key: "sinal-vital", label: "Sinais Vitais" },
+  { key: "medicacao",   label: "Medicação" },
+  { key: "alta",        label: "Previsão de Alta" },
+];
+
+function startOfDay(date: Date): number {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+}
+
+function getPeriodStart(period: PeriodKey, customDate: string): number {
+  const now = new Date();
+  if (period === "hoje")                      return startOfDay(now);
+  if (period === "7d")                        return Date.now() - 7  * 86_400_000;
+  if (period === "30d")                       return Date.now() - 30 * 86_400_000;
+  if (period === "custom" && customDate)      return startOfDay(new Date(customDate + "T00:00:00"));
+  return 0;
+}
+
+function Pill({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      className="px-2.5 py-1 rounded text-xs font-medium transition-colors whitespace-nowrap"
+      style={{
+        background: active ? "var(--accent)"           : "rgba(255,255,255,0.06)",
+        color:      active ? "#fff"                    : "var(--muted)",
+        border:     `1px solid ${active ? "var(--accent)" : "transparent"}`,
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+// Fixed-height KPI card — all instances render at exactly h-[78px]
+function KpiUniform({ label, value, sub, accent }: { label: string; value: string; sub?: string; accent?: boolean }) {
+  return (
+    <div
+      className="rounded-lg px-4 flex flex-col justify-center gap-0.5"
+      style={{
+        height: 78,
+        background: "var(--surface)",
+        border: `1px solid ${accent ? "rgba(240,62,62,0.45)" : "var(--border)"}`,
+      }}
+    >
+      <span className="text-[10px] uppercase tracking-wider leading-none" style={{ color: "var(--muted)" }}>
+        {label}
+      </span>
+      <span
+        className="text-2xl font-bold tabular-nums leading-tight"
+        style={{ color: accent ? "var(--status-critical)" : "var(--foreground)" }}
+      >
+        {value}
+      </span>
+      {sub && (
+        <span className="text-[10px] leading-none" style={{ color: "var(--muted)" }}>
+          {sub}
+        </span>
+      )}
+    </div>
+  );
+}
+
+// Alertas históricos sintéticos distribuídos pelos últimos 30 dias.
+// Todos "dismissed". Tempos de resposta variados: mais recente = mais rápido
+// (narrativa de melhoria contínua da equipe).
+const DEMO_HISTORY: Alert[] = (() => {
+  const now = Date.now();
+  const d = (days: number, hours = 0) => now - days * 86_400_000 - hours * 3_600_000;
+
+  // [daysAgo, hoursOffset, unit, type, responseMinutes]
+  type Row = [number, number, UnitId, AlertType, number];
+  const rows: Row[] = [
+    // ── hoje (2–3 min) ──────────────────────────────────
+    [0, 2,  "uti",              "sinal-vital", 2],
+    [0, 4,  "pronto-socorro",   "medicacao",   3],
+    [0, 6,  "enfermaria",       "alta",        2],
+    [0, 8,  "uti",              "sinal-vital", 3],
+    [0, 10, "centro-cirurgico", "medicacao",   2],
+    // ── 1–7 dias (2–4 min) ──────────────────────────────
+    [1, 1,  "uti",              "sinal-vital", 3],
+    [1, 5,  "enfermaria",       "medicacao",   2],
+    [1, 9,  "pronto-socorro",   "sinal-vital", 4],
+    [2, 2,  "uti",              "alta",        3],
+    [2, 6,  "enfermaria",       "sinal-vital", 3],
+    [2, 10, "pronto-socorro",   "medicacao",   4],
+    [3, 3,  "uti",              "sinal-vital", 4],
+    [3, 7,  "centro-cirurgico", "sinal-vital", 3],
+    [4, 1,  "enfermaria",       "alta",        4],
+    [4, 5,  "uti",              "sinal-vital", 3],
+    [4, 9,  "pronto-socorro",   "medicacao",   4],
+    [5, 2,  "uti",              "sinal-vital", 4],
+    [5, 6,  "enfermaria",       "medicacao",   5],
+    [6, 4,  "pronto-socorro",   "sinal-vital", 4],
+    [6, 8,  "uti",              "alta",        5],
+    [7, 1,  "enfermaria",       "sinal-vital", 5],
+    [7, 5,  "centro-cirurgico", "medicacao",   4],
+    // ── 8–30 dias (5–9 min, mais antigo = mais lento) ───
+    [8,  3,  "uti",              "sinal-vital", 5],
+    [9,  6,  "pronto-socorro",   "medicacao",   6],
+    [10, 2,  "enfermaria",       "alta",        5],
+    [11, 7,  "uti",              "sinal-vital", 6],
+    [12, 4,  "pronto-socorro",   "sinal-vital", 6],
+    [13, 9,  "centro-cirurgico", "medicacao",   7],
+    [14, 1,  "uti",              "sinal-vital", 6],
+    [15, 5,  "enfermaria",       "medicacao",   7],
+    [16, 3,  "pronto-socorro",   "alta",        7],
+    [17, 8,  "uti",              "sinal-vital", 7],
+    [18, 2,  "enfermaria",       "sinal-vital", 8],
+    [19, 6,  "pronto-socorro",   "medicacao",   7],
+    [20, 4,  "uti",              "sinal-vital", 8],
+    [21, 7,  "centro-cirurgico", "alta",        8],
+    [22, 1,  "enfermaria",       "sinal-vital", 8],
+    [23, 9,  "uti",              "medicacao",   9],
+    [24, 3,  "pronto-socorro",   "sinal-vital", 8],
+    [25, 5,  "enfermaria",       "alta",        9],
+    [26, 2,  "uti",              "sinal-vital", 9],
+    [27, 8,  "pronto-socorro",   "medicacao",   8],
+    [28, 4,  "centro-cirurgico", "sinal-vital", 9],
+    [29, 6,  "enfermaria",       "sinal-vital", 9],
+    [30, 1,  "uti",              "alta",        9],
+  ];
+
+  return rows.map(([days, hours, unit, type, responseMin], i) => {
+    const firedAt = d(days, hours);
+    return {
+      id:            `hist-${i}`,
+      type,
+      internacaoId:  `hist-${i}`,
+      patientName:   "–",
+      bedLabel:      "–",
+      unit,
+      message:       "–",
+      firedAt,
+      status:        "dismissed" as const,
+      dismissedAt:   firedAt + responseMin * 60_000,
+      dismissAction: "Ação tomada pela equipe",
+    };
+  });
+})();
 
 function AlertasDashboard() {
-  const active  = useAlertStore((s) => s.active);
-  const history = useAlertStore((s) => s.history);
+  const [period,     setPeriod]     = React.useState<PeriodKey>("hoje");
+  const [customDate, setCustomDate] = React.useState<string>("");
+  const [unitFilter, setUnitFilter] = React.useState<UnitFilter>("todas");
+  const [typeFilter, setTypeFilter] = React.useState<TypeFilter>("todos");
 
-  const all = useMemo(() => [...active, ...history], [active, history]);
-  const respondidos = history.filter((a) => a.status === "dismissed").length;
+  const storeActive  = useAlertStore((s) => s.active);
+  const storeHistory = useAlertStore((s) => s.history);
+  const todayStr     = new Date().toISOString().slice(0, 10);
 
-  const byType = useMemo(() => {
-    const counts: Record<string, number> = {};
-    for (const a of all) counts[a.type] = (counts[a.type] ?? 0) + 1;
-    return counts;
+  const all = useMemo(
+    () => [...storeActive, ...storeHistory, ...DEMO_HISTORY],
+    [storeActive, storeHistory],
+  );
+
+  const filtered = useMemo(() => {
+    const from = getPeriodStart(period, customDate);
+    return all.filter((a) =>
+      a.firedAt >= from &&
+      (unitFilter === "todas" || a.unit === unitFilter) &&
+      (typeFilter === "todos" || a.type === typeFilter)
+    );
+  }, [all, period, customDate, unitFilter, typeFilter]);
+
+  // Pendentes = tempo real: ignora filtro de período, só aplica unidade e tipo
+  const pendentes = useMemo(() =>
+    storeActive.filter((a) =>
+      (unitFilter === "todas" || a.unit === unitFilter) &&
+      (typeFilter === "todos" || a.type === typeFilter)
+    ).length,
+  [storeActive, unitFilter, typeFilter]);
+
+  const respondidos = filtered.filter((a) => a.status === "dismissed").length;
+
+  const avgResponseTime = useMemo(() => {
+    const dismissed = filtered.filter((a) => a.dismissedAt && a.status === "dismissed");
+    if (dismissed.length === 0) return null;
+    const avg = dismissed.reduce((s, a) => s + (a.dismissedAt! - a.firedAt) / 60_000, 0) / dismissed.length;
+    return Math.round(avg * 10) / 10;
+  }, [filtered]);
+
+  // Série diária de tempo médio — sempre últimos 30 dias, ignora filtros
+  const responseByDay = useMemo(() => {
+    const cutoff = Date.now() - 30 * 86_400_000;
+    const dismissed = all.filter((a) => a.dismissedAt && a.status === "dismissed" && a.firedAt >= cutoff);
+    const byDay: Record<string, number[]> = {};
+    for (const a of dismissed) {
+      const day = new Date(a.firedAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+      if (!byDay[day]) byDay[day] = [];
+      byDay[day].push((a.dismissedAt! - a.firedAt) / 60_000);
+    }
+    return Object.entries(byDay)
+      .sort(([a], [b]) => {
+        const [da, ma] = a.split("/").map(Number);
+        const [db, mb] = b.split("/").map(Number);
+        return ma !== mb ? ma - mb : da - db;
+      })
+      .map(([day, times]) => ({
+        day,
+        tempo: Math.round((times.reduce((s, t) => s + t, 0) / times.length) * 10) / 10,
+      }));
   }, [all]);
 
-  const byUnit = useMemo(() => {
-    const counts: Record<string, number> = {};
-    for (const a of all) counts[a.unit] = (counts[a.unit] ?? 0) + 1;
-    return Object.entries(counts).map(([unit, n]) => ({ unit: UNIT_LABEL[unit] ?? unit, n }));
-  }, [all]);
-
+  // TopBar h-14(56) + p-6 top(24) + h1+sub+mb-6(68) + tabs+mb-6(64) = 212px
   return (
-    <div className="space-y-8">
-      <div>
-        <SectionTitle>Indicadores — Central de Alertas</SectionTitle>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <KpiCard label="Total de Alertas" value={String(all.length)} sub="desde o início da sessão" />
-          <KpiCard label="Pendentes" value={String(active.length)} accent={active.length > 0} sub="aguardando resposta" />
-          <KpiCard label="Respondidos" value={String(respondidos)} sub="nesta sessão" />
-          <KpiCard label="Tempo Médio Resp." value="3 min" sub="estimado" />
+    <div
+      className="flex flex-col gap-3 overflow-hidden"
+      style={{ height: "calc(100vh - 212px)" }}
+    >
+      {/* ── Filter strip — single compact row ── */}
+      <div
+        className="flex items-center gap-3 px-4 shrink-0 rounded-lg"
+        style={{
+          height: 44,
+          background: "var(--surface)",
+          border: "1px solid var(--border)",
+        }}
+      >
+        <span className="text-[10px] font-semibold uppercase tracking-widest shrink-0" style={{ color: "var(--muted)" }}>
+          Período
+        </span>
+        <div className="flex items-center gap-1.5">
+          {PERIOD_OPTIONS.map((o) => (
+            <Pill key={o.key} active={period === o.key} onClick={() => setPeriod(o.key)}>
+              {o.label}
+            </Pill>
+          ))}
+          {period === "custom" && (
+            <input
+              type="date"
+              max={todayStr}
+              value={customDate}
+              onChange={(e) => setCustomDate(e.target.value)}
+              className="px-2 py-1 rounded text-xs"
+              style={{
+                background: "rgba(255,255,255,0.06)",
+                border: "1px solid var(--border)",
+                color: customDate ? "var(--foreground)" : "var(--muted)",
+                colorScheme: "dark",
+                outline: "none",
+              }}
+            />
+          )}
         </div>
-      </div>
 
-      <div>
-        <SectionTitle>Alertas por Tipo</SectionTitle>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {Object.entries(ALERT_TYPE_LABEL).map(([type, label]) => (
-            <KpiCard key={type} label={label} value={String(byType[type] ?? 0)} />
+        <div className="w-px self-stretch my-2.5 shrink-0" style={{ background: "var(--border)" }} />
+
+        <span className="text-[10px] font-semibold uppercase tracking-widest shrink-0" style={{ color: "var(--muted)" }}>
+          Unidade
+        </span>
+        <div className="flex items-center gap-1.5">
+          {UNIT_OPTIONS.map((o) => (
+            <Pill key={o.key} active={unitFilter === o.key} onClick={() => setUnitFilter(o.key)}>
+              {o.label}
+            </Pill>
+          ))}
+        </div>
+
+        <div className="w-px self-stretch my-2.5 shrink-0" style={{ background: "var(--border)" }} />
+
+        <span className="text-[10px] font-semibold uppercase tracking-widest shrink-0" style={{ color: "var(--muted)" }}>
+          Tipo
+        </span>
+        <div className="flex items-center gap-1.5">
+          {TYPE_OPTIONS.map((o) => (
+            <Pill key={o.key} active={typeFilter === o.key} onClick={() => setTypeFilter(o.key)}>
+              {o.label}
+            </Pill>
           ))}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <ChartBox title="Volume de Alertas por Unidade" height={180}>
-          <BarChart data={byUnit.length > 0 ? byUnit : [{ unit: "–", n: 0 }]} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-            <XAxis dataKey="unit" tick={{ fill: "var(--muted)", fontSize: 10 }} />
-            <YAxis tick={{ fill: "var(--muted)", fontSize: 10 }} allowDecimals={false} />
-            <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => [`${v}`, "Alertas"]} />
-            <Bar dataKey="n" fill="#3b82f6" radius={[3, 3, 0, 0]} isAnimationActive={false} />
-          </BarChart>
-        </ChartBox>
+      {/* ── 4 uniform KPI cards — single row, identical height ── */}
+      <div className="grid grid-cols-4 gap-3 shrink-0">
+        <KpiUniform label="Total de Alertas"  value={String(filtered.length)} sub="no período" />
+        <KpiUniform label="Pendentes"         value={String(pendentes)}       sub="em aberto agora" accent={pendentes > 0} />
+        <KpiUniform label="Respondidos"       value={String(respondidos)}     sub="no período" />
+        <KpiUniform label="Tempo Médio Resp." value={avgResponseTime !== null ? `${avgResponseTime} min` : "–"} sub="alertas respondidos" />
+      </div>
 
+      {/* ── Chart + Table — fill every remaining pixel ── */}
+      <div className="grid grid-cols-2 gap-3 flex-1 min-h-0">
+
+        {/* Tempo médio de resposta por dia */}
         <div
-          className="rounded-lg overflow-hidden"
-          style={{ border: "1px solid var(--border)" }}
+          className="rounded-lg p-4 flex flex-col min-h-0"
+          style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
         >
-          <p className="text-xs font-medium px-4 pt-4 pb-3" style={{ color: "var(--muted)" }}>
+          <div className="flex items-center justify-between mb-3 shrink-0">
+            <p className="text-xs font-medium" style={{ color: "var(--muted)" }}>
+              Tempo Médio de Resposta — últimos 30 dias (min)
+            </p>
+            <span className="flex items-center gap-1.5 text-[10px]" style={{ color: "var(--muted)" }}>
+              <span className="inline-block w-6 border-t border-dashed" style={{ borderColor: "#f59e0b" }} />
+              Meta 5 min
+            </span>
+          </div>
+          <div className="flex-1 min-h-0">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart
+                data={responseByDay.length > 0 ? responseByDay : [{ day: "–", tempo: 0 }]}
+                margin={{ top: 8, right: 16, bottom: 0, left: -20 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                <XAxis dataKey="day" tick={{ fill: "var(--muted)", fontSize: 10 }} interval="preserveStartEnd" />
+                <YAxis tick={{ fill: "var(--muted)", fontSize: 10 }} domain={[0, 12]} tickFormatter={(v) => `${v}m`} />
+                <Tooltip
+                  contentStyle={TOOLTIP_STYLE}
+                  formatter={(v) => [`${v} min`, "Tempo médio"]}
+                />
+                <ReferenceLine
+                  y={5}
+                  stroke="#f59e0b"
+                  strokeDasharray="4 4"
+                  strokeWidth={1.5}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="tempo"
+                  stroke="#3b82f6"
+                  strokeWidth={2}
+                  dot={{ r: 3, fill: "#3b82f6", strokeWidth: 0 }}
+                  activeDot={{ r: 5 }}
+                  isAnimationActive={false}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Resposta por profissional */}
+        <div
+          className="rounded-lg flex flex-col min-h-0 overflow-hidden"
+          style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
+        >
+          <p className="text-xs font-medium px-4 pt-4 pb-3 shrink-0" style={{ color: "var(--muted)" }}>
             Resposta por Profissional
           </p>
-          <table className="w-full text-sm">
-            <thead>
-              <tr style={{ background: "rgba(255,255,255,0.03)" }}>
-                {["Profissional", "Respondidos", "Tempo Médio"].map((h) => (
-                  <th key={h} className="px-4 py-2 text-left text-xs font-medium" style={{ color: "var(--muted)" }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {PROF_TABLE.map((row, i) => (
-                <tr key={row.nome} style={{ borderTop: i > 0 ? "1px solid var(--border)" : undefined, background: "var(--surface)" }}>
-                  <td className="px-4 py-2.5 font-medium">{row.nome}</td>
-                  <td className="px-4 py-2.5 tabular-nums">{row.respondidos}</td>
-                  <td className="px-4 py-2.5 tabular-nums" style={{ color: "var(--muted)" }}>{row.tempoMedio}</td>
+          <div className="flex-1 overflow-y-auto min-h-0">
+            <table className="w-full text-sm">
+              <thead className="sticky top-0" style={{ background: "var(--surface)" }}>
+                <tr style={{ background: "rgba(255,255,255,0.03)" }}>
+                  {["Profissional", "Respondidos", "Tempo Médio"].map((h) => (
+                    <th
+                      key={h}
+                      className="px-4 py-2 text-left text-xs font-medium"
+                      style={{ color: "var(--muted)", borderBottom: "1px solid var(--border)" }}
+                    >
+                      {h}
+                    </th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {PROF_TABLE.map((row, i) => (
+                  <tr key={row.nome} style={{ borderTop: i > 0 ? "1px solid var(--border)" : undefined }}>
+                    <td className="px-4 py-3 font-medium">{row.nome}</td>
+                    <td className="px-4 py-3 tabular-nums">{row.respondidos}</td>
+                    <td className="px-4 py-3 tabular-nums" style={{ color: "var(--muted)" }}>{row.tempoMedio}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
+
       </div>
     </div>
   );
