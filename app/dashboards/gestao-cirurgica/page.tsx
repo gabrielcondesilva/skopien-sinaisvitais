@@ -193,7 +193,7 @@ const COL_HEADERS = [
 function Cell({ cell }: { cell: TimestampCell }) {
   return (
     <td
-      className="px-3 py-2.5 tabular-nums text-xs whitespace-nowrap"
+      className="px-4 py-3 tabular-nums text-sm whitespace-nowrap"
       style={{ background: DELAY_BG[cell.delay], color: DELAY_COLOR[cell.delay] }}
     >
       {cell.value}
@@ -208,10 +208,16 @@ export default function GestaoCirurgicaPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen" style={{ background: "var(--background)" }}>
+      <div
+        style={{
+          height: "100vh", overflow: "hidden",
+          display: "flex", flexDirection: "column",
+          background: "var(--background)",
+        }}
+      >
         {/* Top bar */}
         <div
-          className="sticky top-0 z-10 px-6 py-3 flex items-center gap-4"
+          className="px-6 py-3 flex items-center gap-4 shrink-0"
           style={{ background: "var(--surface)", borderBottom: "1px solid var(--border)" }}
         >
           <Link href="/command" className="text-xs transition-colors hover:text-white" style={{ color: "var(--muted)" }}>
@@ -221,9 +227,16 @@ export default function GestaoCirurgicaPage() {
           <RealtimeClock className="ml-auto" />
         </div>
 
-        <div className="p-6 space-y-5">
+        {/* Content — fills remaining height */}
+        <div
+          style={{
+            flex: 1, minHeight: 0,
+            padding: 16,
+            display: "flex", flexDirection: "column", gap: 12,
+          }}
+        >
           {/* Summary chips */}
-          <div className="flex gap-3 flex-wrap">
+          <div className="flex gap-3 flex-wrap shrink-0">
             {([
               { label: "No prazo", count: onTime,  delay: 0 },
               { label: "Atenção",  count: atencao, delay: 1 },
@@ -231,7 +244,7 @@ export default function GestaoCirurgicaPage() {
             ] as { label: string; count: number; delay: Delay }[]).map((s) => (
               <span
                 key={s.label}
-                className="text-xs font-semibold px-3 py-1.5 rounded-full"
+                className="text-sm font-semibold px-4 py-1.5 rounded-full"
                 style={{ background: DELAY_BG[s.delay], color: DELAY_COLOR[s.delay] }}
               >
                 {s.count} {s.label}
@@ -239,17 +252,28 @@ export default function GestaoCirurgicaPage() {
             ))}
           </div>
 
-          {/* Table */}
-          <div className="rounded-lg overflow-hidden" style={{ border: "1px solid var(--border)" }}>
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs border-collapse">
+          {/* Table — grows to fill space */}
+          <div
+            style={{
+              flex: 1, minHeight: 0,
+              borderRadius: 10, overflow: "hidden",
+              border: "1px solid var(--border)",
+            }}
+          >
+            <div style={{ height: "100%", overflowX: "auto", overflowY: "auto" }}>
+              <table className="w-full border-collapse" style={{ fontSize: 14 }}>
                 <thead>
                   <tr style={{ background: "rgba(255,255,255,0.04)" }}>
                     {COL_HEADERS.map((h) => (
                       <th
                         key={h}
-                        className="px-3 py-2.5 text-left font-medium whitespace-nowrap"
-                        style={{ color: "var(--muted)", borderBottom: "1px solid var(--border)" }}
+                        className="px-4 py-3 text-left font-semibold whitespace-nowrap"
+                        style={{
+                          color: "var(--foreground)",
+                          borderBottom: "1px solid var(--border)",
+                          fontSize: 13,
+                          letterSpacing: "0.01em",
+                        }}
                       >
                         {h}
                       </th>
@@ -262,16 +286,32 @@ export default function GestaoCirurgicaPage() {
                       key={row.paciente}
                       style={{ borderTop: i > 0 ? "1px solid var(--border)" : undefined }}
                     >
-                      <td className="px-3 py-2.5 font-medium whitespace-nowrap text-xs" style={{ background: "var(--surface)" }}>
+                      {/* Paciente */}
+                      <td
+                        className="px-4 py-3 font-semibold whitespace-nowrap"
+                        style={{ background: "var(--surface)", fontSize: 14 }}
+                      >
                         {row.paciente}
                       </td>
-                      <td className="px-3 py-2.5 whitespace-nowrap text-xs" style={{ color: "var(--muted)", background: "var(--surface)" }}>
+                      {/* Procedimento */}
+                      <td
+                        className="px-4 py-3 whitespace-nowrap"
+                        style={{ background: "var(--surface)", fontSize: 14, color: "var(--foreground)" }}
+                      >
                         {row.procedimento}
                       </td>
-                      <td className="px-3 py-2.5 font-mono text-xs" style={{ background: "var(--surface)" }}>
+                      {/* Sala */}
+                      <td
+                        className="px-4 py-3 font-mono"
+                        style={{ background: "var(--surface)", fontSize: 14 }}
+                      >
                         {row.sala}
                       </td>
-                      <td className="px-3 py-2.5 tabular-nums text-xs" style={{ color: "var(--muted)", background: "var(--surface)" }}>
+                      {/* Prog. Início */}
+                      <td
+                        className="px-4 py-3 tabular-nums font-medium"
+                        style={{ background: "var(--surface)", fontSize: 14, color: "var(--foreground)" }}
+                      >
                         {row.progInicio}
                       </td>
                       <Cell cell={row.entradaCC} />
@@ -283,8 +323,12 @@ export default function GestaoCirurgicaPage() {
                       <Cell cell={row.destino} />
                       <Cell cell={row.duracao} />
                       <td
-                        className="px-3 py-2.5 text-xs font-semibold whitespace-nowrap"
-                        style={{ background: DELAY_BG[row.status], color: DELAY_COLOR[row.status] }}
+                        className="px-4 py-3 font-semibold whitespace-nowrap"
+                        style={{
+                          background: DELAY_BG[row.status],
+                          color: DELAY_COLOR[row.status],
+                          fontSize: 14,
+                        }}
                       >
                         {DELAY_LABEL[row.status]}
                       </td>
@@ -296,9 +340,9 @@ export default function GestaoCirurgicaPage() {
           </div>
 
           {/* Legend */}
-          <div className="flex gap-4 text-xs" style={{ color: "var(--muted)" }}>
+          <div className="flex gap-5 shrink-0" style={{ color: "var(--muted)", fontSize: 13 }}>
             {([0, 1, 2] as Delay[]).map((d) => (
-              <span key={d} className="flex items-center gap-1.5">
+              <span key={d} className="flex items-center gap-2">
                 <span className="w-3 h-3 rounded-sm inline-block" style={{ background: DELAY_BG[d] }} />
                 <span style={{ color: DELAY_COLOR[d] }}>{DELAY_LABEL[d]}</span>
               </span>
