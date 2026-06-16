@@ -217,14 +217,12 @@ export default function GestaoCirurgicaPage() {
       >
         {/* Top bar */}
         <div
-          className="px-6 py-3 flex items-center gap-4 shrink-0"
-          style={{ background: "var(--surface)", borderBottom: "1px solid var(--border)" }}
+          className="px-6 shrink-0"
+          style={{ height: 52, display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", background: "var(--surface)", borderBottom: "1px solid var(--border)" }}
         >
-          <Link href="/command" className="text-xs transition-colors hover:text-white" style={{ color: "var(--muted)" }}>
-            ← Comando
-          </Link>
-          <span className="text-sm font-semibold">Gestão de Atraso Cirúrgico</span>
-          <RealtimeClock className="ml-auto" />
+          <Link href="/command" className="text-xs transition-colors hover:text-white" style={{ color: "var(--muted)" }}>← Comando</Link>
+          <span style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.01em" }}>Gestão de Atraso Cirúrgico</span>
+          <div style={{ display: "flex", justifyContent: "flex-end" }}><RealtimeClock /></div>
         </div>
 
         {/* Content — fills remaining height */}

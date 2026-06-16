@@ -49,11 +49,11 @@ export default function PatientPredictionPage() {
   return (
     <AuthGuard>
       <div className="min-h-screen" style={{ background:"var(--background)" }}>
-        <div className="sticky top-0 z-10 px-6 py-3 flex items-center gap-4"
-          style={{ background:"var(--surface)", borderBottom:"1px solid var(--border)" }}>
+        <div className="sticky top-0 z-10 px-6"
+          style={{ height: 52, display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", background:"var(--surface)", borderBottom:"1px solid var(--border)" }}>
           <Link href="/command" className="text-xs hover:text-white transition-colors" style={{ color:"var(--muted)" }}>← Comando</Link>
-          <span className="text-sm font-semibold">Predição de Deterioração</span>
-          <RealtimeClock className="ml-auto" />
+          <span style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.01em" }}>Predição de Deterioração</span>
+          <div style={{ display: "flex", justifyContent: "flex-end" }}><RealtimeClock /></div>
         </div>
 
         <div className="p-6 space-y-6">

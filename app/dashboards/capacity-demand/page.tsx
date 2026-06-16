@@ -52,13 +52,11 @@ export default function CapacityDemandPage() {
     <AuthGuard>
       <div className="min-h-screen" style={{ background: "var(--background)" }}>
         {/* Top bar */}
-        <div className="sticky top-0 z-10 px-6 py-3 flex items-center gap-4"
-          style={{ background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
-          <Link href="/command" className="text-xs hover:text-white transition-colors" style={{ color: "var(--muted)" }}>
-            ← Comando
-          </Link>
-          <span className="text-sm font-semibold">Capacidade × Demanda</span>
-          <RealtimeClock className="ml-auto" />
+        <div className="sticky top-0 z-10 px-6"
+          style={{ height: 52, display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
+          <Link href="/command" className="text-xs hover:text-white transition-colors" style={{ color: "var(--muted)" }}>← Comando</Link>
+          <span style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.01em" }}>Capacidade × Demanda</span>
+          <div style={{ display: "flex", justifyContent: "flex-end" }}><RealtimeClock /></div>
         </div>
 
         <div className="p-6 space-y-5">
