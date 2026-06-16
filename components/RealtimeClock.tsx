@@ -7,11 +7,14 @@ interface Props {
 }
 
 export function RealtimeClock({ style, className }: Props) {
-  const [time, setTime] = useState("");
+  const [datetime, setDatetime] = useState("");
 
   useEffect(() => {
     function tick() {
-      setTime(new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
+      const now = new Date();
+      const date = now.toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit", year: "numeric" });
+      const time = now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+      setDatetime(`${date} • ${time}`);
     }
     tick();
     const id = setInterval(tick, 1000);
@@ -30,7 +33,7 @@ export function RealtimeClock({ style, className }: Props) {
         ...style,
       }}
     >
-      {time}
+      {datetime}
     </span>
   );
 }

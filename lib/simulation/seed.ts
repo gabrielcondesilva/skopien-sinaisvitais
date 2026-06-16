@@ -116,39 +116,39 @@ export function buildSeed(): {
   );
   addOccupied("PS-02", "pronto-socorro",
     makePatient("Ana Paula Lima", 34, "F", "Crise Hipertensiva", 3),
-    ATTENTION, { manchesterClass: "Laranja" }
+    ATTENTION, { admissionProbability: 65, manchesterClass: "Laranja" }
   );
   addOccupied("PS-03", "pronto-socorro",
     makePatient("Roberto Alves Martins", 72, "M", "Dispneia", 8),
-    MILD_CONCERN, { manchesterClass: "Amarelo" }
+    MILD_CONCERN, { admissionProbability: 61, manchesterClass: "Laranja" }
   );
   addOccupied("PS-04", "pronto-socorro",
     makePatient("Fernanda Costa Ribeiro", 28, "F", "Cólica Renal", 2),
-    STABLE, { manchesterClass: "Amarelo" }
+    STABLE, { admissionProbability: 22, manchesterClass: "Amarelo" }
   );
   addOccupied("PS-05", "pronto-socorro",
     makePatient("José Antônio Silva", 65, "M", "Fraqueza Muscular", 5),
-    STABLE, { manchesterClass: "Verde" }
+    STABLE, { admissionProbability: 47, manchesterClass: "Amarelo" }
   );
   addOccupied("PS-06", "pronto-socorro",
     makePatient("Patrícia Oliveira Santos", 45, "F", "Arritmia", 4),
-    MILD_CONCERN, { manchesterClass: "Laranja" }
+    MILD_CONCERN, { admissionProbability: 55, manchesterClass: "Laranja" }
   );
   addOccupied("PS-07", "pronto-socorro",
     makePatient("Marcos Vinicius Pereira", 52, "M", "Síncope", 3),
-    STABLE, { manchesterClass: "Amarelo" }
+    STABLE, { admissionProbability: 38, manchesterClass: "Amarelo" }
   );
   addOccupied("PS-08", "pronto-socorro",
     makePatient("Luciana Ferreira Gomes", 38, "F", "Cefaleia Intensa", 1),
-    STABLE, { manchesterClass: "Verde" }
+    STABLE, { admissionProbability: 18, manchesterClass: "Verde" }
   );
   addOccupied("PS-09", "pronto-socorro",
     makePatient("Antônio Carlos Barbosa", 81, "M", "Queda com Trauma", 7),
-    MILD_CONCERN, { manchesterClass: "Laranja" }
+    MILD_CONCERN, { admissionProbability: 68, manchesterClass: "Laranja" }
   );
   addOccupied("PS-10", "pronto-socorro",
     makePatient("Camila Rodrigues Nunes", 23, "F", "Reação Alérgica", 2),
-    STABLE, { manchesterClass: "Amarelo" }
+    STABLE, { admissionProbability: 33, manchesterClass: "Amarelo" }
   );
   addEmpty("PS-11", "pronto-socorro");
   addInoperante("PS-12", "pronto-socorro");

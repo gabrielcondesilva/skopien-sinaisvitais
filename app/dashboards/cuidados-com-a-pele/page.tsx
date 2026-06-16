@@ -355,13 +355,13 @@ export default function CuidadosComAPelePage() {
           padding: "0 24px",
           background: "var(--surface)", borderBottom: "1px solid var(--border)",
         }}>
-          <Link href="/command" style={{ fontSize: 12, color: "var(--muted)", textDecoration: "none" }}>
-            ← Central de Comando
-          </Link>
-          <span style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.01em" }}>Cuidados com a Pele</span>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, justifyContent: "flex-end" }}>
-            <RealtimeClock />
+          <Link href="/command" style={{ fontSize: 12, color: "#F7F7F7", textDecoration: "none" }}>← Voltar</Link>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.01em" }}>Cuidados com a Pele</span>
             <Image src="/skinone.png" alt="skinOne" width={80} height={22} />
+          </div>
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <RealtimeClock />
           </div>
         </div>
 

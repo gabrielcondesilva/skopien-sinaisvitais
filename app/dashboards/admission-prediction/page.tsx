@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo } from "react";
 import {
-  BarChart, Bar, ComposedChart, Line,
+  BarChart, Bar, Cell, ComposedChart, Line,
   XAxis, YAxis, Tooltip, ResponsiveContainer, LabelList,
 } from "recharts";
 import { AuthGuard } from "@/components/AuthGuard";
@@ -13,23 +13,35 @@ import { RealtimeClock } from "@/components/RealtimeClock";
 
 // ─── static data ──────────────────────────────────────────────────────────────
 
-const FORECAST_7D = [
-  { day:"Seg", n:14 },{ day:"Ter", n:18 },{ day:"Qua", n:16 },
-  { day:"Qui", n:22 },{ day:"Sex", n:19 },{ day:"Sáb", n:11 },{ day:"Dom", n:8  },
-];
+// Internações esperadas por dia da semana (Dom=0..Sáb=6) — padrão clínico típico
+const N_BY_DOW = [8, 14, 18, 16, 22, 19, 11];
+const DAY_ABBR  = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+
+function buildForecast7d() {
+  const today = new Date();
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(today);
+    d.setDate(today.getDate() + i);
+    const dow = d.getDay();
+    return { day: i === 0 ? "Hoje" : DAY_ABBR[dow], n: N_BY_DOW[dow], isToday: i === 0 };
+  });
+}
 
 const HOUR_SEED = [
-  { h:"06h", hour:6,  real:2,  pred:3  },{ h:"07h", hour:7,  real:5,  pred:4  },
-  { h:"08h", hour:8,  real:8,  pred:9  },{ h:"09h", hour:9,  real:12, pred:11 },
-  { h:"10h", hour:10, real:9,  pred:10 },{ h:"11h", hour:11, real:7,  pred:8  },
-  { h:"12h", hour:12, real:5,  pred:6  },{ h:"13h", hour:13, real:6,  pred:5  },
-  { h:"14h", hour:14, real:8,  pred:9  },{ h:"15h", hour:15, real:7,  pred:7  },
-  { h:"16h", hour:16, real:4,  pred:5  },{ h:"17h", hour:17, real:3,  pred:4  },
+  { h:"06h", hour:6,  real:1, pred:2 },{ h:"07h", hour:7,  real:3, pred:2 },
+  { h:"08h", hour:8,  real:4, pred:5 },{ h:"09h", hour:9,  real:6, pred:6 },
+  { h:"10h", hour:10, real:5, pred:5 },{ h:"11h", hour:11, real:4, pred:4 },
+  { h:"12h", hour:12, real:3, pred:3 },{ h:"13h", hour:13, real:3, pred:3 },
+  { h:"14h", hour:14, real:4, pred:5 },{ h:"15h", hour:15, real:4, pred:4 },
+  { h:"16h", hour:16, real:2, pred:3 },{ h:"17h", hour:17, real:2, pred:2 },
 ];
 
-const AGE_PROFILE = [
-  { faixa:"0–17",  n:4  },{ faixa:"18–39", n:8  },{ faixa:"40–59", n:14 },
-  { faixa:"60–74", n:21 },{ faixa:"75+",   n:17 },
+const AGE_BANDS = [
+  { faixa:"0–17",  min:0,  max:17  },
+  { faixa:"18–39", min:18, max:39  },
+  { faixa:"40–59", min:40, max:59  },
+  { faixa:"60–74", min:60, max:74  },
+  { faixa:"75+",   min:75, max:999 },
 ];
 
 const SPECIALTY_GRID = [
@@ -81,10 +93,19 @@ export default function AdmissionPredictionPage() {
 
   const highProb = candidates.filter((c) => c.prob >= 70).length;
 
+  const ageProfile = useMemo(() =>
+    AGE_BANDS.map(b => ({
+      faixa: b.faixa,
+      n: candidates.filter(c => c.age >= b.min && c.age <= b.max).length,
+    })),
+  [candidates]);
+
+  const forecast7d = useMemo(() => buildForecast7d(), []);
+
   const currentHour = new Date().getHours();
   const hourlyChart = HOUR_SEED.map(d => ({
     h:    d.h,
-    real: d.hour <= currentHour ? d.real : undefined as number | undefined,
+    real: d.hour < currentHour ? d.real : d.hour === currentHour ? candidates.length : undefined as number | undefined,
     pred: d.hour >= currentHour ? d.pred : undefined as number | undefined,
   }));
 
@@ -100,7 +121,7 @@ export default function AdmissionPredictionPage() {
         {/* Top bar */}
         <div className="px-6"
           style={{ height: 52, flexShrink: 0, display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
-          <Link href="/command" className="text-xs hover:text-white transition-colors" style={{ color: "var(--muted)" }}>← Comando</Link>
+          <Link href="/command" className="text-xs transition-colors" style={{ color: "#F7F7F7" }}>← Voltar</Link>
           <span style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.01em" }}>Predição de Internações</span>
           <div style={{ display: "flex", justifyContent: "flex-end" }}><RealtimeClock /></div>
         </div>
@@ -112,7 +133,7 @@ export default function AdmissionPredictionPage() {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, flexShrink: 0 }}>
             <div className="rounded-lg p-4 flex flex-col gap-1" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
               <span className="text-xs uppercase tracking-wide" style={{ color: "var(--muted)" }}>Forecast 7 dias</span>
-              <span className="text-2xl font-bold tabular-nums">{FORECAST_7D.reduce((s,x)=>s+x.n,0)}</span>
+              <span className="text-2xl font-bold tabular-nums">{forecast7d.reduce((s,x)=>s+x.n,0)}</span>
               <span className="text-xs" style={{ color: "var(--muted)" }}>internações previstas</span>
             </div>
             <div className="rounded-lg p-4 flex flex-col gap-1" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
@@ -135,11 +156,14 @@ export default function AdmissionPredictionPage() {
               <p className="text-xs font-medium mb-2" style={{ color: "#f7f7f7" }}>Forecast de Internações — 7 dias</p>
               <div style={{ flex: 1, minHeight: 0 }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={FORECAST_7D} margin={{ top: 20, right: 12, bottom: 0, left: 12 }}>
+                  <BarChart data={forecast7d} margin={{ top: 20, right: 12, bottom: 0, left: 12 }}>
                     <XAxis dataKey="day" tick={{ fill: "#f7f7f7", fontSize: 10 }} padding={{ left: 20, right: 20 }} />
                     <YAxis hide width={0} />
                     <Tooltip contentStyle={TS} formatter={(v) => [`${v}`, "Internações"]} />
-                    <Bar dataKey="n" fill="#3b82f6" radius={[3,3,0,0]} isAnimationActive={false}>
+                    <Bar dataKey="n" radius={[3,3,0,0]} isAnimationActive={false}>
+                      {forecast7d.map((entry, i) => (
+                        <Cell key={i} fill={entry.isToday ? "#4DABF7" : "#3b82f6"} />
+                      ))}
                       <LabelList dataKey="n" position="top" style={LS} />
                     </Bar>
                   </BarChart>
@@ -182,7 +206,7 @@ export default function AdmissionPredictionPage() {
               <p className="text-xs font-medium mb-2" style={{ color: "#f7f7f7" }}>Perfil Etário dos Candidatos</p>
               <div style={{ flex: 1, minHeight: 0 }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={AGE_PROFILE} margin={{ top: 20, right: 12, bottom: 0, left: 12 }}>
+                  <BarChart data={ageProfile} margin={{ top: 20, right: 12, bottom: 0, left: 12 }}>
                     <XAxis dataKey="faixa" tick={{ fill: "#f7f7f7", fontSize: 10 }} padding={{ left: 20, right: 20 }} />
                     <YAxis hide width={0} />
                     <Tooltip contentStyle={TS} formatter={(v) => [`${v}`, "Candidatos"]} />

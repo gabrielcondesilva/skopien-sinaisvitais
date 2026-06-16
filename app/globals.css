@@ -124,7 +124,7 @@
   --foreground:       #E9E6EA;
   --surface:          #231F26;
   --border:           #59505E;
-  --muted:            #928698;
+  --muted:            #C0BBC4;
   --accent:           #4DABF7;
   --accent-foreground: #1A171C;
 
@@ -157,6 +157,11 @@ body {
 
 button, [role="button"] {
   cursor: pointer;
+}
+
+/* Card label titles (uppercase + tracking-wide pattern used across dashboards) */
+.uppercase.tracking-wide {
+  font-weight: 600;
 }
 
 /* Accessible focus ring — uses accent color, respects reduced-motion */

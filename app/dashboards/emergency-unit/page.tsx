@@ -203,7 +203,7 @@ export default function EmergencyUnitPage() {
             background: "var(--surface)", borderBottom: "1px solid var(--border)",
           }}
         >
-          <Link href="/command" className="text-xs transition-colors hover:text-white" style={{ color: "var(--muted)" }}>← Comando</Link>
+          <Link href="/command" className="text-xs transition-colors" style={{ color: "#F7F7F7" }}>← Voltar</Link>
           <span style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.01em" }}>Unidade de Emergência</span>
           <div style={{ display: "flex", justifyContent: "flex-end" }}><RealtimeClock /></div>
         </div>

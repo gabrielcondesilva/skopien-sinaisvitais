@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import {
-  ComposedChart, Line, BarChart, Bar,
+  ComposedChart, Line, BarChart, Bar, Cell,
   XAxis, YAxis, Tooltip, ResponsiveContainer, LabelList,
 } from "recharts";
 import { AuthGuard } from "@/components/AuthGuard";
@@ -15,60 +15,52 @@ type Specialty = "Clín. Médica" | "Cardiologia" | "Ortopedia" | "Neurologia" |
 
 const SPECIALTIES: Specialty[] = ["Clín. Médica","Cardiologia","Ortopedia","Neurologia","Pediatria","Cirurgia"];
 
-const WEEK = ["Seg","Ter","Qua","Qui","Sex","Sáb","Dom"];
-
-function buildMain(past: number[], connector: number, future: [number,number,number]) {
-  return [
-    ...WEEK.slice(0,6).map((day,i) => ({ day, real: past[i], forecast: undefined as number|undefined })),
-    { day:"Dom",  real: connector, forecast: connector },
-    { day:"Seg+", real: undefined, forecast: future[0] },
-    { day:"Ter+", real: undefined, forecast: future[1] },
-    { day:"Qua+", real: undefined, forecast: future[2] },
-  ];
+const DAY_ABBR = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
+function getDay(offset: number) {
+  const d = new Date();
+  d.setDate(d.getDate() + offset);
+  return DAY_ABBR[d.getDay()];
 }
 
-function buildError(vals: number[]) { return WEEK.map((day,i) => ({ day, pct: vals[i] })); }
-function buildSurg (vals: number[]) { return WEEK.map((day,i) => ({ day, n:   vals[i] })); }
+type RawData = {
+  mainPast: number[];
+  mainConnector: number;
+  mainFuture: [number,number,number];
+  errorVals: number[];
+  surgVals: number[];
+};
+
+function buildDynamic(raw: RawData) {
+  // Main chart: 6 past days + hoje (connector) + 3 forecast days
+  const main = [
+    ...raw.mainPast.map((real, i) => ({ day: getDay(i - 6), real, forecast: undefined as number|undefined })),
+    { day: "Hoje", real: raw.mainConnector, forecast: raw.mainConnector },
+    { day: getDay(1), real: undefined as number|undefined, forecast: raw.mainFuture[0] },
+    { day: getDay(2), real: undefined as number|undefined, forecast: raw.mainFuture[1] },
+    { day: getDay(3), real: undefined as number|undefined, forecast: raw.mainFuture[2] },
+  ];
+  // Error chart: 6 past days + hoje (only days that already happened)
+  const error = raw.errorVals.map((pct, i) => ({ day: i === 6 ? "Hoje" : getDay(i - 6), pct }));
+  // Surgical chart: hoje + 6 próximos dias, hoje com cor diferente
+  const surg  = raw.surgVals.map((n, i) => ({ day: i === 0 ? "Hoje" : getDay(i), n, isToday: i === 0 }));
+  return { main, error, surg };
+}
 
 // ─── data ─────────────────────────────────────────────────────────────────────
 
-const ALL_DATA = {
-  main:  buildMain([38,42,35,47,44,29], 31, [36,41,38]),
-  error: buildError([4.2,2.8,5.1,3.4,6.2,4.8,3.9]),
-  surg:  buildSurg([14,18,16,21,19,10,7]),
+const ALL_RAW: RawData = {
+  mainPast: [38,42,35,47,44,29], mainConnector: 31, mainFuture: [36,41,38],
+  errorVals: [4.2,2.8,5.1,3.4,6.2,4.8,3.9],
+  surgVals:  [14,18,16,21,19,10,7],
 };
 
-const SPEC_DATA: Record<Specialty, typeof ALL_DATA> = {
-  "Clín. Médica": {
-    main:  buildMain([28,32,29,35,31,29], 30, [33,36,31]),
-    error: buildError([3.8,2.5,4.6,3.1,5.5,4.2,3.6]),
-    surg:  buildSurg([6,7,6,8,7,4,3]),
-  },
-  "Cardiologia": {
-    main:  buildMain([12,14,11,16,13,9], 11, [13,15,12]),
-    error: buildError([5.1,3.2,6.0,4.1,7.2,5.5,4.8]),
-    surg:  buildSurg([3,4,3,5,4,2,1]),
-  },
-  "Ortopedia": {
-    main:  buildMain([9,11,8,13,10,7], 8, [10,12,9]),
-    error: buildError([4.5,2.9,5.3,3.7,6.5,5.0,4.1]),
-    surg:  buildSurg([2,3,2,4,3,2,1]),
-  },
-  "Neurologia": {
-    main:  buildMain([7,8,6,9,7,5], 6, [8,9,7]),
-    error: buildError([3.9,2.6,4.8,3.3,5.8,4.4,3.7]),
-    surg:  buildSurg([1,2,1,2,2,1,1]),
-  },
-  "Pediatria": {
-    main:  buildMain([15,17,14,18,16,11], 13, [15,17,14]),
-    error: buildError([4.0,2.7,4.9,3.4,6.0,4.6,3.8]),
-    surg:  buildSurg([1,1,2,1,2,1,0]),
-  },
-  "Cirurgia": {
-    main:  buildMain([11,13,10,14,12,8], 10, [12,14,11]),
-    error: buildError([4.3,2.8,5.0,3.5,6.3,4.9,4.0]),
-    surg:  buildSurg([3,4,3,5,4,2,1]),
-  },
+const SPEC_RAW: Record<Specialty, RawData> = {
+  "Clín. Médica": { mainPast:[28,32,29,35,31,29], mainConnector:30, mainFuture:[33,36,31], errorVals:[3.8,2.5,4.6,3.1,5.5,4.2,3.6], surgVals:[6,7,6,8,7,4,3] },
+  "Cardiologia":  { mainPast:[12,14,11,16,13,9],  mainConnector:11, mainFuture:[13,15,12], errorVals:[5.1,3.2,6.0,4.1,7.2,5.5,4.8], surgVals:[3,4,3,5,4,2,1] },
+  "Ortopedia":    { mainPast:[9,11,8,13,10,7],     mainConnector:8,  mainFuture:[10,12,9],  errorVals:[4.5,2.9,5.3,3.7,6.5,5.0,4.1], surgVals:[2,3,2,4,3,2,1] },
+  "Neurologia":   { mainPast:[7,8,6,9,7,5],        mainConnector:6,  mainFuture:[8,9,7],    errorVals:[3.9,2.6,4.8,3.3,5.8,4.4,3.7], surgVals:[1,2,1,2,2,1,1] },
+  "Pediatria":    { mainPast:[15,17,14,18,16,11],  mainConnector:13, mainFuture:[15,17,14], errorVals:[4.0,2.7,4.9,3.4,6.0,4.6,3.8], surgVals:[1,1,2,1,2,1,0] },
+  "Cirurgia":     { mainPast:[11,13,10,14,12,8],   mainConnector:10, mainFuture:[12,14,11], errorVals:[4.3,2.8,5.0,3.5,6.3,4.9,4.0], surgVals:[3,4,3,5,4,2,1] },
 };
 
 const TS = { background:"var(--surface)", border:"1px solid var(--border)", borderRadius:6, fontSize:11, color:"var(--foreground)" };
@@ -78,7 +70,8 @@ const LS = { fill: "#f7f7f7", fontSize: 9, fontWeight: 600 } as React.CSSPropert
 
 export default function PatientPredictionPage() {
   const [active, setActive] = useState<Specialty | null>(null);
-  const data = active ? SPEC_DATA[active] : ALL_DATA;
+  const rawData = active ? SPEC_RAW[active] : ALL_RAW;
+  const data = useMemo(() => buildDynamic(rawData), [rawData]);
 
   return (
     <AuthGuard>
@@ -92,7 +85,7 @@ export default function PatientPredictionPage() {
         {/* Top bar */}
         <div className="px-6"
           style={{ height: 52, flexShrink: 0, display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
-          <Link href="/command" className="text-xs hover:text-white transition-colors" style={{ color: "var(--muted)" }}>← Comando</Link>
+          <Link href="/command" className="text-xs transition-colors" style={{ color: "#F7F7F7" }}>← Voltar</Link>
           <span style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.01em" }}>Predição de Deterioração</span>
           <div style={{ display: "flex", justifyContent: "flex-end" }}><RealtimeClock /></div>
         </div>
@@ -210,7 +203,10 @@ export default function PatientPredictionPage() {
                     <XAxis dataKey="day" tick={{ fill:"#f7f7f7", fontSize:9 }} padding={{ left:20, right:20 }} />
                     <YAxis hide width={0} />
                     <Tooltip contentStyle={TS} formatter={(v)=>[`${v}`,"Cirurgias"]} />
-                    <Bar dataKey="n" fill="#22c55e" radius={[3,3,0,0]} isAnimationActive={false}>
+                    <Bar dataKey="n" radius={[3,3,0,0]} isAnimationActive={false}>
+                      {data.surg.map((entry, i) => (
+                        <Cell key={i} fill={entry.isToday ? "#4DABF7" : "#22c55e"} />
+                      ))}
                       <LabelList dataKey="n" position="top" style={LS} />
                     </Bar>
                   </BarChart>
