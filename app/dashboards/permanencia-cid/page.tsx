@@ -6,6 +6,7 @@ import {
   ResponsiveContainer, Cell,
 } from "recharts";
 import { AuthGuard } from "@/components/AuthGuard";
+import { RealtimeClock } from "@/components/RealtimeClock";
 
 // ─── data ─────────────────────────────────────────────────────────────────────
 
@@ -74,8 +75,7 @@ export default function PermanenciaCIDPage() {
           style={{ background:"var(--surface)", borderBottom:"1px solid var(--border)" }}>
           <Link href="/command" className="text-xs hover:text-white transition-colors" style={{ color:"var(--muted)" }}>← Comando</Link>
           <span className="text-sm font-semibold">Tempo de Permanência CID</span>
-          <span className="text-xs font-medium px-2 py-0.5 rounded-full animate-pulse ml-auto"
-            style={{ background:"rgba(34,197,94,0.12)", color:"var(--status-stable)" }}>Ao vivo</span>
+          <RealtimeClock className="ml-auto" />
         </div>
 
         <div className="p-6 space-y-6">
@@ -91,12 +91,12 @@ export default function PermanenciaCIDPage() {
             {/* CID × LOS */}
             <div className="rounded-lg p-4"
               style={{ background:"var(--surface)", border:"1px solid var(--border)" }}>
-              <p className="text-xs font-medium mb-3" style={{ color:"var(--muted)" }}>LOS Médio por CID (dias)</p>
+              <p className="text-xs font-medium mb-3" style={{ color:"#f7f7f7" }}>LOS Médio por CID (dias)</p>
               <ResponsiveContainer width="100%" height={240}>
                 <BarChart data={CID_LOS} layout="vertical" margin={{ top:4, right:16, bottom:0, left:8 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
-                  <XAxis type="number" tick={{ fill:"var(--muted)", fontSize:10 }} domain={[0,14]} />
-                  <YAxis type="category" dataKey="cid" tick={{ fill:"var(--muted)", fontSize:9 }} width={130} />
+                  <XAxis type="number" tick={{ fill:"#f7f7f7", fontSize:10 }} domain={[0,14]} />
+                  <YAxis type="category" dataKey="cid" tick={{ fill:"#f7f7f7", fontSize:9 }} width={130} />
                   <Tooltip contentStyle={TS} formatter={(v) => [`${v} dias`, "Permanência"]} />
                   <Bar dataKey="los" radius={[0,3,3,0]} isAnimationActive={false} fill="#3b82f6" />
                 </BarChart>
@@ -106,7 +106,7 @@ export default function PermanenciaCIDPage() {
             {/* Age pyramid */}
             <div className="rounded-lg p-4"
               style={{ background:"var(--surface)", border:"1px solid var(--border)" }}>
-              <p className="text-xs font-medium mb-1" style={{ color:"var(--muted)" }}>Pirâmide Etária por Sexo</p>
+              <p className="text-xs font-medium mb-1" style={{ color:"#f7f7f7" }}>Pirâmide Etária por Sexo</p>
               <div className="flex justify-center gap-4 mb-2 text-xs" style={{ color:"var(--muted)" }}>
                 <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full inline-block" style={{ background:"#3b82f6" }} />Masculino</span>
                 <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full inline-block" style={{ background:"#ec4899" }} />Feminino</span>
@@ -115,9 +115,9 @@ export default function PermanenciaCIDPage() {
                 <BarChart data={AGE_PYRAMID} layout="vertical" stackOffset="sign"
                   margin={{ top:4, right:8, bottom:0, left:32 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
-                  <XAxis type="number" tick={{ fill:"var(--muted)", fontSize:9 }}
+                  <XAxis type="number" tick={{ fill:"#f7f7f7", fontSize:9 }}
                     tickFormatter={(v) => String(Math.abs(v))} domain={[-60, 55]} />
-                  <YAxis type="category" dataKey="faixa" tick={{ fill:"var(--muted)", fontSize:10 }} width={38} />
+                  <YAxis type="category" dataKey="faixa" tick={{ fill:"#f7f7f7", fontSize:10 }} width={38} />
                   <Tooltip contentStyle={TS}
                     formatter={(v, name) => [`${Math.abs(Number(v))}`, name === "M" ? "Masculino" : "Feminino"]} />
                   <Bar dataKey="M" name="M" stackId="a" fill="#3b82f6" isAnimationActive={false} radius={[3,0,0,3]} />
@@ -131,12 +131,12 @@ export default function PermanenciaCIDPage() {
             {/* Dept distribution */}
             <div className="rounded-lg p-4"
               style={{ background:"var(--surface)", border:"1px solid var(--border)" }}>
-              <p className="text-xs font-medium mb-3" style={{ color:"var(--muted)" }}>Distribuição por Departamento</p>
+              <p className="text-xs font-medium mb-3" style={{ color:"#f7f7f7" }}>Distribuição por Departamento</p>
               <ResponsiveContainer width="100%" height={160}>
                 <BarChart data={DEPT_DIST} margin={{ top:4, right:4, bottom:0, left:-20 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                  <XAxis dataKey="dept" tick={{ fill:"var(--muted)", fontSize:9 }} />
-                  <YAxis tick={{ fill:"var(--muted)", fontSize:9 }} />
+                  <XAxis dataKey="dept" tick={{ fill:"#f7f7f7", fontSize:9 }} />
+                  <YAxis tick={{ fill:"#f7f7f7", fontSize:9 }} />
                   <Tooltip contentStyle={TS} formatter={(v) => [`${v}`, "Internações"]} />
                   <Bar dataKey="n" fill="#8b5cf6" radius={[3,3,0,0]} isAnimationActive={false} />
                 </BarChart>
@@ -146,12 +146,12 @@ export default function PermanenciaCIDPage() {
             {/* Convênio */}
             <div className="rounded-lg p-4"
               style={{ background:"var(--surface)", border:"1px solid var(--border)" }}>
-              <p className="text-xs font-medium mb-3" style={{ color:"var(--muted)" }}>LOS por Convênio (dias)</p>
+              <p className="text-xs font-medium mb-3" style={{ color:"#f7f7f7" }}>LOS por Convênio (dias)</p>
               <ResponsiveContainer width="100%" height={160}>
                 <BarChart data={CONVENIO} margin={{ top:4, right:4, bottom:0, left:-20 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                  <XAxis dataKey="nome" tick={{ fill:"var(--muted)", fontSize:9 }} />
-                  <YAxis tick={{ fill:"var(--muted)", fontSize:9 }} domain={[0,10]} />
+                  <XAxis dataKey="nome" tick={{ fill:"#f7f7f7", fontSize:9 }} />
+                  <YAxis tick={{ fill:"#f7f7f7", fontSize:9 }} domain={[0,10]} />
                   <Tooltip contentStyle={TS} formatter={(v) => [`${v} dias`, "Permanência"]} />
                   <Bar dataKey="los" isAnimationActive={false} radius={[3,3,0,0]}>
                     {CONVENIO.map((e) => (

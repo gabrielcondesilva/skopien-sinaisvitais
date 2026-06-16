@@ -6,6 +6,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine,
 } from "recharts";
 import { AuthGuard } from "@/components/AuthGuard";
+import { RealtimeClock } from "@/components/RealtimeClock";
 
 // ─── static demo data ─────────────────────────────────────────────────────────
 
@@ -99,10 +100,7 @@ export default function PerformanceAltaPage() {
             ← Comando
           </Link>
           <span className="text-sm font-semibold">Performance de Alta até 10h</span>
-          <span className="text-xs font-medium px-2 py-0.5 rounded-full animate-pulse ml-auto"
-            style={{ background: "rgba(34,197,94,0.12)", color: "var(--status-stable)" }}>
-            Ao vivo
-          </span>
+          <RealtimeClock className="ml-auto" />
         </div>
 
         <div className="p-6 space-y-4">
@@ -118,15 +116,15 @@ export default function PerformanceAltaPage() {
           <div className="grid grid-cols-4 gap-4">
             <div className="col-span-2 rounded-lg p-4"
               style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-              <p className="text-xs font-medium mb-3" style={{ color: "var(--muted)" }}>
+              <p className="text-xs font-medium mb-3" style={{ color: "#f7f7f7" }}>
                 % de Altas até 10h por Ala — Hoje
               </p>
               <ResponsiveContainer width="100%" height={175}>
                 <BarChart data={WARD_PERF} layout="vertical" margin={{ top: 4, right: 16, bottom: 0, left: 8 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
-                  <XAxis type="number" tick={{ fill: "var(--muted)", fontSize: 10 }} domain={[0, 100]}
+                  <XAxis type="number" tick={{ fill: "#f7f7f7", fontSize: 10 }} domain={[0, 100]}
                     tickFormatter={(v) => `${v}%`} />
-                  <YAxis type="category" dataKey="ala" tick={{ fill: "var(--muted)", fontSize: 10 }} width={88} />
+                  <YAxis type="category" dataKey="ala" tick={{ fill: "#f7f7f7", fontSize: 10 }} width={88} />
                   <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => [`${v}%`, "Altas até 10h"]} />
                   <ReferenceLine x={80} stroke="rgba(239,68,68,0.5)" strokeDasharray="4 4" />
                   <Bar dataKey="pct" radius={[0, 3, 3, 0]} isAnimationActive={false} fill="#3b82f6" />
@@ -141,7 +139,7 @@ export default function PerformanceAltaPage() {
           <div className="grid grid-cols-3 gap-4">
             <div className="rounded-lg p-4"
               style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-              <p className="text-xs font-medium mb-3" style={{ color: "var(--muted)" }}>
+              <p className="text-xs font-medium mb-3" style={{ color: "#f7f7f7" }}>
                 Tendência — últimos 7 dias (%)
               </p>
               <ResponsiveContainer width="100%" height={118}>
@@ -153,8 +151,8 @@ export default function PerformanceAltaPage() {
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                  <XAxis dataKey="day" tick={{ fill: "var(--muted)", fontSize: 9 }} />
-                  <YAxis tick={{ fill: "var(--muted)", fontSize: 9 }} domain={[40, 90]} />
+                  <XAxis dataKey="day" tick={{ fill: "#f7f7f7", fontSize: 9 }} />
+                  <YAxis tick={{ fill: "#f7f7f7", fontSize: 9 }} domain={[40, 90]} />
                   <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => [`${v}%`]} />
                   <Area type="monotone" dataKey="pct" stroke="#3b82f6" fill="url(#gtTrend)"
                     strokeWidth={2} dot={false} isAnimationActive={false} />
@@ -164,14 +162,14 @@ export default function PerformanceAltaPage() {
 
             <div className="rounded-lg p-4"
               style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-              <p className="text-xs font-medium mb-3" style={{ color: "var(--muted)" }}>
+              <p className="text-xs font-medium mb-3" style={{ color: "#f7f7f7" }}>
                 Altas até 10h por Dia da Semana
               </p>
               <ResponsiveContainer width="100%" height={118}>
                 <BarChart data={BY_DOW} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                  <XAxis dataKey="day" tick={{ fill: "var(--muted)", fontSize: 9 }} />
-                  <YAxis tick={{ fill: "var(--muted)", fontSize: 9 }} allowDecimals={false} />
+                  <XAxis dataKey="day" tick={{ fill: "#f7f7f7", fontSize: 9 }} />
+                  <YAxis tick={{ fill: "#f7f7f7", fontSize: 9 }} allowDecimals={false} />
                   <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => [`${v}`, "Altas"]} />
                   <Bar dataKey="n" fill="#22c55e" radius={[2, 2, 0, 0]} isAnimationActive={false} />
                 </BarChart>
@@ -180,14 +178,14 @@ export default function PerformanceAltaPage() {
 
             <div className="rounded-lg p-4"
               style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-              <p className="text-xs font-medium mb-3" style={{ color: "var(--muted)" }}>
+              <p className="text-xs font-medium mb-3" style={{ color: "#f7f7f7" }}>
                 Distribuição por Hora — Hoje
               </p>
               <ResponsiveContainer width="100%" height={118}>
                 <LineChart data={HOUR_DIST} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                  <XAxis dataKey="h" tick={{ fill: "var(--muted)", fontSize: 9 }} />
-                  <YAxis tick={{ fill: "var(--muted)", fontSize: 9 }} allowDecimals={false} />
+                  <XAxis dataKey="h" tick={{ fill: "#f7f7f7", fontSize: 9 }} />
+                  <YAxis tick={{ fill: "#f7f7f7", fontSize: 9 }} allowDecimals={false} />
                   <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => [`${v}`, "Altas"]} />
                   <Line type="monotone" dataKey="n" stroke="#f59e0b" strokeWidth={2}
                     dot={{ r: 3, fill: "#f59e0b" }} isAnimationActive={false} />

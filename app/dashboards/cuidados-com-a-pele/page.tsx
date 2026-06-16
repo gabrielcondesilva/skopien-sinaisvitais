@@ -4,11 +4,10 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  CartesianGrid, Legend,
-  LineChart, Line,
-  PieChart, Pie, Cell,
+  CartesianGrid, Legend, Cell, LabelList,
 } from "recharts";
 import { AuthGuard } from "@/components/AuthGuard";
+import { RealtimeClock } from "@/components/RealtimeClock";
 
 // ── Mock data ─────────────────────────────────────────────────────────────────
 
@@ -60,11 +59,18 @@ const TOOLTIP_STYLE = {
   color: "#fff",
 };
 
-const TICK = { fontSize: 11, fill: "rgba(255,255,255,0.38)" };
+const TICK    = { fontSize: 11, fill: "#f7f7f7" };
+const TICK_SM = { fontSize: 10, fill: "#f7f7f7" };
+const LABEL    = { fill: "#f7f7f7", fontSize: 10, fontWeight: 700 } as React.CSSProperties;
+const LABEL_SM = { fill: "#f7f7f7", fontSize: 9,  fontWeight: 600 } as React.CSSProperties;
+const LABEL_LG = { fill: "#f7f7f7", fontSize: 12, fontWeight: 700 } as React.CSSProperties;
+
 const LEGEND_STYLE = { fontSize: 11, paddingTop: 4 };
 const legendFormatter = (v: string) => (
-  <span style={{ color: "rgba(255,255,255,0.6)" }}>{v}</span>
+  <span style={{ color: "rgba(255,255,255,0.7)" }}>{v}</span>
 );
+
+const pctFmt = (v: unknown) => `${v}%`;
 
 // ── Card shell ────────────────────────────────────────────────────────────────
 
@@ -76,7 +82,7 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
     }}>
       <p style={{
         fontSize: 10, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase",
-        color: "rgba(255,255,255,0.35)", padding: "12px 16px 6px", flexShrink: 0,
+        color: "#f7f7f7", padding: "12px 16px 6px", flexShrink: 0,
       }}>
         {title}
       </p>
@@ -93,16 +99,27 @@ function ConformanceTrendPanel() {
   return (
     <Card title="Conformidade ao Longo do Tempo (%)">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={CONFORMIDADE_DATA} margin={{ top: 6, right: 12, bottom: 4, left: -16 }}>
+        <BarChart
+          data={CONFORMIDADE_DATA}
+          margin={{ top: 22, right: 8, bottom: 4, left: 0 }}
+          barCategoryGap="28%"
+          barGap={5}
+        >
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-          <XAxis dataKey="mes" tick={TICK} axisLine={false} tickLine={false} />
-          <YAxis tick={TICK} axisLine={false} tickLine={false} domain={[55, 100]} unit="%" />
-          <Tooltip contentStyle={TOOLTIP_STYLE} cursor={{ stroke: "rgba(255,255,255,0.08)" }} formatter={(v) => [`${v}%`]} />
+          <XAxis dataKey="mes" tick={TICK_SM} axisLine={false} tickLine={false} />
+          <YAxis hide domain={[0, 100]} />
+          <Tooltip contentStyle={TOOLTIP_STYLE} cursor={{ fill: "rgba(255,255,255,0.04)" }} formatter={(v) => [`${v}%`]} />
           <Legend wrapperStyle={LEGEND_STYLE} formatter={legendFormatter} />
-          <Line type="monotone" dataKey="decubito" name="Decúbito" stroke="#38bdf8" strokeWidth={2} dot={false} />
-          <Line type="monotone" dataKey="braden"   name="Braden"   stroke="#a78bfa" strokeWidth={2} dot={false} />
-          <Line type="monotone" dataKey="curativo"  name="Curativo" stroke="#22c55e" strokeWidth={2} dot={false} />
-        </LineChart>
+          <Bar dataKey="decubito" name="Decúbito" fill="#38bdf8" radius={[3, 3, 0, 0]}>
+            <LabelList dataKey="decubito" position="top" formatter={pctFmt} style={LABEL_SM} />
+          </Bar>
+          <Bar dataKey="braden" name="Braden" fill="#a78bfa" radius={[3, 3, 0, 0]}>
+            <LabelList dataKey="braden" position="top" formatter={pctFmt} style={LABEL_SM} />
+          </Bar>
+          <Bar dataKey="curativo" name="Curativo" fill="#22c55e" radius={[3, 3, 0, 0]}>
+            <LabelList dataKey="curativo" position="top" formatter={pctFmt} style={LABEL_SM} />
+          </Bar>
+        </BarChart>
       </ResponsiveContainer>
     </Card>
   );
@@ -112,14 +129,23 @@ function MonthlyPanel() {
   return (
     <Card title="Cuidados Realizados por Mês — No Prazo × Atrasados">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={MONTHLY_DATA} margin={{ top: 6, right: 12, bottom: 4, left: -16 }} barCategoryGap="28%">
+        <BarChart
+          data={MONTHLY_DATA}
+          margin={{ top: 22, right: 8, bottom: 4, left: 0 }}
+          barCategoryGap="28%"
+          barGap={3}
+        >
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
           <XAxis dataKey="mes" tick={TICK} axisLine={false} tickLine={false} />
-          <YAxis tick={TICK} axisLine={false} tickLine={false} />
+          <YAxis hide />
           <Tooltip contentStyle={TOOLTIP_STYLE} cursor={{ fill: "rgba(255,255,255,0.04)" }} />
           <Legend wrapperStyle={LEGEND_STYLE} formatter={legendFormatter} />
-          <Bar dataKey="noPrazo"  name="No Prazo" fill="#06b6d4" radius={[4, 4, 0, 0]} />
-          <Bar dataKey="atrasado" name="Atrasado"  fill="#ef4444" radius={[4, 4, 0, 0]} opacity={0.85} />
+          <Bar dataKey="noPrazo" name="No Prazo" fill="#06b6d4" radius={[4, 4, 0, 0]}>
+            <LabelList dataKey="noPrazo" position="top" style={LABEL} />
+          </Bar>
+          <Bar dataKey="atrasado" name="Atrasado" fill="#ef4444" radius={[4, 4, 0, 0]} opacity={0.85}>
+            <LabelList dataKey="atrasado" position="top" style={LABEL} />
+          </Bar>
         </BarChart>
       </ResponsiveContainer>
     </Card>
@@ -127,37 +153,30 @@ function MonthlyPanel() {
 }
 
 function StagePanel() {
-  const total = STAGE_DATA.reduce((s, d) => s + d.value, 0);
   return (
     <Card title="Lesões por Estágio">
-      <div style={{ display: "flex", gap: 16, height: "100%", alignItems: "center" }}>
-        <div style={{ flexShrink: 0, width: 120, height: 120 }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie data={STAGE_DATA} cx="50%" cy="50%" innerRadius={32} outerRadius={54}
-                dataKey="value" paddingAngle={2} isAnimationActive={false}>
-                {STAGE_DATA.map((d, i) => <Cell key={i} fill={d.color} />)}
-              </Pie>
-              <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => [v, "lesões"]} />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 7 }}>
-          {STAGE_DATA.map((d) => (
-            <div key={d.name} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 7, minWidth: 0 }}>
-                <span style={{ width: 8, height: 8, borderRadius: "50%", background: d.color, flexShrink: 0 }} />
-                <span style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{d.name}</span>
-              </div>
-              <span style={{ fontSize: 12, fontWeight: 600, flexShrink: 0 }}>{d.value}</span>
-            </div>
-          ))}
-          <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 6, display: "flex", justifyContent: "space-between" }}>
-            <span style={{ fontSize: 11, color: "var(--muted)", fontWeight: 600 }}>Total</span>
-            <span style={{ fontSize: 12, fontWeight: 700 }}>{total}</span>
-          </div>
-        </div>
-      </div>
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart
+          data={STAGE_DATA}
+          layout="vertical"
+          margin={{ top: 4, right: 40, bottom: 4, left: 4 }}
+        >
+          <XAxis type="number" hide />
+          <YAxis
+            type="category"
+            dataKey="name"
+            tick={TICK}
+            axisLine={false}
+            tickLine={false}
+            width={145}
+          />
+          <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => [v, "lesões"]} />
+          <Bar dataKey="value" name="Lesões" radius={[0, 4, 4, 0]}>
+            {STAGE_DATA.map((d, i) => <Cell key={i} fill={d.color} />)}
+            <LabelList dataKey="value" position="right" style={LABEL_LG} />
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
     </Card>
   );
 }
@@ -166,11 +185,24 @@ function AnatomyPanel() {
   return (
     <Card title="Localização Anatômica">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={ANATOMY_DATA} layout="vertical" margin={{ top: 4, right: 16, bottom: 4, left: 4 }}>
-          <XAxis type="number" tick={TICK} axisLine={false} tickLine={false} allowDecimals={false} />
-          <YAxis type="category" dataKey="local" tick={TICK} axisLine={false} tickLine={false} width={80} />
+        <BarChart
+          data={ANATOMY_DATA}
+          layout="vertical"
+          margin={{ top: 4, right: 40, bottom: 4, left: 4 }}
+        >
+          <XAxis type="number" hide />
+          <YAxis
+            type="category"
+            dataKey="local"
+            tick={TICK}
+            axisLine={false}
+            tickLine={false}
+            width={90}
+          />
           <Tooltip contentStyle={TOOLTIP_STYLE} cursor={{ fill: "rgba(255,255,255,0.04)" }} formatter={(v) => [v, "lesões"]} />
-          <Bar dataKey="count" name="Lesões" fill="#38bdf8" radius={[0, 4, 4, 0]} opacity={0.85} />
+          <Bar dataKey="count" name="Lesões" fill="#38bdf8" radius={[0, 4, 4, 0]} opacity={0.9}>
+            <LabelList dataKey="count" position="right" style={LABEL_LG} />
+          </Bar>
         </BarChart>
       </ResponsiveContainer>
     </Card>
@@ -190,26 +222,23 @@ export default function CuidadosComAPelePage() {
     <AuthGuard>
       <div style={{ height: "100vh", overflow: "hidden", background: "var(--background)", display: "flex", flexDirection: "column" }}>
 
-        {/* Top bar */}
+        {/* Top bar — 3 columns: back link | centered title | clock + logo */}
         <div style={{
           height: TOPBAR_H, flexShrink: 0,
-          display: "flex", alignItems: "center", justifyContent: "space-between",
+          display: "grid",
+          gridTemplateColumns: "1fr auto 1fr",
+          alignItems: "center",
           padding: "0 24px",
           background: "var(--surface)", borderBottom: "1px solid var(--border)",
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <Link href="/command" style={{ fontSize: 12, color: "var(--muted)", textDecoration: "none" }}>
-              ← Central de Comando
-            </Link>
-            <div style={{ width: 1, height: 16, background: "var(--border)" }} />
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ fontSize: 14, fontWeight: 600 }}>Cuidados com a Pele</span>
-              <span style={{ fontSize: 10, fontWeight: 500, padding: "2px 6px", borderRadius: 999, background: "rgba(34,197,94,0.12)", color: "var(--status-stable)" }}>
-                Ao vivo
-              </span>
-            </div>
+          <Link href="/command" style={{ fontSize: 12, color: "var(--muted)", textDecoration: "none" }}>
+            ← Central de Comando
+          </Link>
+          <span style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.01em" }}>Cuidados com a Pele</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, justifyContent: "flex-end" }}>
+            <RealtimeClock />
+            <Image src="/skinone.png" alt="skinOne" width={80} height={22} />
           </div>
-          <Image src="/skinone.png" alt="skinOne" width={80} height={22} />
         </div>
 
         {/* 2 × 2 uniform grid */}

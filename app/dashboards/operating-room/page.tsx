@@ -9,6 +9,7 @@ import { AuthGuard } from "@/components/AuthGuard";
 import { useSimulationStore } from "@/store/simulation";
 import { useShallow } from "zustand/react/shallow";
 import type { SurgicalInternacao } from "@/lib/simulation/types";
+import { RealtimeClock } from "@/components/RealtimeClock";
 
 // ─── static demo data ─────────────────────────────────────────────────────────
 
@@ -115,10 +116,7 @@ export default function OperatingRoomPage() {
             ← Comando
           </Link>
           <span className="text-sm font-semibold">Centro Cirúrgico</span>
-          <span className="text-xs font-medium px-2 py-0.5 rounded-full animate-pulse ml-auto"
-            style={{ background: "rgba(34,197,94,0.12)", color: "var(--status-stable)" }}>
-            Ao vivo
-          </span>
+          <RealtimeClock className="ml-auto" />
         </div>
 
         <div className="p-6 space-y-6">
@@ -163,14 +161,14 @@ export default function OperatingRoomPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div className="rounded-lg p-4"
               style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-              <p className="text-xs font-medium mb-3" style={{ color: "var(--muted)" }}>
+              <p className="text-xs font-medium mb-3" style={{ color: "#f7f7f7" }}>
                 Chegadas por Hora — Hoje
               </p>
               <ResponsiveContainer width="100%" height={180}>
                 <LineChart data={ARRIVALS} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                  <XAxis dataKey="h" tick={{ fill: "var(--muted)", fontSize: 10 }} />
-                  <YAxis tick={{ fill: "var(--muted)", fontSize: 10 }} allowDecimals={false} />
+                  <XAxis dataKey="h" tick={{ fill: "#f7f7f7", fontSize: 10 }} />
+                  <YAxis tick={{ fill: "#f7f7f7", fontSize: 10 }} allowDecimals={false} />
                   <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => [`${v}`, "Cirurgias"]} />
                   <Line type="monotone" dataKey="n" stroke="#3b82f6" strokeWidth={2}
                     dot={{ r: 3, fill: "#3b82f6" }} isAnimationActive={false} />
@@ -180,14 +178,14 @@ export default function OperatingRoomPage() {
 
             <div className="rounded-lg p-4"
               style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-              <p className="text-xs font-medium mb-3" style={{ color: "var(--muted)" }}>
+              <p className="text-xs font-medium mb-3" style={{ color: "#f7f7f7" }}>
                 Previsão Semanal de Cirurgias
               </p>
               <ResponsiveContainer width="100%" height={180}>
                 <BarChart data={FORECAST} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                  <XAxis dataKey="day" tick={{ fill: "var(--muted)", fontSize: 10 }} />
-                  <YAxis tick={{ fill: "var(--muted)", fontSize: 10 }} allowDecimals={false} />
+                  <XAxis dataKey="day" tick={{ fill: "#f7f7f7", fontSize: 10 }} />
+                  <YAxis tick={{ fill: "#f7f7f7", fontSize: 10 }} allowDecimals={false} />
                   <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => [`${v}`, "Cirurgias"]} />
                   <Bar dataKey="n" fill="#8b5cf6" radius={[3, 3, 0, 0]} isAnimationActive={false} />
                 </BarChart>

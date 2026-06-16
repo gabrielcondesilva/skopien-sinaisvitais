@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { AuthGuard } from "@/components/AuthGuard";
 import { useAuthStore } from "@/store/auth";
+import { RealtimeClock } from "@/components/RealtimeClock";
 
 const DASHBOARDS = [
   {
@@ -81,10 +82,7 @@ export default function CommandPage() {
         >
           <Image src="/logo_branca.png" alt="SKOPIEN" width={110} height={33} priority />
           <div className="flex items-center gap-3">
-            <span className="text-xs font-medium px-2 py-0.5 rounded-full animate-pulse"
-              style={{ background: "rgba(34,197,94,0.15)", color: "var(--status-stable)" }}>
-              Ao vivo
-            </span>
+            <RealtimeClock />
             <button
               onClick={() => { logout(); router.replace("/login"); }}
               className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded transition-colors hover:bg-white/5"

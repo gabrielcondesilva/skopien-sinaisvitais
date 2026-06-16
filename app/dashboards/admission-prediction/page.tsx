@@ -9,6 +9,7 @@ import {
 import { AuthGuard } from "@/components/AuthGuard";
 import { useSimulationStore } from "@/store/simulation";
 import { useShallow } from "zustand/react/shallow";
+import { RealtimeClock } from "@/components/RealtimeClock";
 
 // ─── static data ──────────────────────────────────────────────────────────────
 
@@ -85,8 +86,7 @@ export default function AdmissionPredictionPage() {
           style={{ background:"var(--surface)", borderBottom:"1px solid var(--border)" }}>
           <Link href="/command" className="text-xs hover:text-white transition-colors" style={{ color:"var(--muted)" }}>← Comando</Link>
           <span className="text-sm font-semibold">Predição de Internações</span>
-          <span className="text-xs font-medium px-2 py-0.5 rounded-full animate-pulse ml-auto"
-            style={{ background:"rgba(34,197,94,0.12)", color:"var(--status-stable)" }}>Ao vivo</span>
+          <RealtimeClock className="ml-auto" />
         </div>
 
         <div className="p-6 space-y-6">
@@ -115,12 +115,12 @@ export default function AdmissionPredictionPage() {
           {/* Forecast 7d + hourly real vs predicted */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div className="rounded-lg p-4" style={{ background:"var(--surface)", border:"1px solid var(--border)" }}>
-              <p className="text-xs font-medium mb-3" style={{ color:"var(--muted)" }}>Forecast de Internações — 7 dias</p>
+              <p className="text-xs font-medium mb-3" style={{ color:"#f7f7f7" }}>Forecast de Internações — 7 dias</p>
               <ResponsiveContainer width="100%" height={160}>
                 <BarChart data={FORECAST_7D} margin={{ top:4, right:4, bottom:0, left:-20 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                  <XAxis dataKey="day" tick={{ fill:"var(--muted)", fontSize:10 }} />
-                  <YAxis tick={{ fill:"var(--muted)", fontSize:10 }} allowDecimals={false} />
+                  <XAxis dataKey="day" tick={{ fill:"#f7f7f7", fontSize:10 }} />
+                  <YAxis tick={{ fill:"#f7f7f7", fontSize:10 }} allowDecimals={false} />
                   <Tooltip contentStyle={TS} formatter={(v)=>[`${v}`,"Internações"]} />
                   <Bar dataKey="n" fill="#3b82f6" radius={[3,3,0,0]} isAnimationActive={false} />
                 </BarChart>
@@ -128,7 +128,7 @@ export default function AdmissionPredictionPage() {
             </div>
 
             <div className="rounded-lg p-4" style={{ background:"var(--surface)", border:"1px solid var(--border)" }}>
-              <p className="text-xs font-medium mb-1" style={{ color:"var(--muted)" }}>Real × Predito por Hora — Hoje</p>
+              <p className="text-xs font-medium mb-1" style={{ color:"#f7f7f7" }}>Real × Predito por Hora — Hoje</p>
               <div className="flex gap-4 mb-2 text-xs" style={{ color:"var(--muted)" }}>
                 <span className="flex items-center gap-1"><span className="inline-block w-3 h-0.5" style={{ background:"#3b82f6" }} />Real</span>
                 <span className="flex items-center gap-1"><span className="inline-block w-3 h-0.5" style={{ background:"#f59e0b" }} />Predito</span>
@@ -136,8 +136,8 @@ export default function AdmissionPredictionPage() {
               <ResponsiveContainer width="100%" height={150}>
                 <ComposedChart data={HOURLY} margin={{ top:4, right:4, bottom:0, left:-20 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                  <XAxis dataKey="h" tick={{ fill:"var(--muted)", fontSize:9 }} interval={2} />
-                  <YAxis tick={{ fill:"var(--muted)", fontSize:10 }} allowDecimals={false} />
+                  <XAxis dataKey="h" tick={{ fill:"#f7f7f7", fontSize:9 }} interval={2} />
+                  <YAxis tick={{ fill:"#f7f7f7", fontSize:10 }} allowDecimals={false} />
                   <Tooltip contentStyle={TS} />
                   <Line type="monotone" dataKey="real" stroke="#3b82f6" strokeWidth={2} dot={false} isAnimationActive={false} name="Real" />
                   <Line type="monotone" dataKey="pred" stroke="#f59e0b" strokeWidth={2} strokeDasharray="4 3" dot={false} isAnimationActive={false} name="Predito" />
@@ -149,12 +149,12 @@ export default function AdmissionPredictionPage() {
           {/* Age profile + specialty grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div className="rounded-lg p-4" style={{ background:"var(--surface)", border:"1px solid var(--border)" }}>
-              <p className="text-xs font-medium mb-3" style={{ color:"var(--muted)" }}>Perfil Etário dos Candidatos</p>
+              <p className="text-xs font-medium mb-3" style={{ color:"#f7f7f7" }}>Perfil Etário dos Candidatos</p>
               <ResponsiveContainer width="100%" height={150}>
                 <BarChart data={AGE_PROFILE} margin={{ top:4, right:4, bottom:0, left:-20 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                  <XAxis dataKey="faixa" tick={{ fill:"var(--muted)", fontSize:10 }} />
-                  <YAxis tick={{ fill:"var(--muted)", fontSize:10 }} allowDecimals={false} />
+                  <XAxis dataKey="faixa" tick={{ fill:"#f7f7f7", fontSize:10 }} />
+                  <YAxis tick={{ fill:"#f7f7f7", fontSize:10 }} allowDecimals={false} />
                   <Tooltip contentStyle={TS} formatter={(v)=>[`${v}`,"Candidatos"]} />
                   <Bar dataKey="n" fill="#8b5cf6" radius={[3,3,0,0]} isAnimationActive={false} />
                 </BarChart>
@@ -162,7 +162,7 @@ export default function AdmissionPredictionPage() {
             </div>
 
             <div className="rounded-lg p-4" style={{ background:"var(--surface)", border:"1px solid var(--border)" }}>
-              <p className="text-xs font-medium mb-3" style={{ color:"var(--muted)" }}>Predição por Especialidade e Destino</p>
+              <p className="text-xs font-medium mb-3" style={{ color:"#f7f7f7" }}>Predição por Especialidade e Destino</p>
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead>

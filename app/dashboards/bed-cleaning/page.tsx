@@ -6,6 +6,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
 import { AuthGuard } from "@/components/AuthGuard";
+import { RealtimeClock } from "@/components/RealtimeClock";
 
 // ─── data ─────────────────────────────────────────────────────────────────────
 
@@ -60,8 +61,7 @@ export default function BedCleaningPage() {
           style={{ background:"var(--surface)", borderBottom:"1px solid var(--border)" }}>
           <Link href="/command" className="text-xs hover:text-white transition-colors" style={{ color:"var(--muted)" }}>← Comando</Link>
           <span className="text-sm font-semibold">Higienização de Leitos</span>
-          <span className="text-xs font-medium px-2 py-0.5 rounded-full animate-pulse ml-auto"
-            style={{ background:"rgba(34,197,94,0.12)", color:"var(--status-stable)" }}>Ao vivo</span>
+          <RealtimeClock className="ml-auto" />
         </div>
 
         <div className="p-6 space-y-5">
@@ -85,12 +85,12 @@ export default function BedCleaningPage() {
           {/* Linha 1: Espera + Aceite */}
           <div className="grid grid-cols-2 gap-4">
             <div className="rounded-lg p-4" style={{ background:"var(--surface)", border:"1px solid var(--border)" }}>
-              <p className="text-xs font-medium mb-3" style={{ color:"var(--muted)" }}>Espera por Hora (leitos)</p>
+              <p className="text-xs font-medium mb-3" style={{ color:"#f7f7f7" }}>Espera por Hora (leitos)</p>
               <ResponsiveContainer width="100%" height={130}>
                 <LineChart data={ESPERA_H} margin={{ top:4, right:4, bottom:0, left:-20 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                  <XAxis dataKey="h" tick={{ fill:"var(--muted)", fontSize:9 }} />
-                  <YAxis tick={{ fill:"var(--muted)", fontSize:9 }} allowDecimals={false} />
+                  <XAxis dataKey="h" tick={{ fill:"#f7f7f7", fontSize:9 }} />
+                  <YAxis tick={{ fill:"#f7f7f7", fontSize:9 }} allowDecimals={false} />
                   <Tooltip contentStyle={TS} formatter={(v)=>[`${v}`,"Leitos em espera"]} />
                   <Line type="monotone" dataKey="n" stroke="#f59e0b" strokeWidth={2} dot={false} isAnimationActive={false} />
                 </LineChart>
@@ -98,12 +98,12 @@ export default function BedCleaningPage() {
             </div>
 
             <div className="rounded-lg p-4" style={{ background:"var(--surface)", border:"1px solid var(--border)" }}>
-              <p className="text-xs font-medium mb-3" style={{ color:"var(--muted)" }}>Aceite por Hora (leitos)</p>
+              <p className="text-xs font-medium mb-3" style={{ color:"#f7f7f7" }}>Aceite por Hora (leitos)</p>
               <ResponsiveContainer width="100%" height={130}>
                 <LineChart data={ACEITE_H} margin={{ top:4, right:4, bottom:0, left:-20 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                  <XAxis dataKey="h" tick={{ fill:"var(--muted)", fontSize:9 }} />
-                  <YAxis tick={{ fill:"var(--muted)", fontSize:9 }} allowDecimals={false} />
+                  <XAxis dataKey="h" tick={{ fill:"#f7f7f7", fontSize:9 }} />
+                  <YAxis tick={{ fill:"#f7f7f7", fontSize:9 }} allowDecimals={false} />
                   <Tooltip contentStyle={TS} formatter={(v)=>[`${v}`,"Aceites"]} />
                   <Line type="monotone" dataKey="n" stroke="#22c55e" strokeWidth={2} dot={false} isAnimationActive={false} />
                 </LineChart>
@@ -114,12 +114,12 @@ export default function BedCleaningPage() {
           {/* Linha 2: Desempenho + Status + Donut */}
           <div className="grid grid-cols-3 gap-4">
             <div className="rounded-lg p-4" style={{ background:"var(--surface)", border:"1px solid var(--border)" }}>
-              <p className="text-xs font-medium mb-3" style={{ color:"var(--muted)" }}>Desempenho por Etapa (min)</p>
+              <p className="text-xs font-medium mb-3" style={{ color:"#f7f7f7" }}>Desempenho por Etapa (min)</p>
               <ResponsiveContainer width="100%" height={140}>
                 <BarChart data={ETAPAS} layout="vertical" margin={{ top:4, right:16, bottom:0, left:8 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
-                  <XAxis type="number" tick={{ fill:"var(--muted)", fontSize:9 }} />
-                  <YAxis type="category" dataKey="etapa" tick={{ fill:"var(--muted)", fontSize:9 }} width={80} />
+                  <XAxis type="number" tick={{ fill:"#f7f7f7", fontSize:9 }} />
+                  <YAxis type="category" dataKey="etapa" tick={{ fill:"#f7f7f7", fontSize:9 }} width={80} />
                   <Tooltip contentStyle={TS} formatter={(v)=>[`${v} min`,"Tempo"]} />
                   <Bar dataKey="min" fill="#8b5cf6" radius={[0,3,3,0]} isAnimationActive={false} />
                 </BarChart>
@@ -127,12 +127,12 @@ export default function BedCleaningPage() {
             </div>
 
             <div className="rounded-lg p-4" style={{ background:"var(--surface)", border:"1px solid var(--border)" }}>
-              <p className="text-xs font-medium mb-3" style={{ color:"var(--muted)" }}>Status de Higiene — Leitos</p>
+              <p className="text-xs font-medium mb-3" style={{ color:"#f7f7f7" }}>Status de Higiene — Leitos</p>
               <ResponsiveContainer width="100%" height={140}>
                 <BarChart data={STATUS_HIGIENE} margin={{ top:4, right:4, bottom:0, left:-20 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                  <XAxis dataKey="status" tick={{ fill:"var(--muted)", fontSize:9 }} />
-                  <YAxis tick={{ fill:"var(--muted)", fontSize:9 }} allowDecimals={false} />
+                  <XAxis dataKey="status" tick={{ fill:"#f7f7f7", fontSize:9 }} />
+                  <YAxis tick={{ fill:"#f7f7f7", fontSize:9 }} allowDecimals={false} />
                   <Tooltip contentStyle={TS} formatter={(v)=>[`${v}`,"Leitos"]} />
                   <Bar dataKey="n" radius={[3,3,0,0]} isAnimationActive={false}>
                     {STATUS_HIGIENE.map((_,i) => <Cell key={i} fill={STATUS_H_COLORS[i]} />)}
@@ -142,7 +142,7 @@ export default function BedCleaningPage() {
             </div>
 
             <div className="rounded-lg p-4 flex flex-col" style={{ background:"var(--surface)", border:"1px solid var(--border)" }}>
-              <p className="text-xs font-medium mb-2" style={{ color:"var(--muted)" }}>Funcionários — Equipe de Higiene</p>
+              <p className="text-xs font-medium mb-2" style={{ color:"#f7f7f7" }}>Funcionários — Equipe de Higiene</p>
               <ResponsiveContainer width="100%" height={140}>
                 <PieChart>
                   <Pie

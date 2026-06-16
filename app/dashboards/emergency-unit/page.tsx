@@ -8,6 +8,7 @@ import {
 import { AuthGuard } from "@/components/AuthGuard";
 import { useSimulationStore } from "@/store/simulation";
 import { useShallow } from "zustand/react/shallow";
+import { RealtimeClock } from "@/components/RealtimeClock";
 
 // ─── types ───────────────────────────────────────────────────────────────────
 
@@ -209,12 +210,7 @@ export default function EmergencyUnitPage() {
             ← Comando
           </Link>
           <span className="text-sm font-semibold">Unidade de Emergência</span>
-          <span
-            className="text-xs font-medium px-2 py-0.5 rounded-full animate-pulse ml-auto"
-            style={{ background: "rgba(34,197,94,0.12)", color: "var(--status-stable)" }}
-          >
-            Ao vivo
-          </span>
+          <RealtimeClock className="ml-auto" />
         </div>
 
         <div className="p-6 space-y-6">

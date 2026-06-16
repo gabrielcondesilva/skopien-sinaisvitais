@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { AuthGuard } from "@/components/AuthGuard";
+import { RealtimeClock } from "@/components/RealtimeClock";
 
 // ─── types & data ─────────────────────────────────────────────────────────────
 
@@ -217,12 +218,7 @@ export default function GestaoCirurgicaPage() {
             ← Comando
           </Link>
           <span className="text-sm font-semibold">Gestão de Atraso Cirúrgico</span>
-          <span
-            className="text-xs font-medium px-2 py-0.5 rounded-full animate-pulse ml-auto"
-            style={{ background: "rgba(34,197,94,0.12)", color: "var(--status-stable)" }}
-          >
-            Ao vivo
-          </span>
+          <RealtimeClock className="ml-auto" />
         </div>
 
         <div className="p-6 space-y-5">

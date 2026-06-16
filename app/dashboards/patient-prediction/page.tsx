@@ -6,6 +6,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
 import { AuthGuard } from "@/components/AuthGuard";
+import { RealtimeClock } from "@/components/RealtimeClock";
 
 // ─── data ─────────────────────────────────────────────────────────────────────
 
@@ -52,8 +53,7 @@ export default function PatientPredictionPage() {
           style={{ background:"var(--surface)", borderBottom:"1px solid var(--border)" }}>
           <Link href="/command" className="text-xs hover:text-white transition-colors" style={{ color:"var(--muted)" }}>← Comando</Link>
           <span className="text-sm font-semibold">Predição de Deterioração</span>
-          <span className="text-xs font-medium px-2 py-0.5 rounded-full animate-pulse ml-auto"
-            style={{ background:"rgba(34,197,94,0.12)", color:"var(--status-stable)" }}>Ao vivo</span>
+          <RealtimeClock className="ml-auto" />
         </div>
 
         <div className="p-6 space-y-6">
@@ -76,7 +76,7 @@ export default function PatientPredictionPage() {
 
           {/* Main chart: real (solid) + forecast (dashed) */}
           <div className="rounded-lg p-4" style={{ background:"var(--surface)", border:"1px solid var(--border)" }}>
-            <p className="text-xs font-medium mb-1" style={{ color:"var(--muted)" }}>
+            <p className="text-xs font-medium mb-1" style={{ color:"#f7f7f7" }}>
               Internações — Real × Previsão
             </p>
             <div className="flex gap-4 mb-3 text-xs" style={{ color:"var(--muted)" }}>
@@ -92,8 +92,8 @@ export default function PatientPredictionPage() {
             <ResponsiveContainer width="100%" height={200}>
               <ComposedChart data={MAIN_CHART} margin={{ top:4, right:4, bottom:0, left:-20 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                <XAxis dataKey="day" tick={{ fill:"var(--muted)", fontSize:10 }} />
-                <YAxis tick={{ fill:"var(--muted)", fontSize:10 }} domain={[0,55]} />
+                <XAxis dataKey="day" tick={{ fill:"#f7f7f7", fontSize:10 }} />
+                <YAxis tick={{ fill:"#f7f7f7", fontSize:10 }} domain={[0,55]} />
                 <Tooltip contentStyle={TS} />
                 <Line type="monotone" dataKey="real"     stroke="#3b82f6" strokeWidth={2}
                   dot={{ r:3, fill:"#3b82f6" }} connectNulls={false} isAnimationActive={false} name="Real" />
@@ -107,12 +107,12 @@ export default function PatientPredictionPage() {
           {/* Error + surgical forecast */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div className="rounded-lg p-4" style={{ background:"var(--surface)", border:"1px solid var(--border)" }}>
-              <p className="text-xs font-medium mb-3" style={{ color:"var(--muted)" }}>Erro Percentual Diário — Modelo (%)</p>
+              <p className="text-xs font-medium mb-3" style={{ color:"#f7f7f7" }}>Erro Percentual Diário — Modelo (%)</p>
               <ResponsiveContainer width="100%" height={150}>
                 <BarChart data={ERROR_DAILY} margin={{ top:4, right:4, bottom:0, left:-20 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                  <XAxis dataKey="day" tick={{ fill:"var(--muted)", fontSize:9 }} />
-                  <YAxis tick={{ fill:"var(--muted)", fontSize:9 }} domain={[0,10]} />
+                  <XAxis dataKey="day" tick={{ fill:"#f7f7f7", fontSize:9 }} />
+                  <YAxis tick={{ fill:"#f7f7f7", fontSize:9 }} domain={[0,10]} />
                   <Tooltip contentStyle={TS} formatter={(v)=>[`${v}%`,"Erro"]} />
                   <Bar dataKey="pct" fill="#8b5cf6" radius={[3,3,0,0]} isAnimationActive={false} />
                 </BarChart>
@@ -120,12 +120,12 @@ export default function PatientPredictionPage() {
             </div>
 
             <div className="rounded-lg p-4" style={{ background:"var(--surface)", border:"1px solid var(--border)" }}>
-              <p className="text-xs font-medium mb-3" style={{ color:"var(--muted)" }}>Agendamento Cirúrgico Previsto — 7 dias</p>
+              <p className="text-xs font-medium mb-3" style={{ color:"#f7f7f7" }}>Agendamento Cirúrgico Previsto — 7 dias</p>
               <ResponsiveContainer width="100%" height={150}>
                 <BarChart data={SURG_FORECAST} margin={{ top:4, right:4, bottom:0, left:-20 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                  <XAxis dataKey="day" tick={{ fill:"var(--muted)", fontSize:9 }} />
-                  <YAxis tick={{ fill:"var(--muted)", fontSize:9 }} allowDecimals={false} />
+                  <XAxis dataKey="day" tick={{ fill:"#f7f7f7", fontSize:9 }} />
+                  <YAxis tick={{ fill:"#f7f7f7", fontSize:9 }} allowDecimals={false} />
                   <Tooltip contentStyle={TS} formatter={(v)=>[`${v}`,"Cirurgias"]} />
                   <Bar dataKey="n" fill="#22c55e" radius={[3,3,0,0]} isAnimationActive={false} />
                 </BarChart>
@@ -140,7 +140,7 @@ export default function PatientPredictionPage() {
               {SPECIALTIES_MINI.map((sp) => (
                 <div key={sp.name} className="rounded-lg p-3"
                   style={{ background:"var(--surface)", border:"1px solid var(--border)" }}>
-                  <p className="text-xs font-medium mb-2" style={{ color:"var(--muted)" }}>{sp.name}</p>
+                  <p className="text-xs font-medium mb-2" style={{ color:"#f7f7f7" }}>{sp.name}</p>
                   <ResponsiveContainer width="100%" height={60}>
                     <AreaChart data={sp.data} margin={{ top:2, right:2, bottom:0, left:2 }}>
                       <defs>
