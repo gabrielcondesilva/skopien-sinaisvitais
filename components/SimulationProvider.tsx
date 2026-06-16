@@ -36,7 +36,7 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
 
     const uti02 = find("UTI-02");
     const enf01 = find("ENF-01");
-    const ps01  = find("PS-01");
+    const enf02 = find("ENF-02");
 
     type Item = Omit<Alert, "id" | "firedAt" | "status">;
     const items: Item[] = [];
@@ -65,13 +65,13 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
       });
     }
 
-    if (ps01) {
+    if (enf02) {
       items.push({
         type: "alta",
-        internacaoId: ps01.id,
-        patientName: ps01.patient.name,
-        bedLabel: "PS-01",
-        unit: "pronto-socorro",
+        internacaoId: enf02.id,
+        patientName: enf02.patient.name,
+        bedLabel: "ENF-02",
+        unit: "enfermaria",
         message: "Alta prevista — 72% de probabilidade",
       });
     }

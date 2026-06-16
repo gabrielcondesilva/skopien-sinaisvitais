@@ -40,12 +40,20 @@ function formatAdmissionDate(ts: number): string {
   return new Date(ts).toISOString().split("T")[0];
 }
 
-const SLOT_OPTS  = [{ label: "5min", min: 5 }, { label: "15min", min: 15 }, { label: "1h", min: 60 }] as const;
+const SLOT_OPTS = [
+  { label: "5min", min: 5 },
+  { label: "15min", min: 15 },
+  { label: "30min", min: 30 },
+  { label: "1h", min: 60 },
+  { label: "2h", min: 120 },
+  { label: "4h", min: 240 },
+] as const;
 const WINDOW_OPTS = [
   { label: "1h",  ms:  3_600_000 },
   { label: "3h",  ms: 10_800_000 },
   { label: "6h",  ms: 21_600_000 },
   { label: "12h", ms: 43_200_000 },
+  { label: "24h", ms: 86_400_000 },
 ] as const;
 
 const VITALS = [
@@ -112,6 +120,14 @@ function ControlsBar({ slotMin, setSlotMin, windowMs, setWindowMs }: {
   windowMs: number;
   setWindowMs: (v: number) => void;
 }) {
+  const [slotPickerOpen, setSlotPickerOpen] = useState(false);
+  const [windowPickerOpen, setWindowPickerOpen] = useState(false);
+
+  const EXTENDED_WINDOW_MS = [36, 48, 62].map((h) => h * 3_600_000);
+  const isExtended = EXTENDED_WINDOW_MS.includes(windowMs);
+
+  const isCustomSlot = !SLOT_OPTS.some((o) => o.min === slotMin);
+
   return (
     <div
       className="flex items-center gap-5 px-6 py-3 flex-wrap"
@@ -124,7 +140,75 @@ function ControlsBar({ slotMin, setSlotMin, windowMs, setWindowMs }: {
             {o.label}
           </SelBtn>
         ))}
+
+        {/* Escolher Slot button + dropdown */}
+        <div style={{ position: "relative" }}>
+          <button
+            onClick={() => setSlotPickerOpen((v) => !v)}
+            className="text-xs px-2.5 py-1 rounded transition-colors"
+            style={{
+              background: isCustomSlot ? "rgba(77,171,247,0.15)" : "rgba(255,255,255,0.06)",
+              color: isCustomSlot ? "#4DABF7" : "var(--muted)",
+              border: `1px solid ${isCustomSlot ? "rgba(77,171,247,0.4)" : "var(--border)"}`,
+            }}
+          >
+            {isCustomSlot ? `${slotMin >= 60 ? `${slotMin / 60}h` : `${slotMin}min`}` : "Escolher Slot"}
+          </button>
+
+          {slotPickerOpen && (
+            <div
+              style={{
+                position: "absolute",
+                top: "calc(100% + 6px)",
+                left: 0,
+                zIndex: 50,
+                background: "var(--surface)",
+                border: "1px solid var(--border)",
+                borderRadius: 8,
+                padding: 10,
+                display: "grid",
+                gridTemplateColumns: "repeat(4, 1fr)",
+                gap: 4,
+                width: 196,
+                boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+              }}
+            >
+              <div
+                style={{
+                  gridColumn: "1 / -1",
+                  fontSize: 10,
+                  color: "var(--muted)",
+                  marginBottom: 4,
+                  paddingBottom: 4,
+                  borderBottom: "1px solid var(--border)",
+                }}
+              >
+                Slot temporal (hora em hora)
+              </div>
+              {Array.from({ length: 24 }, (_, i) => {
+                const hVal = i + 1;
+                const mVal = hVal * 60;
+                const active = slotMin === mVal;
+                return (
+                  <button
+                    key={mVal}
+                    onClick={() => { setSlotMin(mVal); setSlotPickerOpen(false); }}
+                    className="text-xs py-1 rounded transition-colors"
+                    style={{
+                      background: active ? "rgba(77,171,247,0.2)" : "rgba(255,255,255,0.05)",
+                      color: active ? "#4DABF7" : "var(--foreground)",
+                      border: `1px solid ${active ? "rgba(77,171,247,0.4)" : "transparent"}`,
+                    }}
+                  >
+                    {hVal}h
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
+
       <div className="flex items-center gap-1.5">
         <span className="text-xs" style={{ color: "var(--muted)" }}>Janela</span>
         {WINDOW_OPTS.map((o) => (
@@ -133,6 +217,71 @@ function ControlsBar({ slotMin, setSlotMin, windowMs, setWindowMs }: {
           </SelBtn>
         ))}
 
+        {/* Escolher Janela button + dropdown */}
+        <div style={{ position: "relative" }}>
+          <button
+            onClick={() => setWindowPickerOpen((v) => !v)}
+            className="text-xs px-2.5 py-1 rounded transition-colors"
+            style={{
+              background: isExtended ? "rgba(77,171,247,0.15)" : "rgba(255,255,255,0.06)",
+              color: isExtended ? "#4DABF7" : "var(--muted)",
+              border: `1px solid ${isExtended ? "rgba(77,171,247,0.4)" : "var(--border)"}`,
+            }}
+          >
+            {isExtended ? `${Math.round(windowMs / 3_600_000)}h` : "Escolher Janela"}
+          </button>
+
+          {windowPickerOpen && (
+            <div
+              style={{
+                position: "absolute",
+                top: "calc(100% + 6px)",
+                left: 0,
+                zIndex: 50,
+                background: "var(--surface)",
+                border: "1px solid var(--border)",
+                borderRadius: 8,
+                padding: 10,
+                display: "flex",
+                flexDirection: "column",
+                gap: 4,
+                width: 120,
+                boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 10,
+                  color: "var(--muted)",
+                  marginBottom: 4,
+                  paddingBottom: 4,
+                  borderBottom: "1px solid var(--border)",
+                }}
+              >
+                Janela estendida
+              </div>
+              {[36, 48, 62].map((h) => {
+                const ms = h * 3_600_000;
+                const active = windowMs === ms;
+
+                return (
+                  <button
+                    key={h}
+                    onClick={() => { setWindowMs(ms); setWindowPickerOpen(false); }}
+                    className="text-xs py-1.5 rounded transition-colors"
+                    style={{
+                      background: active ? "rgba(77,171,247,0.2)" : "rgba(255,255,255,0.05)",
+                      color: active ? "#4DABF7" : "var(--foreground)",
+                      border: `1px solid ${active ? "rgba(77,171,247,0.4)" : "transparent"}`,
+                    }}
+                  >
+                    {h}h
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -341,7 +490,7 @@ function PatientContent({ id }: { id: string }) {
 
   const [tab, setTab]                 = useState<Tab>("sinais-vitais");
   const [slotMin, setSlotMin]         = useState(15);
-  const [windowMs, setWindowMs]       = useState(10_800_000);
+  const [windowMs, setWindowMs]       = useState(86_400_000);
   const [camOpen, setCamOpen]         = useState(false);
   const [camFullscreen, setCamFullscreen] = useState(false);
   const [bradenOpen, setBradenOpen]   = useState(false);
