@@ -261,7 +261,7 @@ export default function GestaoCirurgicaPage() {
             <div style={{ height: "100%", overflowX: "auto", overflowY: "auto" }}>
               <table className="w-full border-collapse" style={{ fontSize: 14 }}>
                 <thead>
-                  <tr style={{ background: "rgba(255,255,255,0.04)" }}>
+                  <tr style={{ background: "rgba(0,0,0,0.30)" }}>
                     {COL_HEADERS.map((h) => (
                       <th
                         key={h}

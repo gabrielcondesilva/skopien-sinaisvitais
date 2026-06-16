@@ -93,7 +93,7 @@ function LOSTable() {
       <div style={{ flex: 1, minHeight: 0, overflowY: "auto", overflowX: "auto" }}>
         <table className="w-full text-xs">
           <thead>
-            <tr style={{ background: "rgba(255,255,255,0.04)" }}>
+            <tr style={{ background: "rgba(0,0,0,0.30)" }}>
               {["Leito", "Paciente", "Motivo", "Tempo", "Status"].map((h) => (
                 <th key={h} className="px-3 py-2 text-left font-medium"
                   style={{ color: "var(--foreground)", borderBottom: "1px solid var(--border)" }}>{h}</th>
@@ -149,7 +149,7 @@ function WaitingForBedTable() {
       <div style={{ flex: 1, minHeight: 0, overflowY: "auto", overflowX: "auto" }}>
         <table className="w-full text-xs">
           <thead>
-            <tr style={{ background: "rgba(255,255,255,0.04)" }}>
+            <tr style={{ background: "rgba(0,0,0,0.30)" }}>
               {["Leito", "Paciente", "Prob. Internação", "Espera", "Manchester"].map((h) => (
                 <th key={h} className="px-3 py-2 text-left font-medium"
                   style={{ color: "var(--foreground)", borderBottom: "1px solid var(--border)" }}>{h}</th>

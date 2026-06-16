@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import {
-  LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
+  LineChart, Line, BarChart, Bar, Cell,
+  XAxis, YAxis, Tooltip, ResponsiveContainer, LabelList,
 } from "recharts";
 import { AuthGuard } from "@/components/AuthGuard";
 import { RealtimeClock } from "@/components/RealtimeClock";
@@ -31,47 +31,59 @@ const ETAPAS = [
 ];
 
 const STATUS_HIGIENE = [
-  { status:"Concluído", n:28 },
-  { status:"Em limpeza",n:7  },
-  { status:"Pendente",  n:5  },
-  { status:"Bloqueado", n:2  },
+  { status:"Concluído",  n:28 },
+  { status:"Em limpeza", n:7  },
+  { status:"Pendente",   n:5  },
+  { status:"Bloqueado",  n:2  },
 ];
 
 const STAFF = [
-  { name:"Ocupado",      value:12, color:"#3b82f6" },
-  { name:"Disponível",   value:5,  color:"#22c55e" },
-  { name:"Em refeição",  value:3,  color:"#f59e0b" },
-  { name:"Ausente",      value:2,  color:"#ef4444" },
+  { name:"Ocupado",     value:12, color:"#3b82f6" },
+  { name:"Disponível",  value:5,  color:"#22c55e" },
+  { name:"Em refeição", value:3,  color:"#f59e0b" },
+  { name:"Ausente",     value:2,  color:"#ef4444" },
 ];
 
 const STATUS_H_COLORS = ["#22c55e","#3b82f6","#f59e0b","#ef4444"];
 
 const TS = { background:"var(--surface)", border:"1px solid var(--border)", borderRadius:6, fontSize:11, color:"var(--foreground)" };
+const LS = { fill: "#f7f7f7", fontSize: 9, fontWeight: 600 } as React.CSSProperties;
 
-const totalStaff   = STAFF.reduce((s,x)=>s+x.value,0);
-const totalConcl   = STATUS_HIGIENE[0].n;
-const totalLeitos  = STATUS_HIGIENE.reduce((s,x)=>s+x.n,0);
-const metaPct      = Math.round((totalConcl/totalLeitos)*100);
+const totalStaff  = STAFF.reduce((s,x)=>s+x.value,0);
+const totalConcl  = STATUS_HIGIENE[0].n;
+const totalLeitos = STATUS_HIGIENE.reduce((s,x)=>s+x.n,0);
+const metaPct     = Math.round((totalConcl/totalLeitos)*100);
+
+// ─── page ─────────────────────────────────────────────────────────────────────
 
 export default function BedCleaningPage() {
   return (
     <AuthGuard>
-      <div className="min-h-screen" style={{ background:"var(--background)" }}>
-        <div className="sticky top-0 z-10 px-6"
-          style={{ height: 52, display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", background:"var(--surface)", borderBottom:"1px solid var(--border)" }}>
-          <Link href="/command" className="text-xs hover:text-white transition-colors" style={{ color:"var(--muted)" }}>← Comando</Link>
+      <div
+        style={{
+          height: "100vh", overflow: "hidden",
+          display: "flex", flexDirection: "column",
+          background: "var(--background)",
+        }}
+      >
+        {/* Top bar */}
+        <div className="px-6"
+          style={{ height: 52, flexShrink: 0, display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
+          <Link href="/command" className="text-xs hover:text-white transition-colors" style={{ color: "var(--muted)" }}>← Comando</Link>
           <span style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.01em" }}>Higienização de Leitos</span>
           <div style={{ display: "flex", justifyContent: "flex-end" }}><RealtimeClock /></div>
         </div>
 
-        <div className="p-6 space-y-5">
-          {/* KPI */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {/* Content */}
+        <div style={{ flex: 1, minHeight: 0, padding: 12, display: "flex", flexDirection: "column", gap: 10 }}>
+
+          {/* KPIs */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, flexShrink: 0 }}>
             {[
-              { label:"Meta de Higiene",   value:`${metaPct}%`,   sub:`${totalConcl}/${totalLeitos} leitos` },
-              { label:"Tempo Médio",       value:"27 min",         sub:"limpeza completa" },
-              { label:"Funcionários",      value:`${totalStaff}`,  sub:"equipe de higiene" },
-              { label:"Pendentes",         value:`${STATUS_HIGIENE[2].n + STATUS_HIGIENE[3].n}`, sub:"aguardando limpeza" },
+              { label:"Meta de Higiene", value:`${metaPct}%`,  sub:`${totalConcl}/${totalLeitos} leitos` },
+              { label:"Tempo Médio",     value:"27 min",        sub:"limpeza completa" },
+              { label:"Funcionários",    value:`${totalStaff}`, sub:"equipe de higiene" },
+              { label:"Pendentes",       value:`${STATUS_HIGIENE[2].n + STATUS_HIGIENE[3].n}`, sub:"aguardando limpeza" },
             ].map((k) => (
               <div key={k.label} className="rounded-lg p-4 flex flex-col gap-1"
                 style={{ background:"var(--surface)", border:"1px solid var(--border)" }}>
@@ -82,81 +94,98 @@ export default function BedCleaningPage() {
             ))}
           </div>
 
-          {/* Linha 1: Espera + Aceite */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="rounded-lg p-4" style={{ background:"var(--surface)", border:"1px solid var(--border)" }}>
-              <p className="text-xs font-medium mb-3" style={{ color:"#f7f7f7" }}>Espera por Hora (leitos)</p>
-              <ResponsiveContainer width="100%" height={130}>
-                <LineChart data={ESPERA_H} margin={{ top:4, right:4, bottom:0, left:-20 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                  <XAxis dataKey="h" tick={{ fill:"#f7f7f7", fontSize:9 }} />
-                  <YAxis tick={{ fill:"#f7f7f7", fontSize:9 }} allowDecimals={false} />
-                  <Tooltip contentStyle={TS} formatter={(v)=>[`${v}`,"Leitos em espera"]} />
-                  <Line type="monotone" dataKey="n" stroke="#f59e0b" strokeWidth={2} dot={false} isAnimationActive={false} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
+          {/* Row 1: Espera + Aceite — line charts */}
+          <div style={{ flex: 2, minHeight: 0, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
 
-            <div className="rounded-lg p-4" style={{ background:"var(--surface)", border:"1px solid var(--border)" }}>
-              <p className="text-xs font-medium mb-3" style={{ color:"#f7f7f7" }}>Aceite por Hora (leitos)</p>
-              <ResponsiveContainer width="100%" height={130}>
-                <LineChart data={ACEITE_H} margin={{ top:4, right:4, bottom:0, left:-20 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                  <XAxis dataKey="h" tick={{ fill:"#f7f7f7", fontSize:9 }} />
-                  <YAxis tick={{ fill:"#f7f7f7", fontSize:9 }} allowDecimals={false} />
-                  <Tooltip contentStyle={TS} formatter={(v)=>[`${v}`,"Aceites"]} />
-                  <Line type="monotone" dataKey="n" stroke="#22c55e" strokeWidth={2} dot={false} isAnimationActive={false} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          {/* Linha 2: Desempenho + Status + Donut */}
-          <div className="grid grid-cols-3 gap-4">
-            <div className="rounded-lg p-4" style={{ background:"var(--surface)", border:"1px solid var(--border)" }}>
-              <p className="text-xs font-medium mb-3" style={{ color:"#f7f7f7" }}>Desempenho por Etapa (min)</p>
-              <ResponsiveContainer width="100%" height={140}>
-                <BarChart data={ETAPAS} layout="vertical" margin={{ top:4, right:16, bottom:0, left:8 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
-                  <XAxis type="number" tick={{ fill:"#f7f7f7", fontSize:9 }} />
-                  <YAxis type="category" dataKey="etapa" tick={{ fill:"#f7f7f7", fontSize:9 }} width={80} />
-                  <Tooltip contentStyle={TS} formatter={(v)=>[`${v} min`,"Tempo"]} />
-                  <Bar dataKey="min" fill="#8b5cf6" radius={[0,3,3,0]} isAnimationActive={false} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-
-            <div className="rounded-lg p-4" style={{ background:"var(--surface)", border:"1px solid var(--border)" }}>
-              <p className="text-xs font-medium mb-3" style={{ color:"#f7f7f7" }}>Status de Higiene — Leitos</p>
-              <ResponsiveContainer width="100%" height={140}>
-                <BarChart data={STATUS_HIGIENE} margin={{ top:4, right:4, bottom:0, left:-20 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                  <XAxis dataKey="status" tick={{ fill:"#f7f7f7", fontSize:9 }} />
-                  <YAxis tick={{ fill:"#f7f7f7", fontSize:9 }} allowDecimals={false} />
-                  <Tooltip contentStyle={TS} formatter={(v)=>[`${v}`,"Leitos"]} />
-                  <Bar dataKey="n" radius={[3,3,0,0]} isAnimationActive={false}>
-                    {STATUS_HIGIENE.map((_,i) => <Cell key={i} fill={STATUS_H_COLORS[i]} />)}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+            <div className="rounded-lg p-4 flex flex-col" style={{ background:"var(--surface)", border:"1px solid var(--border)" }}>
+              <p className="text-xs font-medium mb-2" style={{ color:"#f7f7f7" }}>Espera por Hora (leitos)</p>
+              <div style={{ flex: 1, minHeight: 0 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={ESPERA_H} margin={{ top: 22, right: 16, bottom: 0, left: 4 }}>
+                    <XAxis dataKey="h" tick={{ fill:"#f7f7f7", fontSize:9 }} />
+                    <YAxis hide width={0} />
+                    <Tooltip contentStyle={TS} formatter={(v)=>[`${v}`,"Leitos em espera"]} />
+                    <Line type="monotone" dataKey="n" stroke="#f59e0b" strokeWidth={2}
+                      dot={{ r: 3, fill:"#f59e0b" }} isAnimationActive={false}>
+                      <LabelList dataKey="n" position="top" offset={8} style={LS} />
+                    </Line>
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
             </div>
 
             <div className="rounded-lg p-4 flex flex-col" style={{ background:"var(--surface)", border:"1px solid var(--border)" }}>
+              <p className="text-xs font-medium mb-2" style={{ color:"#f7f7f7" }}>Aceite por Hora (leitos)</p>
+              <div style={{ flex: 1, minHeight: 0 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={ACEITE_H} margin={{ top: 22, right: 16, bottom: 0, left: 4 }}>
+                    <XAxis dataKey="h" tick={{ fill:"#f7f7f7", fontSize:9 }} />
+                    <YAxis hide width={0} />
+                    <Tooltip contentStyle={TS} formatter={(v)=>[`${v}`,"Aceites"]} />
+                    <Line type="monotone" dataKey="n" stroke="#22c55e" strokeWidth={2}
+                      dot={{ r: 3, fill:"#22c55e" }} isAnimationActive={false}>
+                      <LabelList dataKey="n" position="top" offset={8} style={LS} />
+                    </Line>
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+
+          {/* Row 2: Desempenho + Status + Funcionários */}
+          <div style={{ flex: 3, minHeight: 0, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+
+            {/* Desempenho por Etapa — horizontal bar */}
+            <div className="rounded-lg p-4 flex flex-col" style={{ background:"var(--surface)", border:"1px solid var(--border)" }}>
+              <p className="text-xs font-medium mb-2" style={{ color:"#f7f7f7" }}>Desempenho por Etapa (min)</p>
+              <div style={{ flex: 1, minHeight: 0 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={ETAPAS} layout="vertical" margin={{ top: 4, right: 44, bottom: 4, left: 8 }}>
+                    <XAxis type="number" hide />
+                    <YAxis type="category" dataKey="etapa" tick={{ fill:"#f7f7f7", fontSize:9 }} width={92} />
+                    <Tooltip contentStyle={TS} formatter={(v)=>[`${v} min`,"Tempo"]} />
+                    <Bar dataKey="min" fill="#8b5cf6" radius={[0,3,3,0]} isAnimationActive={false}>
+                      <LabelList dataKey="min" position="right" formatter={(v: unknown) => `${v}m`} style={LS} />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Status de Higiene — vertical bar */}
+            <div className="rounded-lg p-4 flex flex-col" style={{ background:"var(--surface)", border:"1px solid var(--border)" }}>
+              <p className="text-xs font-medium mb-2" style={{ color:"#f7f7f7" }}>Status de Higiene — Leitos</p>
+              <div style={{ flex: 1, minHeight: 0 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={STATUS_HIGIENE} margin={{ top: 22, right: 12, bottom: 0, left: 12 }}>
+                    <XAxis dataKey="status" tick={{ fill:"#f7f7f7", fontSize:9 }} padding={{ left: 20, right: 20 }} />
+                    <YAxis hide width={0} />
+                    <Tooltip contentStyle={TS} formatter={(v)=>[`${v}`,"Leitos"]} />
+                    <Bar dataKey="n" radius={[3,3,0,0]} isAnimationActive={false}>
+                      {STATUS_HIGIENE.map((_,i) => <Cell key={i} fill={STATUS_H_COLORS[i]} />)}
+                      <LabelList dataKey="n" position="top" style={LS} />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Funcionários — bar chart */}
+            <div className="rounded-lg p-4 flex flex-col" style={{ background:"var(--surface)", border:"1px solid var(--border)" }}>
               <p className="text-xs font-medium mb-2" style={{ color:"#f7f7f7" }}>Funcionários — Equipe de Higiene</p>
-              <ResponsiveContainer width="100%" height={140}>
-                <PieChart>
-                  <Pie
-                    data={STAFF} cx="50%" cy="45%"
-                    innerRadius={38} outerRadius={56}
-                    dataKey="value" nameKey="name"
-                    paddingAngle={3} isAnimationActive={false}
-                  >
-                    {STAFF.map((entry) => <Cell key={entry.name} fill={entry.color} />)}
-                  </Pie>
-                  <Tooltip contentStyle={TS} formatter={(v, name) => [`${v}`, name]} />
-                  <Legend wrapperStyle={{ fontSize:10, color:"var(--muted)" }} />
-                </PieChart>
-              </ResponsiveContainer>
+              <div style={{ flex: 1, minHeight: 0 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={STAFF} margin={{ top: 22, right: 12, bottom: 0, left: 12 }}>
+                    <XAxis dataKey="name" tick={{ fill:"#f7f7f7", fontSize:9 }} padding={{ left: 20, right: 20 }} />
+                    <YAxis hide width={0} />
+                    <Tooltip contentStyle={TS} formatter={(v, name) => [`${v}`, name]} />
+                    <Bar dataKey="value" radius={[3,3,0,0]} isAnimationActive={false}>
+                      {STAFF.map((entry) => <Cell key={entry.name} fill={entry.color} />)}
+                      <LabelList dataKey="value" position="top" style={LS} />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           </div>
         </div>

@@ -166,7 +166,7 @@ export default function AdmissionPredictionPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead>
-                    <tr style={{ background:"rgba(255,255,255,0.03)" }}>
+                    <tr style={{ background:"rgba(0,0,0,0.30)" }}>
                       {["Especialidade","ENF","UTI","CC"].map((h)=>(
                         <th key={h} className="px-3 py-1.5 text-left font-medium" style={{ color:"var(--muted)" }}>{h}</th>
                       ))}
@@ -196,7 +196,7 @@ export default function AdmissionPredictionPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead>
-                    <tr style={{ background:"rgba(255,255,255,0.03)" }}>
+                    <tr style={{ background:"rgba(0,0,0,0.30)" }}>
                       {["Leito","Paciente","Idade","Prob.","EWS","Status","Manchester","Destino Previsto"].map((h)=>(
                         <th key={h} className="px-3 py-2.5 text-left font-medium whitespace-nowrap"
                           style={{ color:"var(--muted)", borderBottom:"1px solid var(--border)" }}>{h}</th>
