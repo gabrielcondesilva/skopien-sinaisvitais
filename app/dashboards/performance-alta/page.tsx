@@ -3,7 +3,7 @@
 import Link from "next/link";
 import {
   BarChart, Bar, AreaChart, Area, LineChart, Line,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, LabelList,
 } from "recharts";
 import { AuthGuard } from "@/components/AuthGuard";
 import { RealtimeClock } from "@/components/RealtimeClock";
@@ -36,10 +36,14 @@ const HOUR_DIST = [
   { h: "10h", n: 8 }, { h: "11h", n: 6 }, { h: "12h+", n: 4 },
 ];
 
-const TOOLTIP_STYLE = {
+const TS = {
   background: "var(--surface)", border: "1px solid var(--border)",
   borderRadius: 6, fontSize: 12, color: "var(--foreground)",
 };
+
+const pctFmt  = (v: unknown) => `${v}%`;
+const LSTY    = { fill: "#f7f7f7", fontSize: 9,  fontWeight: 600 } as React.CSSProperties;
+const LSTY_SM = { fill: "#f7f7f7", fontSize: 10, fontWeight: 600 } as React.CSSProperties;
 
 // ─── SVG Gauge ────────────────────────────────────────────────────────────────
 
@@ -50,34 +54,30 @@ function DischargeGauge({ label, pct }: { label: string; pct: number }) {
   const color = pct >= 75 ? "var(--status-stable)" : pct >= 60 ? "var(--status-attention)" : "var(--status-critical)";
 
   return (
-    <div className="rounded-lg p-4 flex flex-col items-center justify-center gap-2"
+    <div className="rounded-lg p-4 flex flex-col items-center justify-center gap-3"
       style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-      <p className="text-xs font-semibold">{label}</p>
-      <svg viewBox="0 0 128 128" width="100%" style={{ maxWidth: 112 }}>
+      <p className="text-sm font-semibold">{label}</p>
+      <svg viewBox="0 0 128 128" style={{ width: "min(100%, 220px)", height: "auto" }}>
         <circle cx={CX} cy={CY} r={R} fill="none" stroke="var(--border)" strokeWidth={10} />
-        <circle
-          cx={CX} cy={CY} r={R} fill="none"
+        <circle cx={CX} cy={CY} r={R} fill="none"
           stroke={color} strokeWidth={10} strokeLinecap="round"
           strokeDasharray={`${arc} ${CIRC}`}
-          transform={`rotate(-90 ${CX} ${CY})`}
-        />
-        <text x={CX} y={CY - 8} textAnchor="middle" dominantBaseline="central" fontSize={26} fontWeight="700" fill={color}>{pct}</text>
-        <text x={CX} y={CY + 10} textAnchor="middle" dominantBaseline="central" fontSize={11} fill="var(--muted)">%</text>
+          transform={`rotate(-90 ${CX} ${CY})`} />
+        <text x={CX} y={CY - 6} textAnchor="middle" dominantBaseline="central" fontSize={26} fontWeight="700" fill={color}>{pct}%</text>
+        <text x={CX} y={CY + 14} textAnchor="middle" dominantBaseline="central" fontSize={8} fill="var(--muted)">altas até 10h</text>
       </svg>
-      <p className="text-xs text-center" style={{ color: "var(--muted)" }}>altas até 10h</p>
     </div>
   );
 }
 
 // ─── KPI card ─────────────────────────────────────────────────────────────────
 
-function KpiCard({ label, value, sub, accent }: { label: string; value: string; sub?: string; accent?: boolean }) {
+function KpiCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
     <div className="rounded-lg p-4 flex flex-col gap-1"
       style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
       <span className="text-xs uppercase tracking-wide" style={{ color: "var(--muted)" }}>{label}</span>
-      <span className="text-2xl font-bold tabular-nums"
-        style={{ color: accent ? "var(--status-critical)" : "var(--foreground)" }}>{value}</span>
+      <span className="text-2xl font-bold tabular-nums">{value}</span>
       {sub && <span className="text-xs" style={{ color: "var(--muted)" }}>{sub}</span>}
     </div>
   );
@@ -92,103 +92,128 @@ export default function PerformanceAltaPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen" style={{ background: "var(--background)" }}>
+      <div
+        style={{
+          height: "100vh", overflow: "hidden",
+          display: "flex", flexDirection: "column",
+          background: "var(--background)",
+        }}
+      >
         {/* Top bar */}
-        <div className="sticky top-0 z-10 px-6"
-          style={{ height: 52, display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
+        <div className="px-6"
+          style={{ height: 52, flexShrink: 0, display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
           <Link href="/command" className="text-xs hover:text-white transition-colors" style={{ color: "var(--muted)" }}>← Comando</Link>
           <span style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.01em" }}>Performance de Alta até 10h</span>
           <div style={{ display: "flex", justifyContent: "flex-end" }}><RealtimeClock /></div>
         </div>
 
-        <div className="p-6 space-y-4">
+        {/* Content */}
+        <div style={{ flex: 1, minHeight: 0, padding: 12, display: "flex", flexDirection: "column", gap: 10 }}>
+
           {/* KPIs */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <KpiCard label="Performance Hospital" value={`${hospitalPct}%`} sub="média de todas as alas" />
-            <KpiCard label="Altas até 10h Hoje"   value="24"    sub="de 38 previstas" />
-            <KpiCard label="Meta Institucional"    value="80%"   sub="alvo mensal" />
-            <KpiCard label="Gap para Meta"         value={`${80 - hospitalPct}`} sub="pontos percentuais" />
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, flexShrink: 0 }}>
+            <KpiCard label="Performance Hospital" value={`${hospitalPct}%`}        sub="média de todas as alas" />
+            <KpiCard label="Altas até 10h Hoje"   value="24"                       sub="de 38 previstas" />
+            <KpiCard label="Meta Institucional"    value="80%"                     sub="alvo mensal" />
+            <KpiCard label="Gap para Meta"         value={`${80 - hospitalPct}pp`} sub="pontos percentuais" />
           </div>
 
-          {/* Linha 1: gráfico de barras + 2 gauges */}
-          <div className="grid grid-cols-4 gap-4">
-            <div className="col-span-2 rounded-lg p-4"
+          {/* Linha 1: barras horizontais + 2 gauges */}
+          <div style={{ flex: 3, minHeight: 0, display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: 10 }}>
+            <div className="rounded-lg p-4 flex flex-col"
               style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-              <p className="text-xs font-medium mb-3" style={{ color: "#f7f7f7" }}>
+              <p className="text-xs font-medium mb-2" style={{ color: "#f7f7f7" }}>
                 % de Altas até 10h por Ala — Hoje
               </p>
-              <ResponsiveContainer width="100%" height={175}>
-                <BarChart data={WARD_PERF} layout="vertical" margin={{ top: 4, right: 16, bottom: 0, left: 8 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
-                  <XAxis type="number" tick={{ fill: "#f7f7f7", fontSize: 10 }} domain={[0, 100]}
-                    tickFormatter={(v) => `${v}%`} />
-                  <YAxis type="category" dataKey="ala" tick={{ fill: "#f7f7f7", fontSize: 10 }} width={88} />
-                  <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => [`${v}%`, "Altas até 10h"]} />
-                  <ReferenceLine x={80} stroke="rgba(239,68,68,0.5)" strokeDasharray="4 4" />
-                  <Bar dataKey="pct" radius={[0, 3, 3, 0]} isAnimationActive={false} fill="#3b82f6" />
-                </BarChart>
-              </ResponsiveContainer>
+              <div style={{ flex: 1, minHeight: 0 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={WARD_PERF} layout="vertical" margin={{ top: 4, right: 44, bottom: 0, left: 8 }}>
+                    <XAxis type="number" domain={[0, 100]} hide />
+                    <YAxis type="category" dataKey="ala" tick={{ fill: "#f7f7f7", fontSize: 10 }} width={90} />
+                    <Tooltip contentStyle={TS} formatter={(v) => [`${v}%`, "Altas até 10h"]} />
+                    <ReferenceLine x={80} stroke="rgba(239,68,68,0.5)" strokeDasharray="4 4" />
+                    <Bar dataKey="pct" radius={[0, 3, 3, 0]} isAnimationActive={false} fill="#3b82f6">
+                      <LabelList dataKey="pct" position="right" formatter={pctFmt} style={LSTY_SM} />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
             <DischargeGauge label="Maternidade" pct={78} />
             <DischargeGauge label="Pediatria"   pct={65} />
           </div>
 
           {/* Linha 2: 3 gráficos menores */}
-          <div className="grid grid-cols-3 gap-4">
-            <div className="rounded-lg p-4"
+          <div style={{ flex: 2, minHeight: 0, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+
+            {/* Tendência 7 dias */}
+            <div className="rounded-lg p-4 flex flex-col"
               style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-              <p className="text-xs font-medium mb-3" style={{ color: "#f7f7f7" }}>
+              <p className="text-xs font-medium mb-2" style={{ color: "#f7f7f7" }}>
                 Tendência — últimos 7 dias (%)
               </p>
-              <ResponsiveContainer width="100%" height={118}>
-                <AreaChart data={TREND_7D} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
-                  <defs>
-                    <linearGradient id="gtTrend" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%"  stopColor="#3b82f6" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                  <XAxis dataKey="day" tick={{ fill: "#f7f7f7", fontSize: 9 }} />
-                  <YAxis tick={{ fill: "#f7f7f7", fontSize: 9 }} domain={[40, 90]} />
-                  <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => [`${v}%`]} />
-                  <Area type="monotone" dataKey="pct" stroke="#3b82f6" fill="url(#gtTrend)"
-                    strokeWidth={2} dot={false} isAnimationActive={false} />
-                </AreaChart>
-              </ResponsiveContainer>
+              <div style={{ flex: 1, minHeight: 0 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={TREND_7D} margin={{ top: 22, right: 12, bottom: 0, left: -32 }}>
+                    <defs>
+                      <linearGradient id="gtTrend" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%"  stopColor="#3b82f6" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <XAxis dataKey="day" tick={{ fill: "#f7f7f7", fontSize: 9 }} />
+                    <YAxis hide domain={[40, 90]} />
+                    <Tooltip contentStyle={TS} formatter={(v) => [`${v}%`]} />
+                    <Area type="monotone" dataKey="pct" stroke="#3b82f6" fill="url(#gtTrend)"
+                      strokeWidth={2} dot={{ r: 3, fill: "#3b82f6" }} isAnimationActive={false}>
+                      <LabelList dataKey="pct" position="top" offset={8} formatter={pctFmt} style={LSTY} />
+                    </Area>
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
             </div>
 
-            <div className="rounded-lg p-4"
+            {/* Altas por dia da semana */}
+            <div className="rounded-lg p-4 flex flex-col"
               style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-              <p className="text-xs font-medium mb-3" style={{ color: "#f7f7f7" }}>
+              <p className="text-xs font-medium mb-2" style={{ color: "#f7f7f7" }}>
                 Altas até 10h por Dia da Semana
               </p>
-              <ResponsiveContainer width="100%" height={118}>
-                <BarChart data={BY_DOW} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                  <XAxis dataKey="day" tick={{ fill: "#f7f7f7", fontSize: 9 }} />
-                  <YAxis tick={{ fill: "#f7f7f7", fontSize: 9 }} allowDecimals={false} />
-                  <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => [`${v}`, "Altas"]} />
-                  <Bar dataKey="n" fill="#22c55e" radius={[2, 2, 0, 0]} isAnimationActive={false} />
-                </BarChart>
-              </ResponsiveContainer>
+              <div style={{ flex: 1, minHeight: 0 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={BY_DOW} margin={{ top: 20, right: 8, bottom: 0, left: 4 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                    <XAxis dataKey="day" tick={{ fill: "#f7f7f7", fontSize: 9 }} />
+                    <YAxis hide width={0} allowDecimals={false} />
+                    <Tooltip contentStyle={TS} formatter={(v) => [`${v}`, "Altas"]} />
+                    <Bar dataKey="n" fill="#22c55e" radius={[2, 2, 0, 0]} isAnimationActive={false}>
+                      <LabelList dataKey="n" position="top" style={LSTY} />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
 
-            <div className="rounded-lg p-4"
+            {/* Distribuição por hora */}
+            <div className="rounded-lg p-4 flex flex-col"
               style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-              <p className="text-xs font-medium mb-3" style={{ color: "#f7f7f7" }}>
+              <p className="text-xs font-medium mb-2" style={{ color: "#f7f7f7" }}>
                 Distribuição por Hora — Hoje
               </p>
-              <ResponsiveContainer width="100%" height={118}>
-                <LineChart data={HOUR_DIST} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                  <XAxis dataKey="h" tick={{ fill: "#f7f7f7", fontSize: 9 }} />
-                  <YAxis tick={{ fill: "#f7f7f7", fontSize: 9 }} allowDecimals={false} />
-                  <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => [`${v}`, "Altas"]} />
-                  <Line type="monotone" dataKey="n" stroke="#f59e0b" strokeWidth={2}
-                    dot={{ r: 3, fill: "#f59e0b" }} isAnimationActive={false} />
-                </LineChart>
-              </ResponsiveContainer>
+              <div style={{ flex: 1, minHeight: 0 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={HOUR_DIST} margin={{ top: 22, right: 12, bottom: 0, left: -32 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                    <XAxis dataKey="h" tick={{ fill: "#f7f7f7", fontSize: 9 }} />
+                    <YAxis hide allowDecimals={false} />
+                    <Tooltip contentStyle={TS} formatter={(v) => [`${v}`, "Altas"]} />
+                    <Line type="monotone" dataKey="n" stroke="#f59e0b" strokeWidth={2}
+                      dot={{ r: 3, fill: "#f59e0b" }} isAnimationActive={false}>
+                      <LabelList dataKey="n" position="top" offset={8} style={LSTY} />
+                    </Line>
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           </div>
         </div>
