@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState, useEffect } from "react";
 import {
   LineChart, Line, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LabelList,
@@ -14,23 +15,33 @@ import { RealtimeClock } from "@/components/RealtimeClock";
 // ─── static data ──────────────────────────────────────────────────────────────
 
 const ARRIVALS = [
-  { h: "07h", n: 2 }, { h: "08h", n: 4 }, { h: "09h", n: 3 }, { h: "10h", n: 5 },
-  { h: "11h", n: 4 }, { h: "12h", n: 2 }, { h: "13h", n: 3 }, { h: "14h", n: 5 },
-  { h: "15h", n: 4 }, { h: "16h", n: 3 }, { h: "17h", n: 2 }, { h: "18h", n: 1 },
+  { h: "06h", hour: 6,  n: 1 }, { h: "07h", hour: 7,  n: 2 }, { h: "08h", hour: 8,  n: 4 }, { h: "09h", hour: 9,  n: 3 },
+  { h: "10h", hour: 10, n: 5 }, { h: "11h", hour: 11, n: 4 }, { h: "12h", hour: 12, n: 2 },
+  { h: "13h", hour: 13, n: 3 }, { h: "14h", hour: 14, n: 5 }, { h: "15h", hour: 15, n: 4 },
+  { h: "16h", hour: 16, n: 3 }, { h: "17h", hour: 17, n: 2 }, { h: "18h", hour: 18, n: 1 },
 ];
 
 const FORECAST = [
-  { day: "Seg", n: 18 }, { day: "Ter", n: 21 }, { day: "Qua", n: 19 },
+  { day: "Seg", n: 18 }, { day: "Ter", n: 21 }, { day: "Qua", n: 16 },
   { day: "Qui", n: 23 }, { day: "Sex", n: 20 }, { day: "Sáb", n: 12 }, { day: "Dom", n: 8 },
 ];
 
 const STEP_NAMES = ["Admissão", "Procedimento", "RA", "Quarto"];
+const VISIBLE_ROOMS = 4;
 const STEP_COLOR = ["#3b82f6", "#f59e0b", "#8b5cf6", "#22c55e"];
 
 const TOOLTIP_STYLE = {
   background: "var(--surface)", border: "1px solid var(--border)",
   borderRadius: 6, fontSize: 12, color: "var(--foreground)",
 };
+
+function getLastUpdateLabel(): string {
+  const now = new Date();
+  const lastFiveMin = Math.floor(now.getMinutes() / 5) * 5;
+  const d = new Date(now);
+  d.setMinutes(lastFiveMin, 0, 0);
+  return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+}
 
 // ─── SVG Gauge (compact) ──────────────────────────────────────────────────────
 
@@ -39,7 +50,7 @@ function RoomGauge({
 }: {
   label: string; stepIndex: number; isEmpty: boolean;
 }) {
-  const R = 40, CX = 48, CY = 48;
+  const R = 58, CX = 68, CY = 68;
   const CIRC  = 2 * Math.PI * R;
   const pct   = isEmpty ? 0 : ((stepIndex + 1) / 4) * 100;
   const arc   = (pct / 100) * CIRC;
@@ -49,24 +60,24 @@ function RoomGauge({
   return (
     <div
       className="rounded-lg p-3 flex flex-col items-center gap-1"
-      style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
+      style={{ background: "var(--surface)" }}
     >
       <p className="text-xs font-mono font-semibold">{label}</p>
-      <svg width={96} height={96}>
-        <circle cx={CX} cy={CY} r={R} fill="none" stroke="var(--border)" strokeWidth={8} />
+      <svg width={136} height={136}>
+        <circle cx={CX} cy={CY} r={R} fill="none" stroke="var(--border)" strokeWidth={10} />
         {!isEmpty && (
           <circle
             cx={CX} cy={CY} r={R} fill="none"
-            stroke={color} strokeWidth={8}
+            stroke={color} strokeWidth={10}
             strokeLinecap="round"
             strokeDasharray={`${arc} ${CIRC}`}
             transform={`rotate(-90 ${CX} ${CY})`}
           />
         )}
-        <text x={CX} y={CY - 4} textAnchor="middle" fontSize={18} fontWeight="700" fill={isEmpty ? "var(--muted)" : color}>
+        <text x={CX} y={CY - 5} textAnchor="middle" fontSize={24} fontWeight="700" fill={isEmpty ? "var(--muted)" : color}>
           {isEmpty ? "–" : `${Math.round(pct)}%`}
         </text>
-        <text x={CX} y={CY + 12} textAnchor="middle" fontSize={8} fill="var(--muted)">
+        <text x={CX} y={CY + 16} textAnchor="middle" fontSize={11} fontWeight="600" fill="var(--muted)">
           {stepLabel}
         </text>
       </svg>
@@ -97,6 +108,21 @@ export default function OperatingRoomPage() {
 
   const occupied = beds.filter((b) => b.internacaoId).length;
   const total    = beds.length;
+  const [offset, setOffset] = useState(0);
+  const canLeft  = offset > 0;
+  const canRight = offset + VISIBLE_ROOMS < beds.length;
+
+  const [lastUpdate, setLastUpdate] = useState(getLastUpdateLabel);
+  const [currentHour, setCurrentHour] = useState(() => new Date().getHours());
+  useEffect(() => {
+    const tick = () => {
+      setLastUpdate(getLastUpdateLabel());
+      setCurrentHour(new Date().getHours());
+    };
+    const id = setInterval(tick, 30_000);
+    return () => clearInterval(id);
+  }, []);
+  const arrivals = ARRIVALS.filter((d) => d.hour <= currentHour);
 
   function isSurgical(i: object): i is SurgicalInternacao {
     return "surgicalFlow" in i;
@@ -122,7 +148,13 @@ export default function OperatingRoomPage() {
         >
           <Link href="/command" className="text-xs transition-colors" style={{ color: "#F7F7F7" }}>← Voltar</Link>
           <span style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.01em" }}>Centro Cirúrgico</span>
-          <div style={{ display: "flex", justifyContent: "flex-end" }}><RealtimeClock /></div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 12 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--muted)", whiteSpace: "nowrap" }}>
+              Atualizado às: <span style={{ color: "var(--foreground)" }}>{lastUpdate}</span>
+            </span>
+            <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#fff", flexShrink: 0 }} />
+            <RealtimeClock />
+          </div>
         </div>
 
         {/* Content */}
@@ -142,23 +174,80 @@ export default function OperatingRoomPage() {
             <KpiCard label="Giro de Sala"        value="22 min"    sub="entre cirurgias" />
             <KpiCard label="Sala Ociosa"         value="18 min"    sub="tempo médio ocioso" />
             <KpiCard label="Aderência ao Mapa"   value="89%"       sub="semana atual" />
-            <KpiCard label="Agendadas × Realiz." value="16 × 14"   sub="hoje" />
+            <KpiCard label="Agendadas × Realizadas" value="16 × 14"   sub="hoje" />
           </div>
 
-          {/* 6 gauges — 1 linha */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 10, flexShrink: 0 }}>
-            {beds.map((bed) => {
-              const i        = bed.internacaoId ? internacoes[bed.internacaoId] : null;
-              const surgical = i && isSurgical(i) ? i : null;
-              return (
-                <RoomGauge
-                  key={bed.id}
-                  label={bed.label}
-                  stepIndex={surgical ? surgical.currentStep : 0}
-                  isEmpty={!bed.internacaoId}
-                />
-              );
-            })}
+          {/* Carousel de salas cirúrgicas */}
+          <div style={{
+            flexShrink: 0,
+            background: "var(--surface)",
+            border: "1px solid var(--border)",
+            borderRadius: 10,
+            padding: "10px 14px 8px",
+          }}>
+            {/* Header */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+              <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--muted)" }}>
+                Salas Cirúrgicas
+              </span>
+              <span style={{ fontSize: 10, color: "var(--muted)" }}>
+                {offset + 1}–{Math.min(offset + VISIBLE_ROOMS, beds.length)} de {beds.length}
+              </span>
+            </div>
+
+            {/* Row: arrow + gauges + arrow */}
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              {/* Left arrow */}
+              <button
+                onClick={() => setOffset((o) => Math.max(0, o - 1))}
+                disabled={!canLeft}
+                style={{
+                  width: 28, height: 28, borderRadius: "50%", flexShrink: 0,
+                  border: "none",
+                  background: "transparent",
+                  color: canLeft ? "var(--foreground)" : "var(--muted)",
+                  cursor: canLeft ? "pointer" : "default",
+                  fontSize: 22, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center",
+                  transition: "all 0.15s",
+                }}
+              >
+                ‹
+              </button>
+
+              {/* Visible gauges */}
+              <div style={{ flex: 1, display: "grid", gridTemplateColumns: `repeat(${VISIBLE_ROOMS}, 1fr)`, gap: 10 }}>
+                {beds.slice(offset, offset + VISIBLE_ROOMS).map((bed) => {
+                  const i        = bed.internacaoId ? internacoes[bed.internacaoId] : null;
+                  const surgical = i && isSurgical(i) ? i : null;
+                  return (
+                    <RoomGauge
+                      key={bed.id}
+                      label={bed.label}
+                      stepIndex={surgical ? surgical.currentStep : 0}
+                      isEmpty={!bed.internacaoId}
+                    />
+                  );
+                })}
+              </div>
+
+              {/* Right arrow */}
+              <button
+                onClick={() => setOffset((o) => Math.min(beds.length - VISIBLE_ROOMS, o + 1))}
+                disabled={!canRight}
+                style={{
+                  width: 28, height: 28, borderRadius: "50%", flexShrink: 0,
+                  border: "none",
+                  background: "transparent",
+                  color: canRight ? "var(--foreground)" : "var(--muted)",
+                  cursor: canRight ? "pointer" : "default",
+                  fontSize: 22, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center",
+                  transition: "all 0.15s",
+                }}
+              >
+                ›
+              </button>
+            </div>
+
           </div>
 
           {/* 2 gráficos — ocupa o restante da tela */}
@@ -170,8 +259,8 @@ export default function OperatingRoomPage() {
               <p className="text-xs font-medium mb-2" style={{ color: "#f7f7f7" }}>Chegadas por Hora — Hoje</p>
               <div style={{ flex: 1, minHeight: 0 }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={ARRIVALS} margin={{ top: 28, right: 12, bottom: 0, left: -32 }}>
-                    <XAxis dataKey="h" tick={{ fill: "#f7f7f7", fontSize: 10 }} />
+                  <LineChart data={arrivals} margin={{ top: 28, right: 12, bottom: 16, left: 0 }}>
+                    <XAxis dataKey="h" tick={{ fill: "#f7f7f7", fontSize: 9 }} interval={0} />
                     <YAxis hide />
                     <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => [`${v}`, "Cirurgias"]} />
                     <Line type="monotone" dataKey="n" stroke="#3b82f6" strokeWidth={2}
