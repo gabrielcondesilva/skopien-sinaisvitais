@@ -11,7 +11,7 @@ const DASHBOARDS = [
   {
     id: "cuidados-com-a-pele",
     label: "Cuidados com a Pele",
-    desc: "LPP, Braden, mudança de decúbito e curativos em tempo real",
+    desc: "LPP, Risco, mudança de decúbito e curativos em tempo real",
   },
   {
     id: "emergency-unit",
