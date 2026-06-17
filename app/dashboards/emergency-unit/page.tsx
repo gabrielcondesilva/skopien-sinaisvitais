@@ -1,11 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { AuthGuard } from "@/components/AuthGuard";
 import { useSimulationStore } from "@/store/simulation";
 import { useShallow } from "zustand/react/shallow";
 import { RealtimeClock } from "@/components/RealtimeClock";
+
+// ─── helpers ──────────────────────────────────────────────────────────────────
+
+const DATAS = ["Hoje", "Ontem", "Últimos 7 dias", "Últimos 30 dias"];
+
+function getLastUpdateLabel(): string {
+  const now = new Date();
+  const lastFiveMin = Math.floor(now.getMinutes() / 5) * 5;
+  const d = new Date(now);
+  d.setMinutes(lastFiveMin, 0, 0);
+  return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+}
 
 // ─── constants ────────────────────────────────────────────────────────────────
 
@@ -89,6 +101,9 @@ function LOSTable() {
       <p className="text-xs font-semibold px-4 pt-3 pb-2 shrink-0"
         style={{ color: "var(--foreground)", background: "var(--surface)" }}>
         Tempo de Permanência (PS)
+        <span style={{ fontWeight: 400, color: "var(--muted)", marginLeft: 6 }}>
+          — {rows.length} Pacientes em Atendimento
+        </span>
       </p>
       <div style={{ flex: 1, minHeight: 0, overflowY: "auto", overflowX: "auto" }}>
         <table className="w-full text-xs">
@@ -145,6 +160,9 @@ function WaitingForBedTable() {
       <p className="text-xs font-semibold px-4 pt-3 pb-2 shrink-0"
         style={{ color: "var(--foreground)", background: "var(--surface)" }}>
         Aguardando Internação
+        <span style={{ fontWeight: 400, color: "var(--muted)", marginLeft: 6 }}>
+          — {rows.length} Pacientes Aguardando
+        </span>
       </p>
       <div style={{ flex: 1, minHeight: 0, overflowY: "auto", overflowX: "auto" }}>
         <table className="w-full text-xs">
@@ -185,6 +203,14 @@ function WaitingForBedTable() {
 // ─── page ─────────────────────────────────────────────────────────────────────
 
 export default function EmergencyUnitPage() {
+  const [data,       setData]       = useState("Hoje");
+  const [lastUpdate, setLastUpdate] = useState(getLastUpdateLabel);
+
+  useEffect(() => {
+    const id = setInterval(() => setLastUpdate(getLastUpdateLabel()), 30_000);
+    return () => clearInterval(id);
+  }, []);
+
   return (
     <AuthGuard>
       <div
@@ -206,6 +232,33 @@ export default function EmergencyUnitPage() {
           <Link href="/command" className="text-xs transition-colors" style={{ color: "#F7F7F7" }}>← Voltar</Link>
           <span style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.01em" }}>Unidade de Emergência</span>
           <div style={{ display: "flex", justifyContent: "flex-end" }}><RealtimeClock /></div>
+        </div>
+
+        {/* Filter bar */}
+        <div style={{
+          height: 44, flexShrink: 0,
+          display: "flex", alignItems: "center", gap: 16,
+          padding: "0 20px",
+          background: "var(--surface)", borderBottom: "1px solid var(--border)",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ fontSize: 11, color: "var(--muted)", whiteSpace: "nowrap" as const }}>Data:</span>
+            <select
+              value={data}
+              onChange={(e) => setData(e.target.value)}
+              style={{
+                fontSize: 11, padding: "3px 10px", borderRadius: 6,
+                border: "1px solid var(--border)", background: "var(--background)",
+                color: "var(--foreground)", cursor: "pointer", outline: "none",
+              }}
+            >
+              {DATAS.map((o) => <option key={o} value={o}>{o}</option>)}
+            </select>
+          </div>
+
+          <span style={{ marginLeft: "auto", fontSize: 13, fontWeight: 600, color: "var(--muted)", whiteSpace: "nowrap" as const }}>
+            Atualizado às: <span style={{ color: "var(--foreground)" }}>{lastUpdate}</span>
+          </span>
         </div>
 
         {/* Content */}
