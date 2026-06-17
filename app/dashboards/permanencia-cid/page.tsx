@@ -1,26 +1,27 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Cell, LabelList,
+  ComposedChart, BarChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, Cell, LabelList, Legend,
 } from "recharts";
 import { AuthGuard } from "@/components/AuthGuard";
 import { RealtimeClock } from "@/components/RealtimeClock";
 
 // ─── data ─────────────────────────────────────────────────────────────────────
 
-const CID_LOS = [
-  { cid: "J18.9 Pneumonia",      los: 7.2  },
-  { cid: "I21.9 IAM",            los: 5.8  },
-  { cid: "J44.1 DPOC agudizado", los: 6.4  },
-  { cid: "N17.9 IRA",            los: 8.1  },
-  { cid: "A41.9 Sepse",          los: 11.3 },
-  { cid: "I64 AVC",              los: 9.7  },
-  { cid: "K35.8 Apendicite",     los: 3.2  },
-  { cid: "S72.0 Fratura fêmur",  los: 12.4 },
-  { cid: "E11.9 DM2 descomp.",   los: 4.6  },
-  { cid: "C34.9 Ca pulmão",      los: 6.9  },
+const VOLUMETRIA_CID = [
+  { cid: "A41.9", nome: "Sepse",       volume: 17, tmp: 11.3 },
+  { cid: "J18.9", nome: "Pneumonia",   volume: 17, tmp: 7.2  },
+  { cid: "I64",   nome: "AVC",         volume: 14, tmp: 9.7  },
+  { cid: "S72.0", nome: "Fr. Fêmur",   volume: 12, tmp: 12.4 },
+  { cid: "N17.9", nome: "IRA",         volume: 10, tmp: 8.1  },
+  { cid: "J44.1", nome: "DPOC",        volume: 9,  tmp: 6.4  },
+  { cid: "I21.9", nome: "IAM",         volume: 8,  tmp: 5.8  },
+  { cid: "E11.9", nome: "DM2",         volume: 6,  tmp: 4.6  },
+  { cid: "K35.8", nome: "Apendicite",  volume: 5,  tmp: 3.2  },
+  { cid: "C34.9", nome: "Ca Pulmão",   volume: 3,  tmp: 6.9  },
 ];
 
 const AGE_BARS = [
@@ -53,6 +54,21 @@ const CONVENIO = [
 
 const STATS = { media: 6.8, mediana: 6.2, desvio: 3.1 };
 
+// ─── filter options ────────────────────────────────────────────────────────────
+
+const F_CONVENIOS    = ["Todos", "Unimed", "Bradesco Saúde", "SulAmérica", "Amil", "Particular", "SUS"];
+const F_DEPARTAMENTOS = ["Todos", "UTI", "Enfermaria", "Pronto Socorro", "Centro Cirúrgico"];
+const F_ALAS         = ["Todos", "Ala Norte", "Ala Sul", "Ala Leste", "Ala Oeste"];
+const F_CIDS         = ["Todos", "J18.9 – Pneumonia", "I21.9 – IAM", "J44.1 – DPOC agudizado", "N17.9 – IRA", "A41.9 – Sepse", "I64 – AVC", "K35.8 – Apendicite", "S72.0 – Fratura fêmur", "E11.9 – DM2 descomp.", "C34.9 – Ca pulmão"];
+
+function getLastUpdateLabel(): string {
+  const now = new Date();
+  const lastFiveMin = Math.floor(now.getMinutes() / 5) * 5;
+  const d = new Date(now);
+  d.setMinutes(lastFiveMin, 0, 0);
+  return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+}
+
 const TS = { background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 6, fontSize: 12, color: "var(--foreground)" };
 const LSM = { fill: "#f7f7f7", fontSize: 9,  fontWeight: 600 } as React.CSSProperties;
 const LSS = { fill: "#f7f7f7", fontSize: 8,  fontWeight: 600 } as React.CSSProperties;
@@ -73,6 +89,17 @@ function KpiCard({ label, value, sub }: { label: string; value: string; sub?: st
 // ─── page ─────────────────────────────────────────────────────────────────────
 
 export default function PermanenciaCIDPage() {
+  const [convenio,     setConvenio]     = useState("Todos");
+  const [departamento, setDepartamento] = useState("Todos");
+  const [ala,          setAla]          = useState("Todos");
+  const [cid,          setCid]          = useState("Todos");
+  const [lastUpdate,   setLastUpdate]   = useState(getLastUpdateLabel);
+
+  useEffect(() => {
+    const id = setInterval(() => setLastUpdate(getLastUpdateLabel()), 30_000);
+    return () => clearInterval(id);
+  }, []);
+
   return (
     <AuthGuard>
       <div
@@ -90,6 +117,48 @@ export default function PermanenciaCIDPage() {
           <div style={{ display: "flex", justifyContent: "flex-end" }}><RealtimeClock /></div>
         </div>
 
+        {/* Filter bar */}
+        <div style={{
+          height: 44, flexShrink: 0,
+          display: "flex", alignItems: "center", gap: 16,
+          padding: "0 20px",
+          background: "var(--surface)", borderBottom: "1px solid var(--border)",
+        }}>
+          {([
+            { label: "Convênio",     value: convenio,     setter: setConvenio,     options: F_CONVENIOS },
+            { label: "Departamento", value: departamento, setter: setDepartamento, options: F_DEPARTAMENTOS },
+            { label: "Ala",          value: ala,          setter: setAla,          options: F_ALAS },
+            { label: "CID",          value: cid,          setter: setCid,          options: F_CIDS },
+          ]).map(({ label, value, setter, options }) => (
+            <div key={label} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ fontSize: 11, color: "var(--muted)", whiteSpace: "nowrap" as const }}>
+                {label}:
+              </span>
+              <select
+                value={value}
+                onChange={(e) => setter(e.target.value)}
+                style={{
+                  fontSize: 11,
+                  padding: "3px 10px",
+                  borderRadius: 6,
+                  border: "1px solid var(--border)",
+                  background: "var(--background)",
+                  color: "var(--foreground)",
+                  cursor: "pointer",
+                  outline: "none",
+                }}
+              >
+                {options.map((o) => (
+                  <option key={o} value={o}>{o}</option>
+                ))}
+              </select>
+            </div>
+          ))}
+          <span style={{ marginLeft: "auto", fontSize: 13, fontWeight: 600, color: "var(--muted)", whiteSpace: "nowrap" as const }}>
+            Atualizado em: <span style={{ color: "var(--foreground)" }}>{lastUpdate}</span>
+          </span>
+        </div>
+
         {/* Content */}
         <div style={{ flex: 1, minHeight: 0, padding: 12, display: "flex", flexDirection: "column", gap: 10 }}>
 
@@ -104,20 +173,56 @@ export default function PermanenciaCIDPage() {
           {/* Linha 1: LOS por CID + Distribuição Etária */}
           <div style={{ flex: 3, minHeight: 0, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
 
-            {/* LOS por CID — horizontal */}
+            {/* Volumetria CID + TMP — ComposedChart */}
             <div className="rounded-lg p-4 flex flex-col"
               style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-              <p className="text-xs font-medium mb-2" style={{ color: "#f7f7f7" }}>LOS Médio por CID (dias)</p>
+              <p className="text-xs font-semibold mb-2" style={{ color: "#f7f7f7", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                Volumetria CID e Tempo Médio de Permanência (dias)
+              </p>
               <div style={{ flex: 1, minHeight: 0 }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={CID_LOS} layout="vertical" margin={{ top: 4, right: 48, bottom: 0, left: 8 }}>
-                    <XAxis type="number" domain={[0, 14]} hide />
-                    <YAxis type="category" dataKey="cid" tick={{ fill: "#f7f7f7", fontSize: 9 }} width={135} />
-                    <Tooltip contentStyle={TS} formatter={(v) => [`${v} dias`, "Permanência"]} />
-                    <Bar dataKey="los" radius={[0, 3, 3, 0]} isAnimationActive={false} fill="#3b82f6">
-                      <LabelList dataKey="los" position="right" formatter={(v: unknown) => `${v}d`} style={LSM} />
+                  <ComposedChart data={VOLUMETRIA_CID} margin={{ top: 24, right: 16, bottom: 20, left: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                    <XAxis
+                      dataKey="cid"
+                      tick={{ fill: "#f7f7f7", fontSize: 10 }}
+                      axisLine={false} tickLine={false}
+                    />
+                    <YAxis yAxisId="left"  hide domain={[0, 22]} />
+                    <YAxis yAxisId="right" hide domain={[0, 16]} orientation="right" />
+                    <Tooltip
+                      contentStyle={TS}
+                      formatter={(v, name) =>
+                        name === "volume"
+                          ? [`${v} casos`, "Volume CID"]
+                          : [`${v} dias`, "TMP Médio"]
+                      }
+                    />
+                    <Legend
+                      wrapperStyle={{ fontSize: 11, paddingTop: 6 }}
+                      formatter={(v) => (
+                        <span style={{ color: "rgba(255,255,255,0.7)" }}>
+                          {v === "volume" ? "Volume CID" : "TMP Médio (dias)"}
+                        </span>
+                      )}
+                    />
+                    <Bar yAxisId="left" dataKey="volume" name="volume" fill="#3b82f6" radius={[3, 3, 0, 0]} isAnimationActive={false}>
+                      <LabelList dataKey="volume" position="top" style={{ fill: "#f7f7f7", fontSize: 11, fontWeight: 700 }} />
                     </Bar>
-                  </BarChart>
+                    <Line
+                      yAxisId="right"
+                      type="monotone"
+                      dataKey="tmp"
+                      name="tmp"
+                      stroke="#f97316"
+                      strokeWidth={2}
+                      dot={{ fill: "#f97316", r: 4, strokeWidth: 0 }}
+                      activeDot={{ r: 6 }}
+                      isAnimationActive={false}
+                    >
+                      <LabelList dataKey="tmp" position="bottom" offset={8} style={{ fill: "#f97316", fontSize: 10, fontWeight: 700 }} />
+                    </Line>
+                  </ComposedChart>
                 </ResponsiveContainer>
               </div>
             </div>
