@@ -219,7 +219,7 @@ export default function PerformanceAltaPage() {
                   <BarChart data={wardData} layout="vertical" margin={{ top: 4, right: 44, bottom: 0, left: 8 }}>
                     <XAxis type="number" domain={[0, 100]} hide />
                     <YAxis type="category" dataKey="ala" tick={{ fill: "#f7f7f7", fontSize: 10 }} width={90} />
-                    <Tooltip contentStyle={TS} formatter={(v) => [`${v}%`, "Altas até 10h"]} />
+                    <Tooltip contentStyle={TS} cursor={false} labelStyle={{ color: "#f7f7f7" }} itemStyle={{ color: "#f7f7f7" }} formatter={(v) => [`${v}%`, "Altas até 10h"]} />
                     <ReferenceLine x={80} stroke="rgba(239,68,68,0.5)" strokeDasharray="4 4" />
                     <Bar dataKey="pct" radius={[0, 3, 3, 0]} isAnimationActive={false} fill="#3b82f6">
                       <LabelList dataKey="pct" position="right" formatter={pctFmt} style={LSTY_SM} />
@@ -252,7 +252,7 @@ export default function PerformanceAltaPage() {
                     </defs>
                     <XAxis dataKey="day" tick={{ fill: "#f7f7f7", fontSize: 9 }} />
                     <YAxis hide domain={[40, 90]} />
-                    <Tooltip contentStyle={TS} formatter={(v) => [`${v}%`]} />
+                    <Tooltip contentStyle={TS} cursor={false} labelStyle={{ color: "#f7f7f7" }} itemStyle={{ color: "#f7f7f7" }} formatter={(v) => [`${v}%`]} />
                     <Area type="monotone" dataKey="pct" stroke="#3b82f6" fill="url(#gtTrend)"
                       strokeWidth={2} dot={{ r: 3, fill: "#3b82f6" }} isAnimationActive={false}>
                       <LabelList dataKey="pct" position="top" offset={8} formatter={pctFmt} style={LSTY} />
@@ -274,7 +274,7 @@ export default function PerformanceAltaPage() {
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                     <XAxis dataKey="day" tick={{ fill: "#f7f7f7", fontSize: 9 }} />
                     <YAxis hide width={0} allowDecimals={false} />
-                    <Tooltip contentStyle={TS} formatter={(v) => [`${v}`, "Altas"]} />
+                    <Tooltip contentStyle={TS} cursor={false} labelStyle={{ color: "#f7f7f7" }} itemStyle={{ color: "#f7f7f7" }} formatter={(v) => [`${v}`, "Altas"]} />
                     <Bar dataKey="n" fill="#22c55e" radius={[2, 2, 0, 0]} isAnimationActive={false}>
                       <LabelList dataKey="n" position="top" style={LSTY} />
                     </Bar>
@@ -295,7 +295,7 @@ export default function PerformanceAltaPage() {
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                     <XAxis dataKey="h" tick={{ fill: "#f7f7f7", fontSize: 9 }} />
                     <YAxis hide allowDecimals={false} />
-                    <Tooltip contentStyle={TS} formatter={(v) => [`${v}`, "Altas"]} />
+                    <Tooltip contentStyle={TS} cursor={false} labelStyle={{ color: "#f7f7f7" }} itemStyle={{ color: "#f7f7f7" }} formatter={(v) => [`${v}`, "Altas"]} />
                     <Line type="monotone" dataKey="n" stroke="#f59e0b" strokeWidth={2}
                       dot={{ r: 3, fill: "#f59e0b" }} isAnimationActive={false}>
                       <LabelList dataKey="n" position="top" offset={8} style={LSTY} />

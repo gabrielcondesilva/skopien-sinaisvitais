@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import {
   ComposedChart, Line, BarChart, Bar, Cell,
@@ -66,10 +66,23 @@ const SPEC_RAW: Record<Specialty, RawData> = {
 const TS = { background:"var(--surface)", border:"1px solid var(--border)", borderRadius:6, fontSize:11, color:"var(--foreground)" };
 const LS = { fill: "#f7f7f7", fontSize: 9, fontWeight: 600 } as React.CSSProperties;
 
+function getLastUpdateLabel(): string {
+  const now = new Date();
+  const lastFiveMin = Math.floor(now.getMinutes() / 5) * 5;
+  const d = new Date(now);
+  d.setMinutes(lastFiveMin, 0, 0);
+  return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+}
+
 // ─── page ─────────────────────────────────────────────────────────────────────
 
 export default function PatientPredictionPage() {
   const [active, setActive] = useState<Specialty | null>(null);
+  const [lastUpdate, setLastUpdate] = useState(getLastUpdateLabel);
+  useEffect(() => {
+    const id = setInterval(() => setLastUpdate(getLastUpdateLabel()), 30_000);
+    return () => clearInterval(id);
+  }, []);
   const rawData = active ? SPEC_RAW[active] : ALL_RAW;
   const data = useMemo(() => buildDynamic(rawData), [rawData]);
 
@@ -87,7 +100,13 @@ export default function PatientPredictionPage() {
           style={{ height: 52, flexShrink: 0, display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
           <Link href="/command" className="text-xs transition-colors" style={{ color: "#F7F7F7" }}>← Voltar</Link>
           <span style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.01em" }}>Predição de Deterioração</span>
-          <div style={{ display: "flex", justifyContent: "flex-end" }}><RealtimeClock /></div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 12 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--muted)", whiteSpace: "nowrap" }}>
+              Atualizado às: <span style={{ color: "var(--foreground)" }}>{lastUpdate}</span>
+            </span>
+            <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#fff", flexShrink: 0 }} />
+            <RealtimeClock />
+          </div>
         </div>
 
         {/* Content */}
@@ -155,7 +174,7 @@ export default function PatientPredictionPage() {
                 <ComposedChart data={data.main} margin={{ top: 22, right: 16, bottom: 0, left: 4 }}>
                   <XAxis dataKey="day" tick={{ fill:"#f7f7f7", fontSize:10 }} />
                   <YAxis hide width={0} />
-                  <Tooltip contentStyle={TS} />
+                  <Tooltip contentStyle={TS} cursor={false} labelStyle={{ color: "#f7f7f7" }} itemStyle={{ color: "#f7f7f7" }} />
                   <Line type="monotone" dataKey="real" stroke="#3b82f6" strokeWidth={2}
                     dot={{ r:3, fill:"#3b82f6" }} connectNulls={false} isAnimationActive={false} name="Real">
                     <LabelList dataKey="real" position="top" offset={8} style={LS} />
@@ -183,7 +202,7 @@ export default function PatientPredictionPage() {
                   <BarChart data={data.error} margin={{ top:20, right:12, bottom:0, left:12 }}>
                     <XAxis dataKey="day" tick={{ fill:"#f7f7f7", fontSize:9 }} padding={{ left:20, right:20 }} />
                     <YAxis hide width={0} domain={[0,10]} />
-                    <Tooltip contentStyle={TS} formatter={(v)=>[`${v}%`,"Erro"]} />
+                    <Tooltip contentStyle={TS} cursor={false} labelStyle={{ color: "#f7f7f7" }} itemStyle={{ color: "#f7f7f7" }} formatter={(v)=>[`${v}%`,"Erro"]} />
                     <Bar dataKey="pct" fill="#8b5cf6" radius={[3,3,0,0]} isAnimationActive={false}>
                       <LabelList dataKey="pct" position="top" formatter={(v: unknown) => `${v}%`} style={LS} />
                     </Bar>
@@ -202,7 +221,7 @@ export default function PatientPredictionPage() {
                   <BarChart data={data.surg} margin={{ top:20, right:12, bottom:0, left:12 }}>
                     <XAxis dataKey="day" tick={{ fill:"#f7f7f7", fontSize:9 }} padding={{ left:20, right:20 }} />
                     <YAxis hide width={0} />
-                    <Tooltip contentStyle={TS} formatter={(v)=>[`${v}`,"Cirurgias"]} />
+                    <Tooltip contentStyle={TS} cursor={false} labelStyle={{ color: "#f7f7f7" }} itemStyle={{ color: "#f7f7f7" }} formatter={(v)=>[`${v}`,"Cirurgias"]} />
                     <Bar dataKey="n" radius={[3,3,0,0]} isAnimationActive={false}>
                       {data.surg.map((entry, i) => (
                         <Cell key={i} fill={entry.isToday ? "#4DABF7" : "#22c55e"} />

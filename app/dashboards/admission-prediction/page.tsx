@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   BarChart, Bar, Cell, ComposedChart, Line,
   XAxis, YAxis, Tooltip, ResponsiveContainer, LabelList,
@@ -66,9 +66,23 @@ const STATUS_COLOR: Record<string, string> = {
 const TS = { background:"var(--surface)", border:"1px solid var(--border)", borderRadius:6, fontSize:11, color:"var(--foreground)" };
 const LS = { fill: "#f7f7f7", fontSize: 9, fontWeight: 600 } as React.CSSProperties;
 
+function getLastUpdateLabel(): string {
+  const now = new Date();
+  const lastFiveMin = Math.floor(now.getMinutes() / 5) * 5;
+  const d = new Date(now);
+  d.setMinutes(lastFiveMin, 0, 0);
+  return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+}
+
 // ─── page ─────────────────────────────────────────────────────────────────────
 
 export default function AdmissionPredictionPage() {
+  const [lastUpdate, setLastUpdate] = useState(getLastUpdateLabel);
+  useEffect(() => {
+    const id = setInterval(() => setLastUpdate(getLastUpdateLabel()), 30_000);
+    return () => clearInterval(id);
+  }, []);
+
   const beds        = useSimulationStore(useShallow((s) => s.beds.filter((b) => b.unit === "pronto-socorro")));
   const internacoes = useSimulationStore((s) => s.internacoes);
 
@@ -123,7 +137,13 @@ export default function AdmissionPredictionPage() {
           style={{ height: 52, flexShrink: 0, display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
           <Link href="/command" className="text-xs transition-colors" style={{ color: "#F7F7F7" }}>← Voltar</Link>
           <span style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.01em" }}>Predição de Internações</span>
-          <div style={{ display: "flex", justifyContent: "flex-end" }}><RealtimeClock /></div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 12 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--muted)", whiteSpace: "nowrap" }}>
+              Atualizado às: <span style={{ color: "var(--foreground)" }}>{lastUpdate}</span>
+            </span>
+            <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#fff", flexShrink: 0 }} />
+            <RealtimeClock />
+          </div>
         </div>
 
         {/* Content */}
@@ -159,7 +179,7 @@ export default function AdmissionPredictionPage() {
                   <BarChart data={forecast7d} margin={{ top: 20, right: 12, bottom: 0, left: 12 }}>
                     <XAxis dataKey="day" tick={{ fill: "#f7f7f7", fontSize: 10 }} padding={{ left: 20, right: 20 }} />
                     <YAxis hide width={0} />
-                    <Tooltip contentStyle={TS} formatter={(v) => [`${v}`, "Internações"]} />
+                    <Tooltip contentStyle={TS} cursor={false} labelStyle={{ color: "#f7f7f7" }} itemStyle={{ color: "#f7f7f7" }} formatter={(v) => [`${v}`, "Internações"]} />
                     <Bar dataKey="n" radius={[3,3,0,0]} isAnimationActive={false}>
                       {forecast7d.map((entry, i) => (
                         <Cell key={i} fill={entry.isToday ? "#4DABF7" : "#3b82f6"} />
@@ -187,7 +207,7 @@ export default function AdmissionPredictionPage() {
                   <ComposedChart data={hourlyChart} margin={{ top: 22, right: 12, bottom: 0, left: 4 }}>
                     <XAxis dataKey="h" tick={{ fill: "#f7f7f7", fontSize: 8 }} interval={1} />
                     <YAxis hide width={0} />
-                    <Tooltip contentStyle={TS} />
+                    <Tooltip contentStyle={TS} cursor={false} labelStyle={{ color: "#f7f7f7" }} itemStyle={{ color: "#f7f7f7" }} />
                     <Bar dataKey="real" fill="#3b82f6" radius={[3,3,0,0]} barSize={16} isAnimationActive={false} name="Real">
                       <LabelList dataKey="real" position="top" offset={4} style={{ ...LS, fontSize: 8 }} />
                     </Bar>
@@ -209,7 +229,7 @@ export default function AdmissionPredictionPage() {
                   <BarChart data={ageProfile} margin={{ top: 20, right: 12, bottom: 0, left: 12 }}>
                     <XAxis dataKey="faixa" tick={{ fill: "#f7f7f7", fontSize: 10 }} padding={{ left: 20, right: 20 }} />
                     <YAxis hide width={0} />
-                    <Tooltip contentStyle={TS} formatter={(v) => [`${v}`, "Candidatos"]} />
+                    <Tooltip contentStyle={TS} cursor={false} labelStyle={{ color: "#f7f7f7" }} itemStyle={{ color: "#f7f7f7" }} formatter={(v) => [`${v}`, "Candidatos"]} />
                     <Bar dataKey="n" fill="#8b5cf6" radius={[3,3,0,0]} isAnimationActive={false}>
                       <LabelList dataKey="n" position="top" style={LS} />
                     </Bar>

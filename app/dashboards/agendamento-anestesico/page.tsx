@@ -1,9 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { AuthGuard } from "@/components/AuthGuard";
 import { RealtimeClock } from "@/components/RealtimeClock";
+
+function getLastUpdateLabel(): string {
+  const now = new Date();
+  const lastFiveMin = Math.floor(now.getMinutes() / 5) * 5;
+  const d = new Date(now);
+  d.setMinutes(lastFiveMin, 0, 0);
+  return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+}
 
 // ─── data ─────────────────────────────────────────────────────────────────────
 
@@ -52,6 +60,12 @@ const SETORES:  Setor[]  = ["Imagem", "Hemodinâmica", "Intervenção", "Endosco
 export default function AgendamentoAnestesicoPage() {
   const [activeStatus, setActiveStatus] = useState<Status | null>(null);
   const [activeSetor,  setActiveSetor]  = useState<Setor  | null>(null);
+  const [lastUpdate,   setLastUpdate]   = useState(getLastUpdateLabel);
+
+  useEffect(() => {
+    const id = setInterval(() => setLastUpdate(getLastUpdateLabel()), 30_000);
+    return () => clearInterval(id);
+  }, []);
 
   const filtered = ROWS.filter((r) =>
     (!activeStatus || r.status === activeStatus) &&
@@ -72,7 +86,13 @@ export default function AgendamentoAnestesicoPage() {
           style={{ height: 52, flexShrink: 0, display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
           <Link href="/command" className="text-xs transition-colors" style={{ color: "#F7F7F7" }}>← Voltar</Link>
           <span style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.01em" }}>Agendamento Anestésico</span>
-          <div style={{ display: "flex", justifyContent: "flex-end" }}><RealtimeClock /></div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 12 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--muted)", whiteSpace: "nowrap" }}>
+              Atualizado às: <span style={{ color: "var(--foreground)" }}>{lastUpdate}</span>
+            </span>
+            <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#fff", flexShrink: 0 }} />
+            <RealtimeClock />
+          </div>
         </div>
 
         {/* Content */}
@@ -104,7 +124,7 @@ export default function AgendamentoAnestesicoPage() {
 
           {/* Filters */}
           <div className="flex flex-wrap gap-2 items-center shrink-0">
-            <span className="text-xs" style={{ color: "var(--muted)" }}>Status:</span>
+            <span className="text-xs font-semibold" style={{ color: "var(--foreground)" }}>Status:</span>
             {STATUSES.map((s) => {
               const st     = STATUS_STYLE[s];
               const active = activeStatus === s;
@@ -120,21 +140,21 @@ export default function AgendamentoAnestesicoPage() {
                 </button>
               );
             })}
-            <span className="text-xs ml-3" style={{ color: "var(--muted)" }}>Setor:</span>
-            {SETORES.map((s) => {
-              const active = activeSetor === s;
-              return (
-                <button key={s} onClick={() => setActiveSetor(active ? null : s)}
-                  className="text-xs px-3 py-1 rounded-full font-medium transition-all"
-                  style={{
-                    background: active ? "rgba(59,130,246,0.15)" : "rgba(255,255,255,0.05)",
-                    color:      active ? "var(--accent)" : "var(--foreground)",
-                    border:     `1px solid ${active ? "rgba(59,130,246,0.3)" : "var(--border)"}`,
-                  }}>
-                  {s}
-                </button>
-              );
-            })}
+            <div className="flex items-center gap-2 ml-3">
+              <span className="text-xs font-semibold" style={{ color: "var(--foreground)" }}>Setor:</span>
+              <select
+                value={activeSetor ?? ""}
+                onChange={(e) => setActiveSetor((e.target.value as Setor) || null)}
+                style={{
+                  fontSize: 11, padding: "3px 10px", borderRadius: 6,
+                  border: "1px solid var(--border)", background: "var(--background)",
+                  color: "var(--foreground)", cursor: "pointer", outline: "none",
+                }}
+              >
+                <option value="">Todos</option>
+                {SETORES.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
             {(activeStatus || activeSetor) && (
               <button onClick={() => { setActiveStatus(null); setActiveSetor(null); }}
                 className="text-xs px-3 py-1 rounded-full ml-1 transition-all"

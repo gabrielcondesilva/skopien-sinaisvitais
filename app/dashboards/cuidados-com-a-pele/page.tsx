@@ -240,7 +240,7 @@ function ConformanceTrendPanel({ data }: { data: ConformidadeItem[] }) {
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
           <XAxis dataKey="mes" tick={TICK_SM} axisLine={false} tickLine={false} />
           <YAxis hide domain={[0, 100]} />
-          <Tooltip contentStyle={TOOLTIP_STYLE} cursor={{ fill: "rgba(255,255,255,0.04)" }} formatter={(v) => [`${v}%`]} />
+          <Tooltip contentStyle={TOOLTIP_STYLE} cursor={false} labelStyle={{ color: "#f7f7f7" }} itemStyle={{ color: "#f7f7f7" }}formatter={(v) => [`${v}%`]} />
           <Legend wrapperStyle={LEGEND_STYLE} formatter={legendFormatter} />
           <Bar dataKey="decubito" name="Decúbito" fill="#38bdf8" radius={[3, 3, 0, 0]}>
             <LabelList dataKey="decubito" position="top" formatter={pctFmt} style={LABEL_SM} />
@@ -270,7 +270,7 @@ function MonthlyPanel({ data }: { data: MonthlyItem[] }) {
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
           <XAxis dataKey="mes" tick={TICK} axisLine={false} tickLine={false} />
           <YAxis hide />
-          <Tooltip contentStyle={TOOLTIP_STYLE} cursor={{ fill: "rgba(255,255,255,0.04)" }} />
+          <Tooltip contentStyle={TOOLTIP_STYLE} cursor={false} labelStyle={{ color: "#f7f7f7" }} itemStyle={{ color: "#f7f7f7" }}/>
           <Legend wrapperStyle={LEGEND_STYLE} formatter={legendFormatter} />
           <Bar dataKey="noPrazo" name="No Prazo" fill="#06b6d4" radius={[4, 4, 0, 0]}>
             <LabelList dataKey="noPrazo" position="top" style={LABEL} />
@@ -295,7 +295,7 @@ function StagePanel({ data }: { data: StageItem[] }) {
         >
           <XAxis type="number" hide />
           <YAxis type="category" dataKey="name" tick={TICK} axisLine={false} tickLine={false} width={145} />
-          <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => [v, "lesões"]} />
+          <Tooltip contentStyle={TOOLTIP_STYLE} cursor={false} labelStyle={{ color: "#f7f7f7" }} itemStyle={{ color: "#f7f7f7" }} formatter={(v) => [v, "lesões"]} />
           <Bar dataKey="value" name="Lesões" radius={[0, 4, 4, 0]}>
             {data.map((d, i) => <Cell key={i} fill={d.color} />)}
             <LabelList dataKey="value" position="right" style={LABEL_LG} />
@@ -317,7 +317,7 @@ function AnatomyPanel({ data }: { data: AnatomyItem[] }) {
         >
           <XAxis type="number" hide />
           <YAxis type="category" dataKey="local" tick={TICK} axisLine={false} tickLine={false} width={90} />
-          <Tooltip contentStyle={TOOLTIP_STYLE} cursor={{ fill: "rgba(255,255,255,0.04)" }} formatter={(v) => [v, "lesões"]} />
+          <Tooltip contentStyle={TOOLTIP_STYLE} cursor={false} labelStyle={{ color: "#f7f7f7" }} itemStyle={{ color: "#f7f7f7" }}formatter={(v) => [v, "lesões"]} />
           <Bar dataKey="count" name="Lesões" fill="#38bdf8" radius={[0, 4, 4, 0]} opacity={0.9}>
             <LabelList dataKey="count" position="right" style={LABEL_LG} />
           </Bar>

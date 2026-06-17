@@ -265,7 +265,7 @@ export default function OperatingRoomPage() {
                   <LineChart data={arrivals} margin={{ top: 28, right: 12, bottom: 16, left: 0 }}>
                     <XAxis dataKey="h" tick={{ fill: "#f7f7f7", fontSize: 9 }} interval={0} />
                     <YAxis hide />
-                    <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => [`${v}`, "Cirurgias"]} />
+                    <Tooltip contentStyle={TOOLTIP_STYLE} cursor={false} labelStyle={{ color: "#f7f7f7" }} itemStyle={{ color: "#f7f7f7" }} formatter={(v) => [`${v}`, "Cirurgias"]} />
                     <Line type="monotone" dataKey="n" stroke="#3b82f6" strokeWidth={2}
                       dot={{ r: 3, fill: "#3b82f6" }} isAnimationActive={false}>
                       <LabelList dataKey="n" position="top" offset={10} style={{ fill: "#f7f7f7", fontSize: 10, fontWeight: 600 }} />
@@ -286,7 +286,7 @@ export default function OperatingRoomPage() {
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                     <XAxis dataKey="day" tick={{ fill: "#f7f7f7", fontSize: 10 }} />
                     <YAxis hide />
-                    <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => [`${v}`, "Cirurgias"]} />
+                    <Tooltip contentStyle={TOOLTIP_STYLE} cursor={false} labelStyle={{ color: "#f7f7f7" }} itemStyle={{ color: "#f7f7f7" }} formatter={(v) => [`${v}`, "Cirurgias"]} />
                     <Bar dataKey="n" radius={[3, 3, 0, 0]} isAnimationActive={false}>
                       {FORECAST.map((entry) => (
                         <Cell key={entry.day} fill={entry.day === todayLabel ? "#f59e0b" : "#8b5cf6"} />

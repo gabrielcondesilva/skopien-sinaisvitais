@@ -248,7 +248,7 @@ export default function PermanenciaCIDPage() {
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                     <XAxis dataKey="faixa" tick={{ fill: "#f7f7f7", fontSize: 10 }} padding={{ left: 20, right: 20 }} />
                     <YAxis hide width={0} />
-                    <Tooltip contentStyle={TS} formatter={(v, name) => [`${v}`, name === "M" ? "Masculino" : "Feminino"]} />
+                    <Tooltip contentStyle={TS} cursor={false} labelStyle={{ color: "#f7f7f7" }} itemStyle={{ color: "#f7f7f7" }} formatter={(v, name) => [`${v}`, name === "M" ? "Masculino" : "Feminino"]} />
                     <Bar dataKey="M" name="M" fill="#3b82f6" radius={[2, 2, 0, 0]} isAnimationActive={false}>
                       <LabelList dataKey="M" position="top" style={LSS} />
                     </Bar>
@@ -274,7 +274,7 @@ export default function PermanenciaCIDPage() {
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                     <XAxis dataKey="dept" tick={{ fill: "#f7f7f7", fontSize: 9 }} padding={{ left: 20, right: 20 }} />
                     <YAxis hide width={0} />
-                    <Tooltip contentStyle={TS} formatter={(v) => [`${v}`, "Internações"]} />
+                    <Tooltip contentStyle={TS} cursor={false} labelStyle={{ color: "#f7f7f7" }} itemStyle={{ color: "#f7f7f7" }} formatter={(v) => [`${v}`, "Internações"]} />
                     <Bar dataKey="n" fill="#8b5cf6" radius={[3, 3, 0, 0]} isAnimationActive={false}>
                       <LabelList dataKey="n" position="top" style={LSM} />
                     </Bar>
@@ -293,7 +293,7 @@ export default function PermanenciaCIDPage() {
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                     <XAxis dataKey="nome" tick={{ fill: "#f7f7f7", fontSize: 9 }} padding={{ left: 20, right: 20 }} />
                     <YAxis hide width={0} domain={[0, 10]} />
-                    <Tooltip contentStyle={TS} formatter={(v) => [`${v} dias`, "Permanência"]} />
+                    <Tooltip contentStyle={TS} cursor={false} labelStyle={{ color: "#f7f7f7" }} itemStyle={{ color: "#f7f7f7" }} formatter={(v) => [`${v} dias`, "Permanência"]} />
                     <Bar dataKey="los" isAnimationActive={false} radius={[3, 3, 0, 0]}>
                       {CONVENIO.map((e) => (
                         <Cell key={e.nome} fill={e.nome === "SUS" ? "#ef4444" : "#06b6d4"} />
