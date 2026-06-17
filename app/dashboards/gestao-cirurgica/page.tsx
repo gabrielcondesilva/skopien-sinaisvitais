@@ -1,8 +1,17 @@
 "use client";
 
 import Link from "next/link";
+import { useState, useEffect } from "react";
 import { AuthGuard } from "@/components/AuthGuard";
 import { RealtimeClock } from "@/components/RealtimeClock";
+
+function getLastUpdateLabel(): string {
+  const now = new Date();
+  const lastFiveMin = Math.floor(now.getMinutes() / 5) * 5;
+  const d = new Date(now);
+  d.setMinutes(lastFiveMin, 0, 0);
+  return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+}
 
 // ─── types & data ─────────────────────────────────────────────────────────────
 
@@ -202,9 +211,18 @@ function Cell({ cell }: { cell: TimestampCell }) {
 }
 
 export default function GestaoCirurgicaPage() {
-  const onTime  = ROWS.filter((r) => r.status === 0).length;
-  const atencao = ROWS.filter((r) => r.status === 1).length;
-  const delayed = ROWS.filter((r) => r.status === 2).length;
+  const [lastUpdate, setLastUpdate] = useState(getLastUpdateLabel);
+
+  useEffect(() => {
+    const id = setInterval(() => setLastUpdate(getLastUpdateLabel()), 30_000);
+    return () => clearInterval(id);
+  }, []);
+
+  const onTime    = ROWS.filter((r) => r.status === 0).length;
+  const atencao   = ROWS.filter((r) => r.status === 1).length;
+  const delayed   = ROWS.filter((r) => r.status === 2).length;
+  const agendadas = ROWS.length;
+  const realizadas = ROWS.filter((r) => r.destino.value !== "Pendente").length;
 
   return (
     <AuthGuard>
@@ -222,7 +240,13 @@ export default function GestaoCirurgicaPage() {
         >
           <Link href="/command" className="text-xs transition-colors" style={{ color: "#F7F7F7" }}>← Voltar</Link>
           <span style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.01em" }}>Gestão de Atraso Cirúrgico</span>
-          <div style={{ display: "flex", justifyContent: "flex-end" }}><RealtimeClock /></div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 12 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--muted)", whiteSpace: "nowrap" }}>
+              Atualizado às: <span style={{ color: "var(--foreground)" }}>{lastUpdate}</span>
+            </span>
+            <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#fff", flexShrink: 0 }} />
+            <RealtimeClock />
+          </div>
         </div>
 
         {/* Content — fills remaining height */}
@@ -234,7 +258,16 @@ export default function GestaoCirurgicaPage() {
           }}
         >
           {/* Summary chips */}
-          <div className="flex gap-3 flex-wrap shrink-0">
+          <div className="flex gap-3 flex-wrap shrink-0 items-center">
+            <span className="text-sm font-semibold px-4 py-1.5 rounded-full"
+              style={{ background: "rgba(255,255,255,0.06)", color: "var(--foreground)" }}>
+              {agendadas} Agendadas
+            </span>
+            <span className="text-sm font-semibold px-4 py-1.5 rounded-full"
+              style={{ background: "rgba(56,189,248,0.1)", color: "#38bdf8" }}>
+              {realizadas} Realizadas
+            </span>
+            <span style={{ width: 1, height: 18, background: "var(--border)", flexShrink: 0 }} />
             {([
               { label: "No prazo", count: onTime,  delay: 0 },
               { label: "Atenção",  count: atencao, delay: 1 },

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState, useEffect } from "react";
 import { AuthGuard } from "@/components/AuthGuard";
 import { RealtimeClock } from "@/components/RealtimeClock";
 
@@ -46,7 +47,22 @@ const STATS: { key: keyof Specialty; label: string; legendLabel: string; color: 
 
 // ─── page ─────────────────────────────────────────────────────────────────────
 
+function getLastUpdateLabel(): string {
+  const now = new Date();
+  const lastFiveMin = Math.floor(now.getMinutes() / 5) * 5;
+  const d = new Date(now);
+  d.setMinutes(lastFiveMin, 0, 0);
+  return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+}
+
 export default function CapacityDemandPage() {
+  const [lastUpdate, setLastUpdate] = useState(getLastUpdateLabel);
+
+  useEffect(() => {
+    const id = setInterval(() => setLastUpdate(getLastUpdateLabel()), 30_000);
+    return () => clearInterval(id);
+  }, []);
+
   return (
     <AuthGuard>
       <div
@@ -61,7 +77,13 @@ export default function CapacityDemandPage() {
           style={{ height: 52, flexShrink: 0, display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
           <Link href="/command" className="text-xs transition-colors" style={{ color: "#F7F7F7" }}>← Voltar</Link>
           <span style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.01em" }}>Capacidade × Demanda</span>
-          <div style={{ display: "flex", justifyContent: "flex-end" }}><RealtimeClock /></div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 12 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--muted)", whiteSpace: "nowrap" }}>
+              Atualizado às: <span style={{ color: "var(--foreground)" }}>{lastUpdate}</span>
+            </span>
+            <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#fff", flexShrink: 0 }} />
+            <RealtimeClock />
+          </div>
         </div>
 
         {/* Content */}

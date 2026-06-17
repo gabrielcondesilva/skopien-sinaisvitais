@@ -12,9 +12,11 @@ export function RealtimeClock({ style, className }: Props) {
   useEffect(() => {
     function tick() {
       const now = new Date();
-      const date = now.toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit", year: "numeric" });
+      const weekday = now.toLocaleDateString("pt-BR", { weekday: "long" });
+      const weekdayCap = weekday.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join("-");
+      const date = now.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
       const time = now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-      setDatetime(`${date} • ${time}`);
+      setDatetime(`${weekdayCap}, ${date}, ${time}`);
     }
     tick();
     const id = setInterval(tick, 1000);

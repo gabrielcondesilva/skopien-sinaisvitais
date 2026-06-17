@@ -379,7 +379,11 @@ export default function CuidadosComAPelePage() {
             <span style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.01em" }}>Cuidados com a Pele</span>
             <Image src="/skinone.png" alt="skinOne" width={80} height={22} />
           </div>
-          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 12 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--muted)", whiteSpace: "nowrap" }}>
+              Atualizado às: <span style={{ color: "var(--foreground)" }}>{lastUpdate}</span>
+            </span>
+            <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#fff", flexShrink: 0 }} />
             <RealtimeClock />
           </div>
         </div>
@@ -421,9 +425,6 @@ export default function CuidadosComAPelePage() {
             </div>
           ))}
 
-          <span style={{ marginLeft: "auto", fontSize: 13, fontWeight: 600, color: "var(--muted)", whiteSpace: "nowrap" as const }}>
-            Atualizado às: <span style={{ color: "var(--foreground)" }}>{lastUpdate}</span>
-          </span>
         </div>
 
         {/* 2 × 2 grid */}

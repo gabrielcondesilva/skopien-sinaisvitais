@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { AuthGuard } from "@/components/AuthGuard";
 import { useAuthStore } from "@/store/auth";
@@ -65,9 +66,23 @@ const DASHBOARDS = [
   },
 ] as const;
 
+function getLastUpdateLabel(): string {
+  const now = new Date();
+  const lastFiveMin = Math.floor(now.getMinutes() / 5) * 5;
+  const d = new Date(now);
+  d.setMinutes(lastFiveMin, 0, 0);
+  return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+}
+
 export default function CommandPage() {
   const logout = useAuthStore((s) => s.logout);
   const router = useRouter();
+  const [lastUpdate, setLastUpdate] = useState(getLastUpdateLabel);
+
+  useEffect(() => {
+    const id = setInterval(() => setLastUpdate(getLastUpdateLabel()), 30_000);
+    return () => clearInterval(id);
+  }, []);
 
   return (
     <AuthGuard>
@@ -82,6 +97,10 @@ export default function CommandPage() {
         >
           <Image src="/logo_branca.png" alt="SKOPIEN" width={110} height={33} priority />
           <div className="flex items-center gap-3">
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--muted)", whiteSpace: "nowrap" }}>
+              Atualizado às: <span style={{ color: "var(--foreground)" }}>{lastUpdate}</span>
+            </span>
+            <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#fff", flexShrink: 0 }} />
             <RealtimeClock />
             <button
               onClick={() => { logout(); router.replace("/login"); }}
