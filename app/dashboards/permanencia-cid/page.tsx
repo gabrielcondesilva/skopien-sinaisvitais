@@ -43,13 +43,13 @@ const DEPT_DIST = [
 ];
 
 const CONVENIO = [
-  { nome: "Bradesco",    los: 5.8 },
-  { nome: "Unimed",      los: 6.2 },
-  { nome: "Sul América", los: 5.5 },
-  { nome: "Amil",        los: 6.7 },
-  { nome: "One Health",  los: 5.1 },
-  { nome: "Particular",  los: 4.8 },
-  { nome: "SUS",         los: 8.4 },
+  { nome: "Bradesco",    los: 5.8, pacientes: 98  },
+  { nome: "Unimed",      los: 6.2, pacientes: 134 },
+  { nome: "Sul América", los: 5.5, pacientes: 72  },
+  { nome: "Amil",        los: 6.7, pacientes: 61  },
+  { nome: "One Health",  los: 5.1, pacientes: 43  },
+  { nome: "Particular",  los: 4.8, pacientes: 29  },
+  { nome: "SUS",         los: 8.4, pacientes: 42  },
 ];
 
 const STATS = { media: 6.8, mediana: 6.2, desvio: 3.1 };
@@ -296,6 +296,7 @@ export default function PermanenciaCIDPage() {
                         <Cell key={e.nome} fill={e.nome === "SUS" ? "#ef4444" : "#06b6d4"} />
                       ))}
                       <LabelList dataKey="los" position="top" formatter={(v: unknown) => `${v}d`} style={LSM} />
+                      <LabelList dataKey="pacientes" position="insideBottom" offset={6} formatter={(v: unknown) => `${v} pac.`} style={{ fill: "#fff", fontSize: 11, fontWeight: 600 }} />
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
