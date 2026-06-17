@@ -52,7 +52,9 @@ export function BedCard({ bed, internacao }: Props) {
   const router = useRouter();
   const [hovered, setHovered] = useState(false);
   const alerts = useAlertStore(useShallow((s) =>
-    internacao ? s.active.filter((a) => a.internacaoId === internacao.id) : []
+    internacao
+      ? s.active.filter((a) => a.internacaoId === internacao.id && !(a.type === "alta" && bed.unit === "pronto-socorro"))
+      : []
   ));
 
   if (!internacao) {

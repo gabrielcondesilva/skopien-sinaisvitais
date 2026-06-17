@@ -246,7 +246,7 @@ export function Sidebar() {
                   <NavLink
                     href="/admin"
                     abbr="ADM"
-                    label="Vis. Admin."
+                    label="Visão Administrativa"
                     collapsed={collapsed}
                     active={pathname.startsWith("/admin")}
                   />

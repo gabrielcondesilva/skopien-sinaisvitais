@@ -115,24 +115,7 @@ export const useSimulationStore = create<SimulationState>()((set, get) => ({
       }
     }
 
-    // ── Cena 3 (~12 min): PS-01 discharge prediction alert ────────────────────
-    if (!already.has(3) && elapsed >= 11.5 * 60_000) {
-      already.add(3);
-      const b = bed("PS-01", "pronto-socorro");
-      if (b?.internacaoId) {
-        const inv = internacoesCopy[b.internacaoId];
-        if (inv) {
-          toFire.push({
-            type: "alta",
-            internacaoId: b.internacaoId,
-            patientName: inv.patient.name,
-            bedLabel: b.label,
-            unit: inv.unit,
-            message: `Previsão de Alta — probabilidade ${inv.admissionProbability}%`,
-          });
-        }
-      }
-    }
+    // Cena 3 removida — Previsão de Alta não se aplica ao Pronto Socorro
 
     // ── Cena 4 (~15 min): CCCG advances Procedimento → RA ────────────────────
     if (!already.has(4) && elapsed >= 14.5 * 60_000) {

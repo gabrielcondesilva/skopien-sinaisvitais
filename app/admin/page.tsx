@@ -143,9 +143,14 @@ function ChartBox({ title, children }: { title: string; children: React.ReactNod
 // ─── PS Dashboard ─────────────────────────────────────────────────────────────
 
 function PSDashboard() {
-  const beds     = useSimulationStore(useShallow((s) => s.beds.filter((b) => b.unit === "pronto-socorro")));
-  const occupied = beds.filter((b) => b.internacaoId).length;
-  const total    = beds.length;
+  const beds       = useSimulationStore(useShallow((s) => s.beds.filter((b) => b.unit === "pronto-socorro")));
+  const internacoes = useSimulationStore((s) => s.internacoes);
+  const occupied   = beds.filter((b) => b.internacaoId).length;
+  const total      = beds.length;
+  const waitingCount = beds.filter((b) => {
+    const i = b.internacaoId ? internacoes[b.internacaoId] : null;
+    return i && i.admissionProbability >= 40;
+  }).length;
 
   return (
     <div className="h-full flex flex-col gap-2">
@@ -153,7 +158,7 @@ function PSDashboard() {
         <KpiCard label="Tempo de Porta"   value="27 min" sub="média hoje" />
         <KpiCard label="LOS PS"           value="4,2 h"  sub="média hoje" />
         <KpiCard label="Taxa de Internação" value="34%"  sub="dos atendimentos" />
-        <KpiCard label="Boarding Médio"   value="2,1 h"  sub={`${occupied}/${total} leitos`} accent={occupied / total > 0.85} />
+        <KpiCard label="Leitos Virtuais"  value={String(waitingCount)} sub="pacientes aguardando leito" accent={waitingCount > 3} />
       </div>
 
       <div className="grid grid-cols-3 gap-2 flex-1 min-h-0">

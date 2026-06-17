@@ -78,7 +78,8 @@ interface Props {
 
 export function AlertsPanel({ onClose, unitFilter }: Props) {
   const all = useAlertStore((s) => s.active);
-  const active = unitFilter ? all.filter((a) => a.unit === unitFilter) : all;
+  const active = (unitFilter ? all.filter((a) => a.unit === unitFilter) : all)
+    .filter((a) => !(a.type === "alta" && a.unit === "pronto-socorro"));
 
   return (
     <div

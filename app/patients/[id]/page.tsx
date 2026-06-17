@@ -577,12 +577,14 @@ function PatientContent({ id }: { id: string }) {
               <span>{item}</span>
             </span>
           ))}
-          <span className="flex items-center gap-1.5">
-            <span>·</span>
-            <span style={{ color: "var(--foreground)" }}>
-              ⏱ Internado há {formatElapsed(internacao.patient.admittedAt)}
+          {internacao.unit !== "pronto-socorro" && (
+            <span className="flex items-center gap-1.5">
+              <span>·</span>
+              <span style={{ color: "var(--foreground)" }}>
+                ⏱ Internado há {formatElapsed(internacao.patient.admittedAt)}
+              </span>
             </span>
-          </span>
+          )}
         </div>
       </div>
 
@@ -676,7 +678,10 @@ function PatientContent({ id }: { id: string }) {
 
       {/* ── Tab nav ── */}
       <div className="flex px-6" style={{ borderBottom: "1px solid var(--border)" }}>
-        {(Object.keys(TAB_LABELS) as Tab[]).map((t) => {
+        {(Object.keys(TAB_LABELS) as Tab[])
+          .filter((t) => t !== "internacao" || internacao.unit === "pronto-socorro")
+          .filter((t) => t !== "ews" || internacao.unit !== "uti")
+          .map((t) => {
           const active = tab === t;
           return (
             <button
