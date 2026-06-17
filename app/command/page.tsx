@@ -10,7 +10,7 @@ import { RealtimeClock } from "@/components/RealtimeClock";
 const DASHBOARDS = [
   {
     id: "cuidados-com-a-pele",
-    label: "Cuidados com a Pele",
+    label: "Cuidados a Pele",
     desc: "LPP, Risco, mudança de decúbito e curativos em tempo real",
   },
   {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -12,20 +12,22 @@ import { RealtimeClock } from "@/components/RealtimeClock";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type Setor = "Todos" | "UTI" | "Enfermaria" | "Pronto Socorro" | "Centro Cirúrgico";
+type Departamento = "Todos" | "UTI" | "Enfermaria" | "Pronto Socorro" | "Centro Cirúrgico";
 
-interface ConformidadeItem { mes: string; decubito: number; braden: number; curativo: number }
-interface MonthlyItem      { mes: string; noPrazo: number; atrasado: number }
-interface StageItem        { name: string; value: number; color: string }
-interface AnatomyItem      { local: string; count: number }
+interface ConformidadeItem { mes: string; decubito: number; braden: number; curativo: number; }
+interface MonthlyItem      { mes: string; noPrazo: number; atrasado: number; }
+interface StageItem        { name: string; value: number; color: string; }
+interface AnatomyItem      { local: string; count: number; }
 
-// ── Sector list ───────────────────────────────────────────────────────────────
+// ── Filter options ────────────────────────────────────────────────────────────
 
-const SETORES: Setor[] = ["Todos", "UTI", "Enfermaria", "Pronto Socorro", "Centro Cirúrgico"];
+const CONVENIOS   = ["Todos", "Unimed", "Bradesco Saúde", "SulAmérica", "Amil", "Particular", "SUS"];
+const DEPARTAMENTOS: Departamento[] = ["Todos", "UTI", "Enfermaria", "Pronto Socorro", "Centro Cirúrgico"];
+const ALAS        = ["Todos", "Ala Norte", "Ala Sul", "Ala Leste", "Ala Oeste"];
 
 // ── Conformidade por setor ────────────────────────────────────────────────────
 
-const CONFORMIDADE: Record<Setor, ConformidadeItem[]> = {
+const CONFORMIDADE: Record<Departamento, ConformidadeItem[]> = {
   "Todos": [
     { mes: "Out/25", decubito: 68, braden: 82, curativo: 71 },
     { mes: "Nov/25", decubito: 61, braden: 79, curativo: 67 },
@@ -80,7 +82,7 @@ const CONFORMIDADE: Record<Setor, ConformidadeItem[]> = {
 
 // ── Cuidados mensais por setor ────────────────────────────────────────────────
 
-const MONTHLY: Record<Setor, MonthlyItem[]> = {
+const MONTHLY: Record<Departamento, MonthlyItem[]> = {
   "Todos": [
     { mes: "Out/25", noPrazo: 132, atrasado: 48 },
     { mes: "Nov/25", noPrazo: 118, atrasado: 62 },
@@ -145,7 +147,7 @@ const STAGE_COLORS: Record<string, string> = {
 };
 const STAGE_ORDER = Object.keys(STAGE_COLORS);
 
-const STAGE_VALUES: Record<Setor, Partial<Record<string, number>>> = {
+const STAGE_VALUES: Record<Departamento, Partial<Record<string, number>>> = {
   "Todos":            { "Estágio I": 12, "Estágio II":  8, "Estágio III": 4, "Estágio IV": 1, "Não classificável": 2, "Les. Tissular Prof.": 1 },
   "UTI":              { "Estágio I":  3, "Estágio II":  5, "Estágio III": 4, "Estágio IV": 2, "Não classificável": 1, "Les. Tissular Prof.": 1 },
   "Enfermaria":       { "Estágio I":  7, "Estágio II":  3, "Estágio III": 1, "Não classificável": 1 },
@@ -153,7 +155,7 @@ const STAGE_VALUES: Record<Setor, Partial<Record<string, number>>> = {
   "Centro Cirúrgico": { "Estágio I":  2, "Estágio II":  1 },
 };
 
-function getStageData(setor: Setor): StageItem[] {
+function getStageData(setor: Departamento): StageItem[] {
   const vals = STAGE_VALUES[setor];
   return STAGE_ORDER
     .map((name) => ({ name, value: vals[name] ?? 0, color: STAGE_COLORS[name] }))
@@ -164,7 +166,7 @@ function getStageData(setor: Setor): StageItem[] {
 
 const ANATOMY_LOCS = ["Sacro", "Calcâneo", "Orelha/Disp.", "Outros", "Occipital", "Trocânter"];
 
-const ANATOMY_VALUES: Record<Setor, Partial<Record<string, number>>> = {
+const ANATOMY_VALUES: Record<Departamento, Partial<Record<string, number>>> = {
   "Todos":            { "Sacro": 8, "Calcâneo": 7, "Orelha/Disp.": 4, "Outros": 4, "Occipital": 3, "Trocânter": 2 },
   "UTI":              { "Sacro": 6, "Calcâneo": 4, "Occipital": 2, "Trocânter": 2, "Orelha/Disp.": 1, "Outros": 1 },
   "Enfermaria":       { "Sacro": 3, "Calcâneo": 2, "Outros": 3, "Orelha/Disp.": 2, "Occipital": 1, "Trocânter": 1 },
@@ -172,7 +174,7 @@ const ANATOMY_VALUES: Record<Setor, Partial<Record<string, number>>> = {
   "Centro Cirúrgico": { "Occipital": 1, "Sacro": 1, "Trocânter": 1, "Orelha/Disp.": 1 },
 };
 
-function getAnatomyData(setor: Setor): AnatomyItem[] {
+function getAnatomyData(setor: Departamento): AnatomyItem[] {
   const vals = ANATOMY_VALUES[setor];
   return ANATOMY_LOCS
     .map((local) => ({ local, count: vals[local] ?? 0 }))
@@ -332,13 +334,30 @@ const FILTER_H  = 44;
 const PAD       = 16;
 const GAP       = 12;
 
-export default function CuidadosComAPelePage() {
-  const [setor, setSetor] = useState<Setor>("Todos");
+function getLastUpdateLabel(): string {
+  const now = new Date();
+  const lastFiveMin = Math.floor(now.getMinutes() / 5) * 5;
+  const d = new Date(now);
+  d.setMinutes(lastFiveMin, 0, 0);
+  return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+}
 
-  const conformidadeData = CONFORMIDADE[setor];
-  const monthlyData      = MONTHLY[setor];
-  const stageData        = getStageData(setor);
-  const anatomyData      = getAnatomyData(setor);
+export default function CuidadosComAPelePage() {
+  const [convenio,     setConvenio]     = useState("Todos");
+  const [departamento, setDepartamento] = useState<Departamento>("Todos");
+  const [ala,          setAla]          = useState("Todos");
+  const [lastUpdate,   setLastUpdate]   = useState(getLastUpdateLabel);
+
+  useEffect(() => {
+    const tick = () => setLastUpdate(getLastUpdateLabel());
+    const id = setInterval(tick, 30_000);
+    return () => clearInterval(id);
+  }, []);
+
+  const conformidadeData = CONFORMIDADE[departamento];
+  const monthlyData      = MONTHLY[departamento];
+  const stageData        = getStageData(departamento);
+  const anatomyData      = getAnatomyData(departamento);
 
   const rowH = `calc((100vh - ${TOPBAR_H}px - ${FILTER_H}px - ${PAD * 2}px - ${GAP}px) / 2)`;
 
@@ -368,37 +387,43 @@ export default function CuidadosComAPelePage() {
         {/* Filter bar */}
         <div style={{
           height: FILTER_H, flexShrink: 0,
-          display: "flex", alignItems: "center", gap: 8,
+          display: "flex", alignItems: "center", gap: 16,
           padding: "0 20px",
           background: "var(--surface)", borderBottom: "1px solid var(--border)",
         }}>
-          <span style={{ fontSize: 11, color: "var(--muted)", flexShrink: 0, marginRight: 4 }}>
-            Setor:
-          </span>
-          {SETORES.map((s) => {
-            const active = setor === s;
-            return (
-              <button
-                key={s}
-                onClick={() => setSetor(s)}
+          {([
+            { label: "Convênio",     value: convenio,     setter: setConvenio,     options: CONVENIOS },
+            { label: "Departamento", value: departamento, setter: (v: string) => setDepartamento(v as Departamento), options: DEPARTAMENTOS },
+            { label: "Ala",          value: ala,          setter: setAla,          options: ALAS },
+          ] as const).map(({ label, value, setter, options }) => (
+            <div key={label} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ fontSize: 11, color: "var(--muted)", whiteSpace: "nowrap" as const }}>
+                {label}:
+              </span>
+              <select
+                value={value}
+                onChange={(e) => setter(e.target.value)}
                 style={{
                   fontSize: 11,
-                  fontWeight: active ? 600 : 400,
-                  padding: "4px 14px",
-                  borderRadius: 999,
-                  border: "1px solid",
-                  borderColor: active ? "#4DABF7" : "var(--border)",
-                  background: active ? "rgba(77,171,247,0.14)" : "transparent",
-                  color: active ? "#4DABF7" : "var(--muted)",
+                  padding: "3px 10px",
+                  borderRadius: 6,
+                  border: "1px solid var(--border)",
+                  background: "var(--background)",
+                  color: "var(--foreground)",
                   cursor: "pointer",
-                  transition: "all 0.15s",
-                  whiteSpace: "nowrap" as const,
+                  outline: "none",
                 }}
               >
-                {s}
-              </button>
-            );
-          })}
+                {options.map((o) => (
+                  <option key={o} value={o}>{o}</option>
+                ))}
+              </select>
+            </div>
+          ))}
+
+          <span style={{ marginLeft: "auto", fontSize: 13, fontWeight: 600, color: "var(--muted)", whiteSpace: "nowrap" as const }}>
+            Última atualização: <span style={{ color: "var(--foreground)" }}>{lastUpdate}</span>
+          </span>
         </div>
 
         {/* 2 × 2 grid */}
