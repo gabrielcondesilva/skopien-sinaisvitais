@@ -180,7 +180,7 @@ export default function MedicamentosAtrasadosPage() {
                     <LabelList
                       dataKey="pct"
                       position="right"
-                      formatter={(v: number) => `${v}%`}
+                      formatter={(v: unknown) => `${v}%`}
                       style={{ fill: "#f7f7f7", fontSize: 11, fontWeight: 600 }}
                     />
                   </Bar>
