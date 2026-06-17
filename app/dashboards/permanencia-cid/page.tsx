@@ -155,7 +155,7 @@ export default function PermanenciaCIDPage() {
             </div>
           ))}
           <span style={{ marginLeft: "auto", fontSize: 13, fontWeight: 600, color: "var(--muted)", whiteSpace: "nowrap" as const }}>
-            Atualizado em: <span style={{ color: "var(--foreground)" }}>{lastUpdate}</span>
+            Atualizado às: <span style={{ color: "var(--foreground)" }}>{lastUpdate}</span>
           </span>
         </div>
 

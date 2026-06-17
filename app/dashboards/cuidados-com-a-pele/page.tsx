@@ -422,7 +422,7 @@ export default function CuidadosComAPelePage() {
           ))}
 
           <span style={{ marginLeft: "auto", fontSize: 13, fontWeight: 600, color: "var(--muted)", whiteSpace: "nowrap" as const }}>
-            Última atualização: <span style={{ color: "var(--foreground)" }}>{lastUpdate}</span>
+            Atualizado às: <span style={{ color: "var(--foreground)" }}>{lastUpdate}</span>
           </span>
         </div>
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   BarChart, Bar, AreaChart, Area, LineChart, Line,
@@ -8,7 +9,7 @@ import {
 import { AuthGuard } from "@/components/AuthGuard";
 import { RealtimeClock } from "@/components/RealtimeClock";
 
-// ─── static demo data ─────────────────────────────────────────────────────────
+// ─── static data ──────────────────────────────────────────────────────────────
 
 const WARD_PERF = [
   { ala: "Maternidade",    pct: 78 },
@@ -21,20 +22,53 @@ const WARD_PERF = [
   { ala: "Oncologia",      pct: 45 },
 ];
 
-const TREND_7D = [
-  { day: "Seg", pct: 68 }, { day: "Ter", pct: 72 }, { day: "Qua", pct: 65 },
-  { day: "Qui", pct: 74 }, { day: "Sex", pct: 70 }, { day: "Sáb", pct: 58 }, { day: "Dom", pct: 52 },
-];
-
 const BY_DOW = [
   { day: "Seg", n: 18 }, { day: "Ter", n: 21 }, { day: "Qua", n: 19 },
   { day: "Qui", n: 23 }, { day: "Sex", n: 20 }, { day: "Sáb", n: 9 }, { day: "Dom", n: 7 },
 ];
 
-const HOUR_DIST = [
-  { h: "6h", n: 2 }, { h: "7h", n: 5 }, { h: "8h", n: 11 }, { h: "9h", n: 18 },
-  { h: "10h", n: 8 }, { h: "11h", n: 6 }, { h: "12h+", n: 4 },
+// Full hourly data for the day — filtered at render time based on current hour
+const FULL_HOUR_DIST = [
+  { h: "6h",  hour: 6,  n: 2  },
+  { h: "7h",  hour: 7,  n: 5  },
+  { h: "8h",  hour: 8,  n: 11 },
+  { h: "9h",  hour: 9,  n: 18 },
+  { h: "10h", hour: 10, n: 8  },
+  { h: "11h", hour: 11, n: 6  },
+  { h: "12h", hour: 12, n: 4  },
 ];
+
+// ─── dynamic helpers ──────────────────────────────────────────────────────────
+
+const PERF_BY_DOW: Record<number, number> = { 0: 52, 1: 68, 2: 72, 3: 65, 4: 74, 5: 70, 6: 58 };
+const DAY_NAMES = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+
+function getLast7Days(): { day: string; pct: number }[] {
+  const today = new Date();
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(today);
+    d.setDate(today.getDate() - (7 - i)); // index 0 = 7 days ago, index 6 = yesterday
+    const dow = d.getDay();
+    const dd  = d.getDate().toString().padStart(2, "0");
+    const mm  = (d.getMonth() + 1).toString().padStart(2, "0");
+    return { day: DAY_NAMES[dow], pct: PERF_BY_DOW[dow] ?? 60 };
+  });
+}
+
+function getLastUpdateLabel(): string {
+  const now = new Date();
+  const lastFiveMin = Math.floor(now.getMinutes() / 5) * 5;
+  const d = new Date(now);
+  d.setMinutes(lastFiveMin, 0, 0);
+  return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+}
+
+// ─── filter options ───────────────────────────────────────────────────────────
+
+const SETORES = ["Todos", "Maternidade", "Pediatria", "Cardiologia", "Clín. Médica", "Cirurgia Geral", "Neurologia", "Ortopedia", "Oncologia"];
+const DATAS   = ["Hoje", "Ontem", "Últimos 7 dias", "Últimos 30 dias"];
+
+// ─── style constants ──────────────────────────────────────────────────────────
 
 const TS = {
   background: "var(--surface)", border: "1px solid var(--border)",
@@ -86,6 +120,24 @@ function KpiCard({ label, value, sub }: { label: string; value: string; sub?: st
 // ─── page ─────────────────────────────────────────────────────────────────────
 
 export default function PerformanceAltaPage() {
+  const [setor,      setSetor]      = useState("Todos");
+  const [data,       setData]       = useState("Hoje");
+  const [lastUpdate, setLastUpdate] = useState(getLastUpdateLabel);
+  const [currentHour, setCurrentHour] = useState(() => new Date().getHours());
+
+  useEffect(() => {
+    const tick = () => {
+      setLastUpdate(getLastUpdateLabel());
+      setCurrentHour(new Date().getHours());
+    };
+    const id = setInterval(tick, 30_000);
+    return () => clearInterval(id);
+  }, []);
+
+  const wardData  = setor === "Todos" ? WARD_PERF : WARD_PERF.filter((w) => w.ala === setor);
+  const trend7d   = getLast7Days();
+  const hourDist  = FULL_HOUR_DIST.filter((d) => d.hour <= currentHour);
+
   const hospitalPct = Math.round(
     WARD_PERF.reduce((s, w) => s + w.pct, 0) / WARD_PERF.length
   );
@@ -105,6 +157,40 @@ export default function PerformanceAltaPage() {
           <Link href="/command" className="text-xs transition-colors" style={{ color: "#F7F7F7" }}>← Voltar</Link>
           <span style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.01em" }}>Performance de Alta até 10h</span>
           <div style={{ display: "flex", justifyContent: "flex-end" }}><RealtimeClock /></div>
+        </div>
+
+        {/* Filter bar */}
+        <div style={{
+          height: 44, flexShrink: 0,
+          display: "flex", alignItems: "center", gap: 16,
+          padding: "0 20px",
+          background: "var(--surface)", borderBottom: "1px solid var(--border)",
+        }}>
+          {([
+            { label: "Setor", value: setor, setter: setSetor, options: SETORES },
+            { label: "Data",  value: data,  setter: setData,  options: DATAS   },
+          ]).map(({ label, value, setter, options }) => (
+            <div key={label} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ fontSize: 11, color: "var(--muted)", whiteSpace: "nowrap" as const }}>
+                {label}:
+              </span>
+              <select
+                value={value}
+                onChange={(e) => setter(e.target.value)}
+                style={{
+                  fontSize: 11, padding: "3px 10px", borderRadius: 6,
+                  border: "1px solid var(--border)", background: "var(--background)",
+                  color: "var(--foreground)", cursor: "pointer", outline: "none",
+                }}
+              >
+                {options.map((o) => <option key={o} value={o}>{o}</option>)}
+              </select>
+            </div>
+          ))}
+
+          <span style={{ marginLeft: "auto", fontSize: 13, fontWeight: 600, color: "var(--muted)", whiteSpace: "nowrap" as const }}>
+            Atualizado às: <span style={{ color: "var(--foreground)" }}>{lastUpdate}</span>
+          </span>
         </div>
 
         {/* Content */}
@@ -127,7 +213,7 @@ export default function PerformanceAltaPage() {
               </p>
               <div style={{ flex: 1, minHeight: 0 }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={WARD_PERF} layout="vertical" margin={{ top: 4, right: 44, bottom: 0, left: 8 }}>
+                  <BarChart data={wardData} layout="vertical" margin={{ top: 4, right: 44, bottom: 0, left: 8 }}>
                     <XAxis type="number" domain={[0, 100]} hide />
                     <YAxis type="category" dataKey="ala" tick={{ fill: "#f7f7f7", fontSize: 10 }} width={90} />
                     <Tooltip contentStyle={TS} formatter={(v) => [`${v}%`, "Altas até 10h"]} />
@@ -146,7 +232,7 @@ export default function PerformanceAltaPage() {
           {/* Linha 2: 3 gráficos menores */}
           <div style={{ flex: 2, minHeight: 0, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
 
-            {/* Tendência 7 dias */}
+            {/* Tendência 7 dias — último ponto = ontem */}
             <div className="rounded-lg p-4 flex flex-col"
               style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
               <p className="text-xs font-medium mb-2" style={{ color: "#f7f7f7" }}>
@@ -154,7 +240,7 @@ export default function PerformanceAltaPage() {
               </p>
               <div style={{ flex: 1, minHeight: 0 }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={TREND_7D} margin={{ top: 22, right: 12, bottom: 0, left: -32 }}>
+                  <AreaChart data={trend7d} margin={{ top: 22, right: 12, bottom: 0, left: -32 }}>
                     <defs>
                       <linearGradient id="gtTrend" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%"  stopColor="#3b82f6" stopOpacity={0.3} />
@@ -194,7 +280,7 @@ export default function PerformanceAltaPage() {
               </div>
             </div>
 
-            {/* Distribuição por hora */}
+            {/* Distribuição por hora — mostra até a hora atual */}
             <div className="rounded-lg p-4 flex flex-col"
               style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
               <p className="text-xs font-medium mb-2" style={{ color: "#f7f7f7" }}>
@@ -202,7 +288,7 @@ export default function PerformanceAltaPage() {
               </p>
               <div style={{ flex: 1, minHeight: 0 }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={HOUR_DIST} margin={{ top: 22, right: 12, bottom: 0, left: -32 }}>
+                  <LineChart data={hourDist} margin={{ top: 22, right: 12, bottom: 0, left: -32 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                     <XAxis dataKey="h" tick={{ fill: "#f7f7f7", fontSize: 9 }} />
                     <YAxis hide allowDecimals={false} />
