@@ -35,13 +35,13 @@ const totalAvailable = SPECIALTIES.reduce((s, x) => s + x.available,   0);
 const totalDemand    = SPECIALTIES.reduce((s, x) => s + x.demandaPrev, 0);
 const balance        = totalAvailable - totalDemand;
 
-const STATS: { key: keyof Specialty; label: string; color: string }[] = [
-  { key: "total",       label: "Total",       color: "var(--foreground)"      },
-  { key: "available",   label: "Disponíveis", color: "var(--status-stable)"   },
-  { key: "altasPrev",   label: "Alta Prev.",  color: "var(--accent)"          },
-  { key: "altasConf",   label: "Alta Conf.",  color: "var(--status-elevated)" },
-  { key: "pendentes",   label: "Pendentes",   color: "var(--status-attention)"},
-  { key: "demandaPrev", label: "Dem. Prev.",  color: "var(--status-critical)" },
+const STATS: { key: keyof Specialty; label: string; legendLabel: string; color: string }[] = [
+  { key: "total",       label: "Total",        legendLabel: "Total",              color: "var(--foreground)"      },
+  { key: "available",   label: "Disponíveis",  legendLabel: "Disponíveis",        color: "var(--status-stable)"   },
+  { key: "altasPrev",   label: "Alta Prev.",   legendLabel: "Alta Prevista",      color: "var(--accent)"          },
+  { key: "altasConf",   label: "Alta Conf.",   legendLabel: "Alta Confirmada",    color: "var(--status-elevated)" },
+  { key: "pendentes",   label: "Pendentes",    legendLabel: "Pendentes",          color: "var(--status-attention)"},
+  { key: "demandaPrev", label: "Dem. Prev.",   legendLabel: "Demanda Prevista",   color: "var(--status-critical)" },
 ];
 
 // ─── page ─────────────────────────────────────────────────────────────────────
@@ -103,7 +103,7 @@ export default function CapacityDemandPage() {
             {STATS.map((s) => (
               <span key={s.key} className="flex items-center gap-1.5" style={{ fontSize: 12, color: s.color }}>
                 <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ background: s.color }} />
-                {s.label}
+                {s.legendLabel}
               </span>
             ))}
           </div>
@@ -146,14 +146,28 @@ export default function CapacityDemandPage() {
 
                   {/* Stats: value (colored) + label (gray) */}
                   <div className="flex justify-between mt-auto">
-                    {STATS.map((s) => (
-                      <div key={s.key} className="flex flex-col items-center gap-0.5">
-                        <span className="text-sm font-bold tabular-nums" style={{ color: s.color }}>
-                          {sp[s.key] as number}
-                        </span>
-                        <span style={{ fontSize: 10, color: s.color }}>{s.label}</span>
-                      </div>
-                    ))}
+                    {STATS.map((s) => {
+                      const isDemand = s.key === "demandaPrev";
+                      return (
+                        <div key={s.key}
+                          className="flex flex-col items-center gap-0.5"
+                          style={isDemand ? {
+                            background: "rgba(239,68,68,0.1)",
+                            border: "1px solid rgba(239,68,68,0.3)",
+                            borderRadius: 6,
+                            padding: "3px 7px",
+                          } : undefined}
+                        >
+                          <span
+                            className="tabular-nums font-bold"
+                            style={{ fontSize: isDemand ? 18 : 14, color: s.color, lineHeight: 1.1 }}
+                          >
+                            {sp[s.key] as number}
+                          </span>
+                          <span style={{ fontSize: 10, color: s.color }}>{s.label}</span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               );
