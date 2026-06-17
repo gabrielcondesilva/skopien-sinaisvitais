@@ -89,13 +89,19 @@ interface Props {
 
 export function SurgicalRoomCard({ bed, internacao }: Props) {
   if (!internacao || !isSurgical(internacao)) {
+    const isInop = bed.inoperante;
     return (
       <div
         className="rounded-lg p-4 flex flex-col gap-1 min-h-[100px] justify-center"
-        style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
+        style={{
+          background: isInop ? "rgba(255,255,255,0.02)" : "var(--surface)",
+          border: `1px solid ${isInop ? "rgba(255,255,255,0.12)" : "var(--border)"}`,
+        }}
       >
         <span className="text-xs font-mono" style={{ color: "var(--muted)" }}>{bed.label}</span>
-        <span className="text-sm" style={{ color: "var(--muted)" }}>Sala Disponível</span>
+        <span className="text-sm" style={{ color: isInop ? "rgba(239,68,68,0.6)" : "var(--muted)" }}>
+          {isInop ? "Sala Inoperante" : "Sala Disponível"}
+        </span>
       </div>
     );
   }

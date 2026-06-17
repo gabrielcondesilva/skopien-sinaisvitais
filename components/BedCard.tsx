@@ -58,7 +58,7 @@ export function BedCard({ bed, internacao }: Props) {
   if (!internacao) {
     const borderColor = bed.inoperante ? "rgba(255,255,255,0.12)" : "var(--status-stable)";
     const label       = bed.inoperante ? "Leito Inoperante"       : "Leito Disponível";
-    const labelColor  = bed.inoperante ? "var(--muted)"           : "var(--foreground)";
+    const labelColor  = bed.inoperante ? "rgba(239,68,68,0.6)"    : "var(--foreground)";
 
     return (
       <div

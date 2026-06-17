@@ -49,16 +49,18 @@ function getLastUpdateLabel(): string {
 // ─── SVG Gauge (compact) ──────────────────────────────────────────────────────
 
 function RoomGauge({
-  label, stepIndex, isEmpty,
+  label, stepIndex, isEmpty, isInoperante,
 }: {
-  label: string; stepIndex: number; isEmpty: boolean;
+  label: string; stepIndex: number; isEmpty: boolean; isInoperante?: boolean;
 }) {
   const R = 58, CX = 68, CY = 68;
   const CIRC  = 2 * Math.PI * R;
   const pct   = isEmpty ? 0 : ((stepIndex + 1) / 4) * 100;
   const arc   = (pct / 100) * CIRC;
   const color = isEmpty ? "var(--border)" : STEP_COLOR[stepIndex];
-  const stepLabel = isEmpty ? "Livre" : STEP_NAMES[stepIndex];
+  const stepLabel = isInoperante ? "Inoperante" : isEmpty ? "Livre" : STEP_NAMES[stepIndex];
+  const ringColor = isInoperante ? "rgba(239,68,68,0.25)" : "var(--border)";
+  const textColor = isInoperante ? "rgba(239,68,68,0.6)" : isEmpty ? "var(--muted)" : color;
 
   return (
     <div
@@ -67,8 +69,9 @@ function RoomGauge({
     >
       <p className="text-xs font-mono font-semibold">{label}</p>
       <svg width={136} height={136}>
-        <circle cx={CX} cy={CY} r={R} fill="none" stroke="var(--border)" strokeWidth={10} />
-        {!isEmpty && (
+        <circle cx={CX} cy={CY} r={R} fill="none" stroke={ringColor} strokeWidth={10}
+          strokeDasharray={isInoperante ? "6 6" : undefined} />
+        {!isEmpty && !isInoperante && (
           <circle
             cx={CX} cy={CY} r={R} fill="none"
             stroke={color} strokeWidth={10}
@@ -77,10 +80,10 @@ function RoomGauge({
             transform={`rotate(-90 ${CX} ${CY})`}
           />
         )}
-        <text x={CX} y={CY - 5} textAnchor="middle" fontSize={24} fontWeight="700" fill={isEmpty ? "var(--muted)" : color}>
-          {isEmpty ? "–" : `${Math.round(pct)}%`}
+        <text x={CX} y={CY - 5} textAnchor="middle" fontSize={24} fontWeight="700" fill={textColor}>
+          {isInoperante ? "✕" : isEmpty ? "–" : `${Math.round(pct)}%`}
         </text>
-        <text x={CX} y={CY + 16} textAnchor="middle" fontSize={11} fontWeight="600" fill="var(--muted)">
+        <text x={CX} y={CY + 16} textAnchor="middle" fontSize={11} fontWeight="600" fill={textColor}>
           {stepLabel}
         </text>
       </svg>
@@ -228,6 +231,7 @@ export default function OperatingRoomPage() {
                       label={bed.label}
                       stepIndex={surgical ? surgical.currentStep : 0}
                       isEmpty={!bed.internacaoId}
+                      isInoperante={bed.inoperante}
                     />
                   );
                 })}

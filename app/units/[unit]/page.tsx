@@ -27,7 +27,7 @@ function UnitStats({ unit }: { unit: string }) {
     <div className="flex items-center gap-3 mb-6 flex-wrap">
       <Chip value={ativos}      label="Ativos"      dot="var(--status-attention)" />
       <Chip value={disponiveis} label="Disponíveis" dot="var(--status-stable)"    />
-      <Chip value={inoperantes} label="Inoperantes" dot="var(--muted)"            />
+      <Chip value={inoperantes} label="Inoperantes" dot="rgba(239,68,68,0.6)"    />
     </div>
   );
 }
