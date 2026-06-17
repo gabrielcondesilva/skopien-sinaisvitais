@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import {
-  LineChart, Line, BarChart, Bar,
+  LineChart, Line, BarChart, Bar, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LabelList,
 } from "recharts";
 import { AuthGuard } from "@/components/AuthGuard";
@@ -25,6 +25,9 @@ const FORECAST = [
   { day: "Seg", n: 18 }, { day: "Ter", n: 21 }, { day: "Qua", n: 16 },
   { day: "Qui", n: 23 }, { day: "Sex", n: 20 }, { day: "Sáb", n: 12 }, { day: "Dom", n: 8 },
 ];
+
+const DAY_LABELS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+const todayLabel = DAY_LABELS[new Date().getDay()];
 
 const STEP_NAMES = ["Admissão", "Procedimento", "RA", "Quarto"];
 const VISIBLE_ROOMS = 4;
@@ -284,7 +287,10 @@ export default function OperatingRoomPage() {
                     <XAxis dataKey="day" tick={{ fill: "#f7f7f7", fontSize: 10 }} />
                     <YAxis hide />
                     <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => [`${v}`, "Cirurgias"]} />
-                    <Bar dataKey="n" fill="#8b5cf6" radius={[3, 3, 0, 0]} isAnimationActive={false}>
+                    <Bar dataKey="n" radius={[3, 3, 0, 0]} isAnimationActive={false}>
+                      {FORECAST.map((entry) => (
+                        <Cell key={entry.day} fill={entry.day === todayLabel ? "#f59e0b" : "#8b5cf6"} />
+                      ))}
                       <LabelList dataKey="n" position="top" style={{ fill: "#f7f7f7", fontSize: 10, fontWeight: 600 }} />
                     </Bar>
                   </BarChart>
