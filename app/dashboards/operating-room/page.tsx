@@ -29,6 +29,13 @@ const FORECAST = [
 const DAY_LABELS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const todayLabel = DAY_LABELS[new Date().getDay()];
 
+const CANCELAMENTOS = [
+  { causa: "Falta de Material",       n: 4, color: "#ef4444" },
+  { causa: "Problemas Clínicos",      n: 3, color: "#f97316" },
+  { causa: "Cancelado pelo Cirurgião",n: 2, color: "#eab308" },
+  { causa: "Outro",                   n: 1, color: "#6b7280" },
+];
+
 const STEP_NAMES = ["Admissão", "Procedimento", "RA", "Quarto"];
 const VISIBLE_ROOMS = 4;
 const STEP_COLOR = ["#3b82f6", "#f59e0b", "#8b5cf6", "#22c55e"];
@@ -257,8 +264,8 @@ export default function OperatingRoomPage() {
 
           </div>
 
-          {/* 2 gráficos — ocupa o restante da tela */}
-          <div style={{ flex: 1, minHeight: 0, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          {/* 3 gráficos — ocupa o restante da tela */}
+          <div style={{ flex: 1, minHeight: 0, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
             <div
               className="rounded-lg p-3 flex flex-col"
               style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
@@ -296,6 +303,28 @@ export default function OperatingRoomPage() {
                         <Cell key={entry.day} fill={entry.day === todayLabel ? "#f59e0b" : "#8b5cf6"} />
                       ))}
                       <LabelList dataKey="n" position="top" style={{ fill: "#f7f7f7", fontSize: 10, fontWeight: 600 }} />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div
+              className="rounded-lg p-3 flex flex-col"
+              style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
+            >
+              <p className="text-xs font-medium mb-2" style={{ color: "#f7f7f7" }}>Causas de Cancelamento</p>
+              <div style={{ flex: 1, minHeight: 0 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={CANCELAMENTOS} layout="vertical" margin={{ top: 4, right: 44, bottom: 4, left: 8 }}>
+                    <XAxis type="number" hide />
+                    <YAxis type="category" dataKey="causa" width={158} tick={{ fill: "#f7f7f7", fontSize: 10 }} axisLine={false} tickLine={false} />
+                    <Tooltip contentStyle={TOOLTIP_STYLE} cursor={false} labelStyle={{ color: "#f7f7f7" }} itemStyle={{ color: "#f7f7f7" }} formatter={(v) => [`${v}`, "Cancelamentos"]} />
+                    <Bar dataKey="n" radius={[0, 4, 4, 0]} isAnimationActive={false}>
+                      {CANCELAMENTOS.map((c) => (
+                        <Cell key={c.causa} fill={c.color} />
+                      ))}
+                      <LabelList dataKey="n" position="right" style={{ fill: "#f7f7f7", fontSize: 11, fontWeight: 600 }} />
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>

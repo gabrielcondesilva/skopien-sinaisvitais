@@ -15,7 +15,7 @@ function getLastUpdateLabel(): string {
 
 // ─── data ─────────────────────────────────────────────────────────────────────
 
-type Status = "Marcado" | "Cancelado" | "Inconsistente" | "Suspenso";
+type Status = "Marcado" | "Cancelado" | "Suspenso";
 type Setor  = "Imagem" | "Hemodinâmica" | "Intervenção" | "Endoscopia";
 
 interface AgendRow {
@@ -32,12 +32,12 @@ const ROWS: AgendRow[] = [
   { dataHora:"08:30", procedimentoPT:"Ressonância Magnética Crânio", procedimentoEN:"Brain MRI",                 setor:"Imagem",       status:"Marcado",        tipoAtend:"Urgência" },
   { dataHora:"09:00", procedimentoPT:"Angioplastia Coronariana",     procedimentoEN:"Coronary Angioplasty",      setor:"Hemodinâmica", status:"Cancelado",      tipoAtend:"Eletivo"  },
   { dataHora:"09:30", procedimentoPT:"Colonoscopia Diagnóstica",     procedimentoEN:"Diagnostic Colonoscopy",    setor:"Endoscopia",   status:"Marcado",        tipoAtend:"Eletivo"  },
-  { dataHora:"10:00", procedimentoPT:"TC Abdome com Contraste",      procedimentoEN:"Abdominal CT with Contrast",setor:"Imagem",       status:"Inconsistente",  tipoAtend:"Urgência" },
+  { dataHora:"10:00", procedimentoPT:"TC Abdome com Contraste",      procedimentoEN:"Abdominal CT with Contrast",setor:"Imagem",       status:"Suspenso",       tipoAtend:"Urgência" },
   { dataHora:"10:30", procedimentoPT:"Ablação por Radiofrequência",  procedimentoEN:"Radiofrequency Ablation",   setor:"Hemodinâmica", status:"Marcado",        tipoAtend:"Eletivo"  },
   { dataHora:"11:00", procedimentoPT:"CPRE Diagnóstica",             procedimentoEN:"Diagnostic ERCP",           setor:"Endoscopia",   status:"Suspenso",       tipoAtend:"Urgência" },
   { dataHora:"11:30", procedimentoPT:"Biópsia Guiada por TC",        procedimentoEN:"CT-guided Biopsy",          setor:"Intervenção",  status:"Marcado",        tipoAtend:"Eletivo"  },
   { dataHora:"13:00", procedimentoPT:"Ressonância Coluna Lombar",    procedimentoEN:"Lumbar Spine MRI",          setor:"Imagem",       status:"Marcado",        tipoAtend:"Eletivo"  },
-  { dataHora:"13:30", procedimentoPT:"Implante de Stent Coronário",  procedimentoEN:"Coronary Stent Implant",    setor:"Hemodinâmica", status:"Inconsistente",  tipoAtend:"Urgência" },
+  { dataHora:"13:30", procedimentoPT:"Implante de Stent Coronário",  procedimentoEN:"Coronary Stent Implant",    setor:"Hemodinâmica", status:"Suspenso",       tipoAtend:"Urgência" },
   { dataHora:"14:00", procedimentoPT:"Gastroscopia Diagnóstica",     procedimentoEN:"Diagnostic Gastroscopy",    setor:"Endoscopia",   status:"Marcado",        tipoAtend:"Eletivo"  },
   { dataHora:"14:30", procedimentoPT:"Drenagem Percutânea",          procedimentoEN:"Percutaneous Drainage",     setor:"Intervenção",  status:"Cancelado",      tipoAtend:"Urgência" },
   { dataHora:"15:00", procedimentoPT:"Mamografia Digital",           procedimentoEN:"Digital Mammography",       setor:"Imagem",       status:"Marcado",        tipoAtend:"Eletivo"  },
@@ -46,13 +46,12 @@ const ROWS: AgendRow[] = [
 ];
 
 const STATUS_STYLE: Record<Status, { bg: string; color: string }> = {
-  Marcado:      { bg: "rgba(34,197,94,0.12)",   color: "var(--status-stable)"   },
-  Cancelado:    { bg: "rgba(239,68,68,0.12)",   color: "var(--status-critical)" },
-  Inconsistente:{ bg: "rgba(234,179,8,0.12)",   color: "var(--status-attention)"},
-  Suspenso:     { bg: "rgba(168,85,247,0.12)",  color: "#c084fc"                },
+  Marcado:   { bg: "rgba(34,197,94,0.12)",  color: "var(--status-stable)"   },
+  Cancelado: { bg: "rgba(239,68,68,0.12)",  color: "var(--status-critical)" },
+  Suspenso:  { bg: "rgba(168,85,247,0.12)", color: "#c084fc"                },
 };
 
-const STATUSES: Status[] = ["Marcado", "Cancelado", "Inconsistente", "Suspenso"];
+const STATUSES: Status[] = ["Marcado", "Cancelado", "Suspenso"];
 const SETORES:  Setor[]  = ["Imagem", "Hemodinâmica", "Intervenção", "Endoscopia"];
 
 // ─── page ─────────────────────────────────────────────────────────────────────
@@ -99,7 +98,7 @@ export default function AgendamentoAnestesicoPage() {
         <div style={{ flex: 1, minHeight: 0, padding: 14, display: "flex", flexDirection: "column", gap: 12 }}>
 
           {/* 5 KPI cards */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, flexShrink: 0 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, flexShrink: 0 }}>
             {/* Volume Total */}
             <div className="rounded-lg p-4 flex flex-col gap-1"
               style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>

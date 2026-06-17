@@ -52,7 +52,6 @@ const CONVENIO = [
   { nome: "SUS",         los: 8.4, pacientes: 42  },
 ];
 
-const STATS = { media: 6.8, mediana: 6.2, desvio: 3.1 };
 
 // ─── filter options ────────────────────────────────────────────────────────────
 
@@ -174,7 +173,7 @@ export default function PermanenciaCIDPage() {
           </div>
 
           {/* Linha 1: LOS por CID + Distribuição Etária */}
-          <div style={{ flex: 3, minHeight: 0, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div style={{ flex: 1, minHeight: 0, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
 
             {/* Volumetria CID + TMP — ComposedChart */}
             <div className="rounded-lg p-4 flex flex-col"
@@ -261,8 +260,8 @@ export default function PermanenciaCIDPage() {
             </div>
           </div>
 
-          {/* Linha 2: Departamento + Convênio + Sumário */}
-          <div style={{ flex: 2, minHeight: 0, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+          {/* Linha 2: Departamento + Convênio */}
+          <div style={{ flex: 1, minHeight: 0, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
 
             {/* Distribuição por Departamento */}
             <div className="rounded-lg p-4 flex flex-col"
@@ -306,26 +305,6 @@ export default function PermanenciaCIDPage() {
               </div>
             </div>
 
-            {/* Sumário estatístico */}
-            <div className="rounded-lg p-4 flex flex-col gap-4"
-              style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-              <p className="text-xs font-medium" style={{ color: "#f7f7f7" }}>Sumário Estatístico — LOS (dias)</p>
-              <div className="flex flex-col gap-3 flex-1 justify-center">
-                {[
-                  { label: "Média",   value: STATS.media   },
-                  { label: "Mediana", value: STATS.mediana },
-                  { label: "Desvio",  value: STATS.desvio  },
-                ].map((s) => (
-                  <div key={s.label} className="flex items-center justify-between">
-                    <span className="text-sm" style={{ color: "var(--muted)" }}>{s.label}</span>
-                    <span className="text-2xl font-bold tabular-nums">{s.value.toFixed(1)}</span>
-                  </div>
-                ))}
-              </div>
-              <div style={{ borderTop: "1px solid var(--border)", paddingTop: 10 }}>
-                <p className="text-xs" style={{ color: "var(--muted)" }}>Período: últimos 30 dias · 479 pacientes</p>
-              </div>
-            </div>
           </div>
         </div>
       </div>

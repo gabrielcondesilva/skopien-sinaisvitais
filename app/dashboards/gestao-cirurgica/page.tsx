@@ -15,7 +15,9 @@ function getLastUpdateLabel(): string {
 
 // ─── types & data ─────────────────────────────────────────────────────────────
 
-type Delay = 0 | 1 | 2; // 0=ok, 1=atenção, 2=atrasado
+type Delay    = 0 | 1 | 2;            // 0=ok, 1=atenção, 2=atrasado
+type ViewMode = "realtime" | "historico";
+type RowType  = "realizada" | "andamento" | "agendada";
 
 interface TimestampCell {
   value: string;
@@ -23,6 +25,7 @@ interface TimestampCell {
 }
 
 interface SurgicalRow {
+  type: RowType;
   paciente: string;
   procedimento: string;
   sala: string;
@@ -42,9 +45,12 @@ function ts(value: string, delay: Delay): TimestampCell {
   return { value, delay };
 }
 
+const DASH = ts("–", 0);
+
 const ROWS: SurgicalRow[] = [
-  // ── Concluídas mais cedo hoje ─────────────────────────────────────────────
+  // ── Realizadas ────────────────────────────────────────────────────────────
   {
+    type: "realizada",
     paciente:    "Roberto Fagundes Lima",
     procedimento:"Prostatectomia Radical",
     sala:        "CCCG",
@@ -60,6 +66,7 @@ const ROWS: SurgicalRow[] = [
     status:      0,
   },
   {
+    type: "realizada",
     paciente:    "Ana Cláudia Barbosa",
     procedimento:"Artroscopia de Joelho",
     sala:        "CCAmb",
@@ -75,6 +82,7 @@ const ROWS: SurgicalRow[] = [
     status:      0,
   },
   {
+    type: "realizada",
     paciente:    "Fátima Regina Sousa",
     procedimento:"Histerectomia Total",
     sala:        "CCOB",
@@ -90,6 +98,7 @@ const ROWS: SurgicalRow[] = [
     status:      1,
   },
   {
+    type: "realizada",
     paciente:    "Carlos Eduardo Mota",
     procedimento:"Bypass Coronariano",
     sala:        "CCEsp",
@@ -104,9 +113,10 @@ const ROWS: SurgicalRow[] = [
     duracao:     ts("8h 00min", 2),
     status:      2,
   },
-  // ── Em andamento agora (espelha o simulador) ──────────────────────────────
+  // ── Em andamento (aparecem no Tempo Real) ─────────────────────────────────
   {
-    paciente:    "Maurício Pinto Azevedo",   // CCCG — step 1 Procedimento (50%)
+    type: "andamento",
+    paciente:    "Maurício Pinto Azevedo",
     procedimento:"Colecistectomia Laparoscópica",
     sala:        "CCCG",
     progInicio:  "09:00",
@@ -114,14 +124,15 @@ const ROWS: SurgicalRow[] = [
     inicioAnest: ts("09:18",  0),
     inicioCirug: ts("09:42",  0),
     fimCirug:    ts("Pendente", 0),
-    entradaRA:   ts("–",  0),
-    altaRA:      ts("–",  0),
+    entradaRA:   DASH,
+    altaRA:      DASH,
     destino:     ts("Pendente", 0),
     duracao:     ts("Em andamento", 1),
     status:      1,
   },
   {
-    paciente:    "Juliana Mendes Freitas",   // CCOB — step 1 Procedimento (50%)
+    type: "andamento",
+    paciente:    "Juliana Mendes Freitas",
     procedimento:"Cesariana Eletiva",
     sala:        "CCOB",
     progInicio:  "08:30",
@@ -129,14 +140,15 @@ const ROWS: SurgicalRow[] = [
     inicioAnest: ts("08:48",  0),
     inicioCirug: ts("09:10",  0),
     fimCirug:    ts("Pendente", 0),
-    entradaRA:   ts("–",  0),
-    altaRA:      ts("–",  0),
+    entradaRA:   DASH,
+    altaRA:      DASH,
     destino:     ts("Pendente", 0),
     duracao:     ts("Em andamento", 0),
     status:      0,
   },
   {
-    paciente:    "Gustavo Henrique Leal",    // CCAmb — step 2 RA (75%)
+    type: "andamento",
+    paciente:    "Gustavo Henrique Leal",
     procedimento:"Herniorrafia Inguinal",
     sala:        "CCAmb",
     progInicio:  "07:30",
@@ -151,7 +163,8 @@ const ROWS: SurgicalRow[] = [
     status:      1,
   },
   {
-    paciente:    "Neide Aparecida Cunha",    // CCEsp — step 0 Admissão (25%)
+    type: "andamento",
+    paciente:    "Neide Aparecida Cunha",
     procedimento:"Tireoidectomia Total",
     sala:        "CCEsp",
     progInicio:  "10:30",
@@ -163,6 +176,51 @@ const ROWS: SurgicalRow[] = [
     altaRA:      ts("Pendente", 0),
     destino:     ts("Pendente", 0),
     duracao:     ts("Em andamento", 0),
+    status:      0,
+  },
+  // ── Agendadas (ainda não iniciadas) ───────────────────────────────────────
+  {
+    type: "agendada",
+    paciente:    "Beatriz Santos Oliveira",
+    procedimento:"Colectomia Parcial",
+    sala:        "CCCG",
+    progInicio:  "13:00",
+    entradaCC:   DASH, inicioAnest: DASH, inicioCirug: DASH,
+    fimCirug:    DASH, entradaRA:   DASH, altaRA:      DASH,
+    destino:     DASH, duracao:     DASH,
+    status:      0,
+  },
+  {
+    type: "agendada",
+    paciente:    "Rodrigo Fernandes Costa",
+    procedimento:"Apendicectomia",
+    sala:        "CCAmb",
+    progInicio:  "13:30",
+    entradaCC:   DASH, inicioAnest: DASH, inicioCirug: DASH,
+    fimCirug:    DASH, entradaRA:   DASH, altaRA:      DASH,
+    destino:     DASH, duracao:     DASH,
+    status:      0,
+  },
+  {
+    type: "agendada",
+    paciente:    "Maria Luiza Pereira",
+    procedimento:"Mastectomia Conservadora",
+    sala:        "CCOB",
+    progInicio:  "14:00",
+    entradaCC:   DASH, inicioAnest: DASH, inicioCirug: DASH,
+    fimCirug:    DASH, entradaRA:   DASH, altaRA:      DASH,
+    destino:     DASH, duracao:     DASH,
+    status:      0,
+  },
+  {
+    type: "agendada",
+    paciente:    "José Antonio Ribeiro",
+    procedimento:"Prótese Total de Quadril",
+    sala:        "CCEsp",
+    progInicio:  "14:30",
+    entradaCC:   DASH, inicioAnest: DASH, inicioCirug: DASH,
+    fimCirug:    DASH, entradaRA:   DASH, altaRA:      DASH,
+    destino:     DASH, duracao:     DASH,
     status:      0,
   },
 ];
@@ -201,18 +259,63 @@ const COL_HEADERS = [
   "Status",
 ];
 
-function Cell({ cell }: { cell: TimestampCell }) {
+const STEP_KEYS: Array<keyof Pick<SurgicalRow, "entradaCC"|"inicioAnest"|"inicioCirug"|"fimCirug"|"entradaRA"|"altaRA"|"destino">> = [
+  "entradaCC", "inicioAnest", "inicioCirug", "fimCirug", "entradaRA", "altaRA", "destino",
+];
+
+function getCurrentStepIndex(row: SurgicalRow): number {
+  for (let i = 0; i < STEP_KEYS.length; i++) {
+    const cell = row[STEP_KEYS[i]] as TimestampCell;
+    if (cell.value === "Pendente" || cell.value === "–") return i;
+  }
+  return -1;
+}
+
+function Cell({
+  cell,
+  isCurrent = false,
+  isFuture = false,
+}: {
+  cell: TimestampCell;
+  isCurrent?: boolean;
+  isFuture?: boolean;
+}) {
+  if (isFuture) {
+    return <td className="px-4 py-3" style={{ background: "var(--surface)" }} />;
+  }
+  if (isCurrent) {
+    return (
+      <td className="px-4 py-3 text-sm whitespace-nowrap" style={{ background: "var(--surface)" }}>
+        <span style={{
+          display: "inline-flex", alignItems: "center", gap: 6,
+          border: "1px solid #3b82f6", borderRadius: 6,
+          padding: "2px 10px", color: "#3b82f6",
+        }}>
+          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#3b82f6", display: "inline-block", flexShrink: 0 }} />
+          Em andamento
+        </span>
+      </td>
+    );
+  }
   return (
-    <td
-      className="px-4 py-3 tabular-nums text-sm whitespace-nowrap"
-      style={{ background: DELAY_BG[cell.delay], color: DELAY_COLOR[cell.delay] }}
-    >
+    <td className="px-4 py-3 tabular-nums text-sm whitespace-nowrap"
+      style={{ background: DELAY_BG[cell.delay], color: DELAY_COLOR[cell.delay] }}>
       {cell.value}
     </td>
   );
 }
 
+function DashCell() {
+  return (
+    <td className="px-4 py-3 tabular-nums text-sm"
+      style={{ background: "var(--surface)", color: "var(--muted)" }}>
+      –
+    </td>
+  );
+}
+
 export default function GestaoCirurgicaPage() {
+  const [mode,       setMode]       = useState<ViewMode>("realtime");
   const [lastUpdate, setLastUpdate] = useState(getLastUpdateLabel);
 
   useEffect(() => {
@@ -220,21 +323,22 @@ export default function GestaoCirurgicaPage() {
     return () => clearInterval(id);
   }, []);
 
-  const onTime    = ROWS.filter((r) => r.status === 0).length;
-  const atencao   = ROWS.filter((r) => r.status === 1).length;
-  const delayed   = ROWS.filter((r) => r.status === 2).length;
-  const agendadas = ROWS.length;
-  const realizadas = ROWS.filter((r) => r.destino.value !== "Pendente").length;
+  const realizadasRows = ROWS.filter((r) => r.type === "realizada");
+  const agendadas      = ROWS.filter((r) => r.type !== "realizada").length;
+  const realizadas     = realizadasRows.length;
+
+  const displayRows = mode === "realtime"
+    ? ROWS.filter((r) => r.type === "andamento")
+    : ROWS;
+
+  const statusSource = mode === "realtime" ? displayRows : realizadasRows;
+  const onTime  = statusSource.filter((r) => r.status === 0).length;
+  const atencao = statusSource.filter((r) => r.status === 1).length;
+  const delayed = statusSource.filter((r) => r.status === 2).length;
 
   return (
     <AuthGuard>
-      <div
-        style={{
-          height: "100vh", overflow: "hidden",
-          display: "flex", flexDirection: "column",
-          background: "var(--background)",
-        }}
-      >
+      <div style={{ height: "100vh", overflow: "hidden", display: "flex", flexDirection: "column", background: "var(--background)" }}>
         {/* Top bar */}
         <div
           className="px-6 shrink-0"
@@ -251,122 +355,122 @@ export default function GestaoCirurgicaPage() {
           </div>
         </div>
 
-        {/* Content — fills remaining height */}
-        <div
-          style={{
-            flex: 1, minHeight: 0,
-            padding: 16,
-            display: "flex", flexDirection: "column", gap: 12,
-          }}
-        >
-          {/* Summary chips */}
+        {/* Content */}
+        <div style={{ flex: 1, minHeight: 0, padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
+          {/* Summary chips + view toggle */}
           <div className="flex gap-3 flex-wrap shrink-0 items-center">
-            <span className="text-sm font-semibold px-4 py-1.5 rounded-full"
-              style={{ background: "rgba(255,255,255,0.06)", color: "var(--foreground)" }}>
-              {agendadas} Agendadas
-            </span>
-            <span className="text-sm font-semibold px-4 py-1.5 rounded-full"
-              style={{ background: "rgba(56,189,248,0.1)", color: "#38bdf8" }}>
-              {realizadas} Realizadas
-            </span>
-            <span style={{ width: 1, height: 18, background: "var(--border)", flexShrink: 0 }} />
+            {mode === "historico" && (
+              <>
+                <span className="text-sm font-semibold px-4 py-1.5 rounded-full"
+                  style={{ background: "rgba(255,255,255,0.06)", color: "var(--foreground)" }}>
+                  {agendadas} Agendadas
+                </span>
+                <span className="text-sm font-semibold px-4 py-1.5 rounded-full"
+                  style={{ background: "rgba(56,189,248,0.1)", color: "#38bdf8" }}>
+                  {realizadas} Realizadas
+                </span>
+                <span style={{ width: 1, height: 18, background: "var(--border)", flexShrink: 0 }} />
+              </>
+            )}
             {([
               { label: "No prazo", count: onTime,  delay: 0 },
               { label: "Atenção",  count: atencao, delay: 1 },
               { label: "Atrasado", count: delayed, delay: 2 },
             ] as { label: string; count: number; delay: Delay }[]).map((s) => (
-              <span
-                key={s.label}
-                className="text-sm font-semibold px-4 py-1.5 rounded-full"
-                style={{ background: DELAY_BG[s.delay], color: DELAY_COLOR[s.delay] }}
-              >
+              <span key={s.label} className="text-sm font-semibold px-4 py-1.5 rounded-full"
+                style={{ background: DELAY_BG[s.delay], color: DELAY_COLOR[s.delay] }}>
                 {s.count} {s.label}
               </span>
             ))}
+
+            {/* View mode toggle */}
+            <div style={{ marginLeft: "auto", display: "flex", gap: 2, border: "1px solid var(--border)", borderRadius: 8, padding: 2 }}>
+              {(["realtime", "historico"] as ViewMode[]).map((m) => (
+                <button key={m} onClick={() => setMode(m)} style={{
+                  fontSize: 12, fontWeight: 600, padding: "4px 14px", borderRadius: 6,
+                  border: "none", cursor: "pointer",
+                  background: mode === m ? "var(--accent)" : "transparent",
+                  color: mode === m ? "#fff" : "var(--muted)",
+                  transition: "all 0.15s",
+                }}>
+                  {m === "realtime" ? "Tempo Real" : "Histórico"}
+                </button>
+              ))}
+            </div>
           </div>
 
-          {/* Table — grows to fill space */}
-          <div
-            style={{
-              flex: 1, minHeight: 0,
-              borderRadius: 10, overflow: "hidden",
-              border: "1px solid var(--border)",
-            }}
-          >
+          {/* Table */}
+          <div style={{ flex: 1, minHeight: 0, borderRadius: 10, overflow: "hidden", border: "1px solid var(--border)" }}>
             <div style={{ height: "100%", overflowX: "auto", overflowY: "auto" }}>
               <table className="w-full border-collapse" style={{ fontSize: 14 }}>
                 <thead>
                   <tr style={{ background: "rgba(0,0,0,0.30)" }}>
                     {COL_HEADERS.map((h) => (
-                      <th
-                        key={h}
-                        className="px-4 py-3 text-left font-semibold whitespace-nowrap"
-                        style={{
-                          color: "var(--foreground)",
-                          borderBottom: "1px solid var(--border)",
-                          fontSize: 13,
-                          letterSpacing: "0.01em",
-                        }}
-                      >
+                      <th key={h} className="px-4 py-3 text-left font-semibold whitespace-nowrap"
+                        style={{ color: "var(--foreground)", borderBottom: "1px solid var(--border)", fontSize: 13, letterSpacing: "0.01em" }}>
                         {h}
                       </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {ROWS.map((row, i) => (
-                    <tr
-                      key={row.paciente}
-                      style={{ borderTop: i > 0 ? "1px solid var(--border)" : undefined }}
-                    >
-                      {/* Paciente */}
-                      <td
-                        className="px-4 py-3 font-semibold whitespace-nowrap"
-                        style={{ background: "var(--surface)", fontSize: 14 }}
-                      >
-                        {row.paciente}
-                      </td>
-                      {/* Procedimento */}
-                      <td
-                        className="px-4 py-3 whitespace-nowrap"
-                        style={{ background: "var(--surface)", fontSize: 14, color: "var(--foreground)" }}
-                      >
-                        {row.procedimento}
-                      </td>
-                      {/* Sala */}
-                      <td
-                        className="px-4 py-3 font-mono"
-                        style={{ background: "var(--surface)", fontSize: 14 }}
-                      >
-                        {row.sala}
-                      </td>
-                      {/* Prog. Início */}
-                      <td
-                        className="px-4 py-3 tabular-nums font-medium"
-                        style={{ background: "var(--surface)", fontSize: 14, color: "var(--foreground)" }}
-                      >
-                        {row.progInicio}
-                      </td>
-                      <Cell cell={row.entradaCC} />
-                      <Cell cell={row.inicioAnest} />
-                      <Cell cell={row.inicioCirug} />
-                      <Cell cell={row.fimCirug} />
-                      <Cell cell={row.entradaRA} />
-                      <Cell cell={row.altaRA} />
-                      <Cell cell={row.destino} />
-                      <Cell cell={row.duracao} />
-                      <td
-                        className="px-4 py-3 font-semibold whitespace-nowrap"
-                        style={{
-                          background: DELAY_BG[row.status],
-                          color: DELAY_COLOR[row.status],
-                          fontSize: 14,
-                        }}
-                      >
-                        {DELAY_LABEL[row.status]}
-                      </td>
-                    </tr>
-                  ))}
+                  {displayRows.map((row, i) => {
+                    const isRealized = row.type === "realizada";
+                    const showDash   = mode === "historico" && !isRealized;
+                    const currentIdx = !showDash && mode === "realtime" ? getCurrentStepIndex(row) : -1;
+                    const stepCells  = [
+                      row.entradaCC, row.inicioAnest, row.inicioCirug,
+                      row.fimCirug,  row.entradaRA,   row.altaRA, row.destino,
+                    ];
+
+                    return (
+                      <tr key={row.paciente} style={{ borderTop: i > 0 ? "1px solid var(--border)" : undefined }}>
+                        <td className="px-4 py-3 font-semibold whitespace-nowrap"
+                          style={{ background: "var(--surface)", fontSize: 14 }}>
+                          {row.paciente}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap"
+                          style={{ background: "var(--surface)", fontSize: 14, color: "var(--foreground)" }}>
+                          {row.procedimento}
+                        </td>
+                        <td className="px-4 py-3 font-mono"
+                          style={{ background: "var(--surface)", fontSize: 14 }}>
+                          {row.sala}
+                        </td>
+                        <td className="px-4 py-3 tabular-nums font-medium"
+                          style={{ background: "var(--surface)", fontSize: 14, color: "var(--foreground)" }}>
+                          {row.progInicio}
+                        </td>
+
+                        {/* Step cells */}
+                        {stepCells.map((cell, si) =>
+                          showDash ? (
+                            <DashCell key={si} />
+                          ) : (
+                            <Cell
+                              key={si}
+                              cell={cell}
+                              isCurrent={mode === "realtime" && si === currentIdx}
+                              isFuture={mode === "realtime" && currentIdx >= 0 && si > currentIdx}
+                            />
+                          )
+                        )}
+
+                        {/* Duração */}
+                        {showDash ? <DashCell /> : <Cell cell={row.duracao} />}
+
+                        {/* Status */}
+                        {showDash ? (
+                          <td className="px-4 py-3" style={{ background: "var(--surface)" }} />
+                        ) : (
+                          <td className="px-4 py-3 font-semibold whitespace-nowrap"
+                            style={{ background: DELAY_BG[row.status], color: DELAY_COLOR[row.status], fontSize: 14 }}>
+                            {DELAY_LABEL[row.status]}
+                          </td>
+                        )}
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

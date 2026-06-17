@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import {
-  ComposedChart, Line, BarChart, Bar, Cell,
+  ComposedChart, Line, Bar, BarChart, Cell,
   XAxis, YAxis, Tooltip, ResponsiveContainer, LabelList,
 } from "recharts";
 import { AuthGuard } from "@/components/AuthGuard";
@@ -26,6 +26,7 @@ type RawData = {
   mainPast: number[];
   mainConnector: number;
   mainFuture: [number,number,number];
+  predictedVals: number[]; // 6 past days + hoje = 7 values
   errorVals: number[];
   surgVals: number[];
 };
@@ -33,15 +34,20 @@ type RawData = {
 function buildDynamic(raw: RawData) {
   // Main chart: 6 past days + hoje (connector) + 3 forecast days
   const main = [
-    ...raw.mainPast.map((real, i) => ({ day: getDay(i - 6), real, forecast: undefined as number|undefined })),
-    { day: "Hoje", real: raw.mainConnector, forecast: raw.mainConnector },
-    { day: getDay(1), real: undefined as number|undefined, forecast: raw.mainFuture[0] },
-    { day: getDay(2), real: undefined as number|undefined, forecast: raw.mainFuture[1] },
-    { day: getDay(3), real: undefined as number|undefined, forecast: raw.mainFuture[2] },
+    ...raw.mainPast.map((real, i) => ({
+      day: getDay(i - 6),
+      real,
+      forecast: undefined as number|undefined,
+      predicted: raw.predictedVals[i],
+    })),
+    { day: "Hoje", real: raw.mainConnector, forecast: raw.mainConnector, predicted: raw.predictedVals[6] },
+    { day: getDay(1), real: undefined as number|undefined, forecast: raw.mainFuture[0], predicted: undefined as number|undefined },
+    { day: getDay(2), real: undefined as number|undefined, forecast: raw.mainFuture[1], predicted: undefined as number|undefined },
+    { day: getDay(3), real: undefined as number|undefined, forecast: raw.mainFuture[2], predicted: undefined as number|undefined },
   ];
-  // Error chart: 6 past days + hoje (only days that already happened)
+  // Error chart: 6 past days + hoje
   const error = raw.errorVals.map((pct, i) => ({ day: i === 6 ? "Hoje" : getDay(i - 6), pct }));
-  // Surgical chart: hoje + 6 próximos dias, hoje com cor diferente
+  // Surgical chart: hoje + 6 próximos dias
   const surg  = raw.surgVals.map((n, i) => ({ day: i === 0 ? "Hoje" : getDay(i), n, isToday: i === 0 }));
   return { main, error, surg };
 }
@@ -49,18 +55,45 @@ function buildDynamic(raw: RawData) {
 // ─── data ─────────────────────────────────────────────────────────────────────
 
 const ALL_RAW: RawData = {
-  mainPast: [38,42,35,47,44,29], mainConnector: 31, mainFuture: [36,41,38],
-  errorVals: [4.2,2.8,5.1,3.4,6.2,4.8,3.9],
-  surgVals:  [14,18,16,21,19,10,7],
+  mainPast:      [38, 42, 35, 47, 44, 29],
+  mainConnector: 31,
+  mainFuture:    [36, 41, 38],
+  predictedVals: [36, 44, 38, 45, 46, 31, 32],
+  errorVals:     [4.2, 2.8, 5.1, 3.4, 6.2, 4.8, 3.9],
+  surgVals:      [14, 18, 16, 21, 19, 10, 7],
 };
 
 const SPEC_RAW: Record<Specialty, RawData> = {
-  "Clín. Médica": { mainPast:[28,32,29,35,31,29], mainConnector:30, mainFuture:[33,36,31], errorVals:[3.8,2.5,4.6,3.1,5.5,4.2,3.6], surgVals:[6,7,6,8,7,4,3] },
-  "Cardiologia":  { mainPast:[12,14,11,16,13,9],  mainConnector:11, mainFuture:[13,15,12], errorVals:[5.1,3.2,6.0,4.1,7.2,5.5,4.8], surgVals:[3,4,3,5,4,2,1] },
-  "Ortopedia":    { mainPast:[9,11,8,13,10,7],     mainConnector:8,  mainFuture:[10,12,9],  errorVals:[4.5,2.9,5.3,3.7,6.5,5.0,4.1], surgVals:[2,3,2,4,3,2,1] },
-  "Neurologia":   { mainPast:[7,8,6,9,7,5],        mainConnector:6,  mainFuture:[8,9,7],    errorVals:[3.9,2.6,4.8,3.3,5.8,4.4,3.7], surgVals:[1,2,1,2,2,1,1] },
-  "Pediatria":    { mainPast:[15,17,14,18,16,11],  mainConnector:13, mainFuture:[15,17,14], errorVals:[4.0,2.7,4.9,3.4,6.0,4.6,3.8], surgVals:[1,1,2,1,2,1,0] },
-  "Cirurgia":     { mainPast:[11,13,10,14,12,8],   mainConnector:10, mainFuture:[12,14,11], errorVals:[4.3,2.8,5.0,3.5,6.3,4.9,4.0], surgVals:[3,4,3,5,4,2,1] },
+  "Clín. Médica": {
+    mainPast:[28,32,29,35,31,29], mainConnector:30, mainFuture:[33,36,31],
+    predictedVals:[26,34,31,33,33,27,31],
+    errorVals:[3.8,2.5,4.6,3.1,5.5,4.2,3.6], surgVals:[6,7,6,8,7,4,3],
+  },
+  "Cardiologia": {
+    mainPast:[12,14,11,16,13,9], mainConnector:11, mainFuture:[13,15,12],
+    predictedVals:[11,15,13,15,14,10,12],
+    errorVals:[5.1,3.2,6.0,4.1,7.2,5.5,4.8], surgVals:[3,4,3,5,4,2,1],
+  },
+  "Ortopedia": {
+    mainPast:[9,11,8,13,10,7], mainConnector:8, mainFuture:[10,12,9],
+    predictedVals:[8,12,10,12,11,8,9],
+    errorVals:[4.5,2.9,5.3,3.7,6.5,5.0,4.1], surgVals:[2,3,2,4,3,2,1],
+  },
+  "Neurologia": {
+    mainPast:[7,8,6,9,7,5], mainConnector:6, mainFuture:[8,9,7],
+    predictedVals:[6,9,7,8,8,6,7],
+    errorVals:[3.9,2.6,4.8,3.3,5.8,4.4,3.7], surgVals:[1,2,1,2,2,1,1],
+  },
+  "Pediatria": {
+    mainPast:[15,17,14,18,16,11], mainConnector:13, mainFuture:[15,17,14],
+    predictedVals:[14,18,15,17,17,12,14],
+    errorVals:[4.0,2.7,4.9,3.4,6.0,4.6,3.8], surgVals:[1,1,2,1,2,1,0],
+  },
+  "Cirurgia": {
+    mainPast:[11,13,10,14,12,8], mainConnector:10, mainFuture:[12,14,11],
+    predictedVals:[10,14,11,13,13,9,11],
+    errorVals:[4.3,2.8,5.0,3.5,6.3,4.9,4.0], surgVals:[3,4,3,5,4,2,1],
+  },
 };
 
 const TS = { background:"var(--surface)", border:"1px solid var(--border)", borderRadius:6, fontSize:11, color:"var(--foreground)" };
@@ -155,7 +188,7 @@ export default function PatientPredictionPage() {
             )}
           </div>
 
-          {/* Main chart: Real × Previsão */}
+          {/* Main chart: Real × Previsão × Predito */}
           <div className="rounded-lg p-4 flex flex-col"
             style={{ flex: 3, minHeight: 0, background:"var(--surface)", border:"1px solid var(--border)" }}>
             <p className="text-xs font-medium mb-1" style={{ color:"#f7f7f7" }}>
@@ -163,10 +196,16 @@ export default function PatientPredictionPage() {
             </p>
             <div className="flex gap-4 mb-2 text-xs" style={{ color:"var(--muted)" }}>
               <span className="flex items-center gap-1.5">
-                <svg width={20} height={2}><line x1="0" y1="1" x2="20" y2="1" stroke="#3b82f6" strokeWidth={2}/></svg>Real
+                <svg width={20} height={2}><line x1="0" y1="1" x2="20" y2="1" stroke="#3b82f6" strokeWidth={2}/></svg>
+                Real
               </span>
               <span className="flex items-center gap-1.5">
-                <svg width={20} height={2}><line x1="0" y1="1" x2="20" y2="1" stroke="#f59e0b" strokeWidth={2} strokeDasharray="4 3"/></svg>Previsão
+                <span style={{ display:"inline-block", width:12, height:10, background:"rgba(245,158,11,0.55)", borderRadius:2 }} />
+                Predito
+              </span>
+              <span className="flex items-center gap-1.5">
+                <svg width={20} height={2}><line x1="0" y1="1" x2="20" y2="1" stroke="#f59e0b" strokeWidth={2} strokeDasharray="4 3"/></svg>
+                Previsão
               </span>
             </div>
             <div style={{ flex: 1, minHeight: 0 }}>
@@ -175,10 +214,17 @@ export default function PatientPredictionPage() {
                   <XAxis dataKey="day" tick={{ fill:"#f7f7f7", fontSize:10 }} />
                   <YAxis hide width={0} />
                   <Tooltip contentStyle={TS} cursor={false} labelStyle={{ color: "#f7f7f7" }} itemStyle={{ color: "#f7f7f7" }} />
+                  {/* Predito bars — only for past days + hoje (future has undefined) */}
+                  <Bar dataKey="predicted" name="Predito" fill="rgba(245,158,11,0.45)"
+                    radius={[3,3,0,0]} isAnimationActive={false} barSize={24}>
+                    <LabelList dataKey="predicted" position="center" style={{ ...LS, fill:"#ffffff" }} />
+                  </Bar>
+                  {/* Real line */}
                   <Line type="monotone" dataKey="real" stroke="#3b82f6" strokeWidth={2}
                     dot={{ r:3, fill:"#3b82f6" }} connectNulls={false} isAnimationActive={false} name="Real">
                     <LabelList dataKey="real" position="top" offset={8} style={LS} />
                   </Line>
+                  {/* Forecast line */}
                   <Line type="monotone" dataKey="forecast" stroke="#f59e0b" strokeWidth={2}
                     strokeDasharray="5 3" dot={{ r:3, fill:"#f59e0b" }}
                     connectNulls={false} isAnimationActive={false} name="Previsão">
