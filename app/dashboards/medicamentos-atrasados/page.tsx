@@ -22,7 +22,7 @@ function getLastUpdateLabel(): string {
 // ─── static data ──────────────────────────────────────────────────────────────
 
 const DATAS   = ["Hoje", "Ontem", "Últimos 7 dias", "Últimos 30 dias"];
-const SETORES = ["Todos", "UTI", "Enfermaria", "Pronto Socorro", "Centro Cirúrgico"];
+const SETORES = ["Todos", "Endoscopia", "Imagem", "Hemodinâmica", "Intervenção", "Prática Médica", "Cardiologia", "Oncologia", "Maternidade", "Cirurgia Geral"];
 
 interface FaixaItem {
   faixa: string;

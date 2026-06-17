@@ -135,6 +135,22 @@ function LOSTable() {
   );
 }
 
+const MANCHESTER_PRIORITY: Record<string, number> = {
+  "Vermelho": 0,
+  "Laranja":  1,
+  "Amarelo":  2,
+  "Verde":    3,
+  "Azul":     4,
+};
+
+const MANCHESTER_COLOR: Record<string, string> = {
+  "Vermelho": "#ef4444",
+  "Laranja":  "#f97316",
+  "Amarelo":  "#eab308",
+  "Verde":    "#22c55e",
+  "Azul":     "#3b82f6",
+};
+
 function WaitingForBedTable() {
   const beds        = useSimulationStore(useShallow((s) => s.beds.filter((b) => b.unit === "pronto-socorro")));
   const internacoes = useSimulationStore((s) => s.internacoes);
@@ -149,7 +165,7 @@ function WaitingForBedTable() {
       if (!i || i.admissionProbability < 40) return [];
       return [{ bed: b.label, name: i.patient.name, admissionProb: i.admissionProbability, elapsed: now - i.patient.admittedAt, manchester: i.manchesterClass }];
     })
-    .sort((a, b) => b.admissionProb - a.admissionProb),
+    .sort((a, b) => (MANCHESTER_PRIORITY[a.manchester] ?? 99) - (MANCHESTER_PRIORITY[b.manchester] ?? 99)),
   [beds, internacoes, now]);
 
   return (
@@ -190,7 +206,17 @@ function WaitingForBedTable() {
                   {row.admissionProb}%
                 </td>
                 <td className="px-3 py-2 tabular-nums">{formatElapsed(row.elapsed)}</td>
-                <td className="px-3 py-2">{row.manchester}</td>
+                <td className="px-3 py-2">
+                  <span
+                    className="px-2 py-0.5 rounded-full font-semibold whitespace-nowrap"
+                    style={{
+                      background: `${MANCHESTER_COLOR[row.manchester] ?? "#6b7280"}22`,
+                      color: MANCHESTER_COLOR[row.manchester] ?? "var(--muted)",
+                    }}
+                  >
+                    {row.manchester}
+                  </span>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -205,6 +231,14 @@ function WaitingForBedTable() {
 export default function EmergencyUnitPage() {
   const [data,       setData]       = useState("Hoje");
   const [lastUpdate, setLastUpdate] = useState(getLastUpdateLabel);
+
+  const waitingCount = useSimulationStore((s) => {
+    const psBeds = s.beds.filter((b) => b.unit === "pronto-socorro" && b.internacaoId);
+    return psBeds.filter((b) => {
+      const i = s.internacoes[b.internacaoId!];
+      return i && i.admissionProbability >= 40;
+    }).length;
+  });
 
   useEffect(() => {
     const id = setInterval(() => setLastUpdate(getLastUpdateLabel()), 30_000);
@@ -277,7 +311,23 @@ export default function EmergencyUnitPage() {
             <KpiCard label="Porta → Triagem"   value="8 min"  sub="média hoje" />
             <KpiCard label="Porta → Médico"    value="27 min" sub="média hoje" />
             <KpiCard label="Permanência Média" value="4,2 h"  sub="em atendimento" />
-            <KpiCard label="Espera por Leito"  value="2,1 h"  sub="aguardando leito" />
+            {/* Espera por Leito + Leito Virtual */}
+            <div
+              className="rounded-lg p-4 flex gap-3"
+              style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
+            >
+              <div className="flex flex-col gap-1 flex-1">
+                <span className="text-xs uppercase tracking-wide" style={{ color: "var(--muted)" }}>Espera por Leito</span>
+                <span className="text-2xl font-bold tabular-nums">2,1 h</span>
+                <span className="text-xs" style={{ color: "var(--muted)" }}>aguardando leito</span>
+              </div>
+              <div style={{ width: 1, background: "var(--border)", flexShrink: 0, alignSelf: "stretch" }} />
+              <div className="flex flex-col gap-1 flex-1">
+                <span className="text-xs uppercase tracking-wide" style={{ color: "var(--muted)" }}>Leito Virtual</span>
+                <span className="text-2xl font-bold tabular-nums" style={{ color: "var(--status-attention)" }}>{waitingCount}</span>
+                <span className="text-xs" style={{ color: "var(--muted)" }}>pacientes aguardando</span>
+              </div>
+            </div>
             {UNITS.map((u) => (
               <UnitCard key={u.id} unitId={u.id} label={u.label} total={u.total} color={u.color} />
             ))}

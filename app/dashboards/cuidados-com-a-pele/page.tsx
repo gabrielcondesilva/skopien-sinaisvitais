@@ -12,7 +12,7 @@ import { RealtimeClock } from "@/components/RealtimeClock";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type Departamento = "Todos" | "UTI" | "Enfermaria" | "Pronto Socorro" | "Centro Cirúrgico";
+type Departamento = "Todos" | "Medicina Intensiva" | "CMC" | "Pronto Atendimento" | "Maternidade";
 
 interface ConformidadeItem { mes: string; decubito: number; braden: number; curativo: number; }
 interface MonthlyItem      { mes: string; noPrazo: number; atrasado: number; }
@@ -22,7 +22,7 @@ interface AnatomyItem      { local: string; count: number; }
 // ── Filter options ────────────────────────────────────────────────────────────
 
 const CONVENIOS   = ["Todos", "Unimed", "Bradesco Saúde", "SulAmérica", "Amil", "Particular", "SUS"];
-const DEPARTAMENTOS: Departamento[] = ["Todos", "UTI", "Enfermaria", "Pronto Socorro", "Centro Cirúrgico"];
+const DEPARTAMENTOS: Departamento[] = ["Todos", "Medicina Intensiva", "CMC", "Pronto Atendimento", "Maternidade"];
 const ALAS        = ["Todos", "Ala Norte", "Ala Sul", "Ala Leste", "Ala Oeste"];
 
 // ── Conformidade por setor ────────────────────────────────────────────────────
@@ -38,7 +38,7 @@ const CONFORMIDADE: Record<Departamento, ConformidadeItem[]> = {
     { mes: "Abr/26", decubito: 65, braden: 82, curativo: 70 },
     { mes: "Mai/26", decubito: 72, braden: 88, curativo: 74 },
   ],
-  "UTI": [
+  "Medicina Intensiva": [
     { mes: "Out/25", decubito: 76, braden: 88, curativo: 72 },
     { mes: "Nov/25", decubito: 74, braden: 85, curativo: 70 },
     { mes: "Dez/25", decubito: 80, braden: 91, curativo: 78 },
@@ -48,7 +48,7 @@ const CONFORMIDADE: Record<Departamento, ConformidadeItem[]> = {
     { mes: "Abr/26", decubito: 77, braden: 88, curativo: 75 },
     { mes: "Mai/26", decubito: 83, braden: 94, curativo: 81 },
   ],
-  "Enfermaria": [
+  "CMC": [
     { mes: "Out/25", decubito: 66, braden: 80, curativo: 69 },
     { mes: "Nov/25", decubito: 62, braden: 77, curativo: 65 },
     { mes: "Dez/25", decubito: 70, braden: 83, curativo: 74 },
@@ -58,7 +58,7 @@ const CONFORMIDADE: Record<Departamento, ConformidadeItem[]> = {
     { mes: "Abr/26", decubito: 64, braden: 79, curativo: 68 },
     { mes: "Mai/26", decubito: 70, braden: 85, curativo: 73 },
   ],
-  "Pronto Socorro": [
+  "Pronto Atendimento": [
     { mes: "Out/25", decubito: 55, braden: 72, curativo: 58 },
     { mes: "Nov/25", decubito: 51, braden: 68, curativo: 54 },
     { mes: "Dez/25", decubito: 60, braden: 75, curativo: 62 },
@@ -68,7 +68,7 @@ const CONFORMIDADE: Record<Departamento, ConformidadeItem[]> = {
     { mes: "Abr/26", decubito: 54, braden: 70, curativo: 57 },
     { mes: "Mai/26", decubito: 63, braden: 76, curativo: 64 },
   ],
-  "Centro Cirúrgico": [
+  "Maternidade": [
     { mes: "Out/25", decubito: 75, braden: 80, curativo: 70 },
     { mes: "Nov/25", decubito: 72, braden: 78, curativo: 68 },
     { mes: "Dez/25", decubito: 78, braden: 83, curativo: 74 },
@@ -93,7 +93,7 @@ const MONTHLY: Record<Departamento, MonthlyItem[]> = {
     { mes: "Abr/26", noPrazo: 122, atrasado: 58 },
     { mes: "Mai/26", noPrazo: 150, atrasado: 37 },
   ],
-  "UTI": [
+  "Medicina Intensiva": [
     { mes: "Out/25", noPrazo: 45, atrasado: 12 },
     { mes: "Nov/25", noPrazo: 41, atrasado: 16 },
     { mes: "Dez/25", noPrazo: 52, atrasado:  9 },
@@ -103,7 +103,7 @@ const MONTHLY: Record<Departamento, MonthlyItem[]> = {
     { mes: "Abr/26", noPrazo: 44, atrasado: 14 },
     { mes: "Mai/26", noPrazo: 58, atrasado:  7 },
   ],
-  "Enfermaria": [
+  "CMC": [
     { mes: "Out/25", noPrazo: 58, atrasado: 22 },
     { mes: "Nov/25", noPrazo: 52, atrasado: 28 },
     { mes: "Dez/25", noPrazo: 65, atrasado: 17 },
@@ -113,7 +113,7 @@ const MONTHLY: Record<Departamento, MonthlyItem[]> = {
     { mes: "Abr/26", noPrazo: 54, atrasado: 26 },
     { mes: "Mai/26", noPrazo: 68, atrasado: 15 },
   ],
-  "Pronto Socorro": [
+  "Pronto Atendimento": [
     { mes: "Out/25", noPrazo: 30, atrasado: 28 },
     { mes: "Nov/25", noPrazo: 26, atrasado: 34 },
     { mes: "Dez/25", noPrazo: 35, atrasado: 22 },
@@ -123,7 +123,7 @@ const MONTHLY: Record<Departamento, MonthlyItem[]> = {
     { mes: "Abr/26", noPrazo: 25, atrasado: 36 },
     { mes: "Mai/26", noPrazo: 37, atrasado: 21 },
   ],
-  "Centro Cirúrgico": [
+  "Maternidade": [
     { mes: "Out/25", noPrazo: 20, atrasado:  7 },
     { mes: "Nov/25", noPrazo: 18, atrasado:  9 },
     { mes: "Dez/25", noPrazo: 24, atrasado:  5 },
@@ -149,10 +149,10 @@ const STAGE_ORDER = Object.keys(STAGE_COLORS);
 
 const STAGE_VALUES: Record<Departamento, Partial<Record<string, number>>> = {
   "Todos":            { "Estágio I": 12, "Estágio II":  8, "Estágio III": 4, "Estágio IV": 1, "Não classificável": 2, "Les. Tissular Prof.": 1 },
-  "UTI":              { "Estágio I":  3, "Estágio II":  5, "Estágio III": 4, "Estágio IV": 2, "Não classificável": 1, "Les. Tissular Prof.": 1 },
-  "Enfermaria":       { "Estágio I":  7, "Estágio II":  3, "Estágio III": 1, "Não classificável": 1 },
-  "Pronto Socorro":   { "Estágio I":  5, "Estágio II":  2 },
-  "Centro Cirúrgico": { "Estágio I":  2, "Estágio II":  1 },
+  "Medicina Intensiva":              { "Estágio I":  3, "Estágio II":  5, "Estágio III": 4, "Estágio IV": 2, "Não classificável": 1, "Les. Tissular Prof.": 1 },
+  "CMC":       { "Estágio I":  7, "Estágio II":  3, "Estágio III": 1, "Não classificável": 1 },
+  "Pronto Atendimento":   { "Estágio I":  5, "Estágio II":  2 },
+  "Maternidade": { "Estágio I":  2, "Estágio II":  1 },
 };
 
 function getStageData(setor: Departamento): StageItem[] {
@@ -168,10 +168,10 @@ const ANATOMY_LOCS = ["Sacro", "Calcâneo", "Orelha/Disp.", "Outros", "Occipital
 
 const ANATOMY_VALUES: Record<Departamento, Partial<Record<string, number>>> = {
   "Todos":            { "Sacro": 8, "Calcâneo": 7, "Orelha/Disp.": 4, "Outros": 4, "Occipital": 3, "Trocânter": 2 },
-  "UTI":              { "Sacro": 6, "Calcâneo": 4, "Occipital": 2, "Trocânter": 2, "Orelha/Disp.": 1, "Outros": 1 },
-  "Enfermaria":       { "Sacro": 3, "Calcâneo": 2, "Outros": 3, "Orelha/Disp.": 2, "Occipital": 1, "Trocânter": 1 },
-  "Pronto Socorro":   { "Orelha/Disp.": 3, "Sacro": 2, "Calcâneo": 1, "Occipital": 1 },
-  "Centro Cirúrgico": { "Occipital": 1, "Sacro": 1, "Trocânter": 1, "Orelha/Disp.": 1 },
+  "Medicina Intensiva":              { "Sacro": 6, "Calcâneo": 4, "Occipital": 2, "Trocânter": 2, "Orelha/Disp.": 1, "Outros": 1 },
+  "CMC":       { "Sacro": 3, "Calcâneo": 2, "Outros": 3, "Orelha/Disp.": 2, "Occipital": 1, "Trocânter": 1 },
+  "Pronto Atendimento":   { "Orelha/Disp.": 3, "Sacro": 2, "Calcâneo": 1, "Occipital": 1 },
+  "Maternidade": { "Occipital": 1, "Sacro": 1, "Trocânter": 1, "Orelha/Disp.": 1 },
 };
 
 function getAnatomyData(setor: Departamento): AnatomyItem[] {

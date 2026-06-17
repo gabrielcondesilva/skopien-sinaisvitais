@@ -57,7 +57,7 @@ const STATS = { media: 6.8, mediana: 6.2, desvio: 3.1 };
 // ─── filter options ────────────────────────────────────────────────────────────
 
 const F_CONVENIOS    = ["Todos", "Unimed", "Bradesco Saúde", "SulAmérica", "Amil", "Particular", "SUS"];
-const F_DEPARTAMENTOS = ["Todos", "UTI", "Enfermaria", "Pronto Socorro", "Centro Cirúrgico"];
+const F_DEPARTAMENTOS = ["Todos", "Medicina Intensiva", "CMC", "Pronto Atendimento", "Maternidade", "Oncologia", "Pediatria"];
 const F_ALAS         = ["Todos", "Ala Norte", "Ala Sul", "Ala Leste", "Ala Oeste"];
 const F_CIDS         = ["Todos", "J18.9 – Pneumonia", "I21.9 – IAM", "J44.1 – DPOC agudizado", "N17.9 – IRA", "A41.9 – Sepse", "I64 – AVC", "K35.8 – Apendicite", "S72.0 – Fratura fêmur", "E11.9 – DM2 descomp.", "C34.9 – Ca pulmão"];
 
