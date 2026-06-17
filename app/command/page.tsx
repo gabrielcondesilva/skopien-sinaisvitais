@@ -64,6 +64,11 @@ const DASHBOARDS = [
     label: "Predição de Internações",
     desc: "Previsão de internações nas próximas 24 horas",
   },
+  {
+    id: "medicamentos-atrasados",
+    label: "Medicamentos Atrasados",
+    desc: "Distribuição de atrasos de medicação por faixa de tempo e setor",
+  },
 ] as const;
 
 function getLastUpdateLabel(): string {
