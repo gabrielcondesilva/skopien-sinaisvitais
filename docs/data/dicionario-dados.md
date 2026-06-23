@@ -78,7 +78,7 @@ Representa um leito físico. Existe independentemente de haver internação ativ
 | Campo | Tipo | Descrição |
 |---|---|---|
 | `id` | `string` | Identificador único |
-| `label` | `string` | Rótulo de exibição (ex.: `PS-01`, `UTI-03`, `CCCG`) |
+| `label` | `string` | Rótulo de exibição (ex.: `PS-01`, `UTI-03`, `CC01`) |
 | `unit` | `UnitId` | Unidade à qual o leito pertence |
 | `internacaoId` | `string \| null` | ID da internação ativa, ou `null` se disponível |
 

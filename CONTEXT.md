@@ -23,7 +23,7 @@ Divisão física do hospital. As unidades existentes são: Pronto Socorro (12 le
 _Evitar_: Ala, setor, departamento
 
 **Sala Cirúrgica**:
-Recurso físico do Centro Cirúrgico. Equivalente ao Leito nas demais unidades, mas associada a um Fluxo Cirúrgico em vez de sinais vitais contínuos. Identificadas como CCCG, CCOB, CCAmb, CCEsp + 2 adicionais.
+Recurso físico do Centro Cirúrgico. Equivalente ao Leito nas demais unidades, mas associada a um Fluxo Cirúrgico em vez de sinais vitais contínuos. Identificadas como CC01, CC02, CC03, CC04, CC05, CC06.
 _Evitar_: Leito (no contexto do Centro Cirúrgico)
 
 **Bomba de Infusão**:

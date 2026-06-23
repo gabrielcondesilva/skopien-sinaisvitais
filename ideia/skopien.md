@@ -412,7 +412,7 @@ As células deverão ser coloridas por nível de atraso:
 
 #### Gráficos
 
-- Gauges das 4 salas cirúrgicas em tempo real: **CCCG · CCOB · CCAmb · CCEsp**
+- Gauges das 4 salas cirúrgicas em tempo real: **CC01 · CC02 · CC03 · CC04**
 - Gráfico de linha com chegadas por hora ao longo do dia
 - Gráfico de barras com previsão semanal de cirurgias
 

@@ -117,10 +117,10 @@ export const useSimulationStore = create<SimulationState>()((set, get) => ({
 
     // Cena 3 removida — Previsão de Alta não se aplica ao Pronto Socorro
 
-    // ── Cena 4 (~15 min): CCCG advances Procedimento → RA ────────────────────
+    // ── Cena 4 (~15 min): CC01 advances Procedimento → RA ────────────────────
     if (!already.has(4) && elapsed >= 14.5 * 60_000) {
       already.add(4);
-      const b = bed("CCCG", "centro-cirurgico");
+      const b = bed("CC01", "centro-cirurgico");
       if (b?.internacaoId) {
         const inv = internacoesCopy[b.internacaoId];
         if (inv && "surgicalFlow" in inv) {

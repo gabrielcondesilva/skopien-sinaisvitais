@@ -268,7 +268,7 @@ export function buildSeed(): {
     hasPump: boolean;
   }> = [
     {
-      label: "CCCG",
+      label: "CC01",
       patient: makePatient("Maurício Pinto Azevedo", 47, "M", "Colecistectomia Laparoscópica", 0),
       procedure: "Colecistectomia Laparoscópica",
       surgeon: "Dr. Fernando Castro",
@@ -277,7 +277,7 @@ export function buildSeed(): {
       hasPump: false,
     },
     {
-      label: "CCOB",
+      label: "CC02",
       patient: makePatient("Juliana Mendes Freitas", 32, "F", "Cesariana Eletiva", 0),
       procedure: "Cesariana Eletiva",
       surgeon: "Dra. Renata Campos",
@@ -286,7 +286,7 @@ export function buildSeed(): {
       hasPump: false,
     },
     {
-      label: "CCAmb",
+      label: "CC03",
       patient: makePatient("Gustavo Henrique Leal", 54, "M", "Herniorrafia Inguinal", 0),
       procedure: "Herniorrafia Inguinal",
       surgeon: "Dr. Paulo Silveira",
@@ -295,7 +295,7 @@ export function buildSeed(): {
       hasPump: false,
     },
     {
-      label: "CCEsp",
+      label: "CC04",
       patient: makePatient("Neide Aparecida Cunha", 61, "F", "Tireoidectomia Total", 0),
       procedure: "Tireoidectomia Total",
       surgeon: "Dr. Ricardo Nogueira",
@@ -347,8 +347,8 @@ export function buildSeed(): {
     internacoes[internacao.id] = internacao;
   }
 
-  addEmpty("CC-05", "centro-cirurgico");
-  addInoperante("CC-06", "centro-cirurgico");
+  addEmpty("CC05", "centro-cirurgico");
+  addInoperante("CC06", "centro-cirurgico");
 
   return { beds, internacoes };
 }

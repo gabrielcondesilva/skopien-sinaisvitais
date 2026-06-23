@@ -181,10 +181,30 @@ export default function OperatingRoomPage() {
           {/* 8 KPI cards — 2 linhas de 4 */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, flexShrink: 0 }}>
             <KpiCard label="Taxa de Ocupação"    value={`${Math.round(occupied / total * 100)}%`} sub={`${occupied}/${total} salas`} />
-            <KpiCard label="Cirurgias do Dia"    value="14"        sub="realizadas hoje" />
+            {/* Cirurgias — total + split eletiva/urgência */}
+            <div
+              className="rounded-lg p-3 flex gap-3"
+              style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
+            >
+              <div className="flex-1 flex flex-col gap-1">
+                <span className="text-xs uppercase tracking-wide" style={{ color: "var(--muted)" }}>Cirurgias</span>
+                <span className="text-xl font-bold tabular-nums">14</span>
+                <span className="text-xs" style={{ color: "var(--muted)" }}>realizadas hoje</span>
+              </div>
+              <div style={{ width: 1, alignSelf: "stretch", background: "var(--border)" }} />
+              <div className="flex-1 flex flex-col gap-1">
+                <span className="text-xs uppercase tracking-wide" style={{ color: "var(--muted)" }}>Eletivas</span>
+                <span className="text-xl font-bold tabular-nums">9</span>
+              </div>
+              <div style={{ width: 1, alignSelf: "stretch", background: "var(--border)" }} />
+              <div className="flex-1 flex flex-col gap-1">
+                <span className="text-xs uppercase tracking-wide" style={{ color: "var(--muted)" }}>Urgência</span>
+                <span className="text-xl font-bold tabular-nums" style={{ color: "var(--status-critical)" }}>5</span>
+              </div>
+            </div>
             <KpiCard label="Tempo Médio"         value="3h 22min"  sub="por procedimento" />
             <KpiCard label="Cancelamento"        value="6,8%"      sub="último mês" />
-            <KpiCard label="Giro de Sala"        value="22 min"    sub="entre cirurgias" />
+            <KpiCard label="Tempo de Preparo de Sala" value="22 min" sub="entre cirurgias" />
             <KpiCard label="Sala Ociosa"         value="18 min"    sub="tempo médio ocioso" />
             <KpiCard label="Aderência ao Mapa"   value="89%"       sub="semana atual" />
             <KpiCard label="Agendadas × Realizadas" value="16 × 14"   sub="hoje" />
@@ -318,7 +338,7 @@ export default function OperatingRoomPage() {
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={CANCELAMENTOS} layout="vertical" margin={{ top: 4, right: 44, bottom: 4, left: 8 }}>
                     <XAxis type="number" hide />
-                    <YAxis type="category" dataKey="causa" width={158} tick={{ fill: "#f7f7f7", fontSize: 10 }} axisLine={false} tickLine={false} />
+                    <YAxis type="category" dataKey="causa" width={200} interval={0} tick={{ fill: "#f7f7f7", fontSize: 10 }} axisLine={false} tickLine={false} />
                     <Tooltip contentStyle={TOOLTIP_STYLE} cursor={false} labelStyle={{ color: "#f7f7f7" }} itemStyle={{ color: "#f7f7f7" }} formatter={(v) => [`${v}`, "Cancelamentos"]} />
                     <Bar dataKey="n" radius={[0, 4, 4, 0]} isAnimationActive={false}>
                       {CANCELAMENTOS.map((c) => (
