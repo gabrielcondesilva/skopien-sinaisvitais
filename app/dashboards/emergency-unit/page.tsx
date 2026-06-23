@@ -23,7 +23,7 @@ function getLastUpdateLabel(): string {
 
 const UNITS = [
   { id: "pronto-socorro",   label: "Pronto Socorro",  total: 12, color: "#3b82f6" },
-  { id: "enfermaria",       label: "Enfermaria",       total: 20, color: "#8b5cf6" },
+  { id: "enfermaria",       label: "Enfermaria",       total: 15, color: "#8b5cf6" },
   { id: "uti",              label: "UTI",              total: 10, color: "#ef4444" },
   { id: "centro-cirurgico", label: "Centro Cirúrgico", total:  6, color: "#f59e0b" },
 ] as const;
@@ -37,45 +37,45 @@ function formatElapsed(ms: number): string {
 
 // ─── subcomponents ────────────────────────────────────────────────────────────
 
-function KpiCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
+function KpiCard({ label, value, sub, compact }: { label: string; value: string; sub?: string; compact?: boolean }) {
   return (
     <div
-      className="rounded-lg p-4 flex flex-col gap-1"
+      className={compact ? "rounded-lg p-2.5 flex flex-col gap-0.5" : "rounded-lg p-4 flex flex-col gap-1"}
       style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
     >
-      <span className="text-xs uppercase tracking-wide" style={{ color: "var(--muted)" }}>{label}</span>
-      <span className="text-2xl font-bold tabular-nums">{value}</span>
-      {sub && <span className="text-xs" style={{ color: "var(--muted)" }}>{sub}</span>}
+      <span className={compact ? "text-[10px] uppercase tracking-wide" : "text-xs uppercase tracking-wide"} style={{ color: "var(--muted)" }}>{label}</span>
+      <span className={compact ? "text-lg font-bold tabular-nums" : "text-2xl font-bold tabular-nums"}>{value}</span>
+      {sub && <span className={compact ? "text-[10px]" : "text-xs"} style={{ color: "var(--muted)" }}>{sub}</span>}
     </div>
   );
 }
 
-function UnitCard({ unitId, label, total, color }: {
-  unitId: string; label: string; total: number; color: string;
+function UnitCard({ unitId, label, total, color, compact }: {
+  unitId: string; label: string; total: number; color: string; compact?: boolean;
 }) {
   const beds     = useSimulationStore(useShallow((s) => s.beds.filter((b) => b.unit === unitId)));
   const occupied = beds.filter((b) => b.internacaoId).length;
   const pct      = Math.round((occupied / total) * 100);
   return (
     <div
-      className="rounded-lg p-4 flex flex-col gap-1"
+      className={compact ? "rounded-lg p-2.5 flex flex-col gap-0.5" : "rounded-lg p-4 flex flex-col gap-1"}
       style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
     >
-      <span className="text-xs uppercase tracking-wide" style={{ color: "var(--muted)" }}>{label}</span>
-      <span className="text-2xl font-bold tabular-nums" style={{ color }}>{pct}%</span>
-      <span className="text-xs" style={{ color: "var(--muted)" }}>{occupied}/{total} leitos</span>
+      <span className={compact ? "text-[10px] uppercase tracking-wide" : "text-xs uppercase tracking-wide"} style={{ color: "var(--muted)" }}>{label}</span>
+      <span className={compact ? "text-lg font-bold tabular-nums" : "text-2xl font-bold tabular-nums"} style={{ color }}>{pct}%</span>
+      <span className={compact ? "text-[10px]" : "text-xs"} style={{ color: "var(--muted)" }}>{occupied}/{total} leitos</span>
     </div>
   );
 }
 
 interface LOSRow { bed: string; name: string; reason: string; elapsed: number; status: string }
 
-function LOSTable() {
+function useLOSRows(): LOSRow[] {
   const beds        = useSimulationStore(useShallow((s) => s.beds.filter((b) => b.unit === "pronto-socorro")));
   const internacoes = useSimulationStore((s) => s.internacoes);
   const now         = Date.now();
 
-  const rows = useMemo<LOSRow[]>(() => beds
+  return useMemo<LOSRow[]>(() => beds
     .filter((b) => b.internacaoId)
     .flatMap((b) => {
       const i = internacoes[b.internacaoId!];
@@ -85,7 +85,9 @@ function LOSTable() {
     .sort((a, b) => b.elapsed - a.elapsed)
     .slice(0, 8),
   [beds, internacoes, now]);
+}
 
+function LOSTable({ rows }: { rows: LOSRow[] }) {
   const STATUS_COLOR: Record<string, string> = {
     "Estável":       "var(--status-stable)",
     "Atenção":       "var(--status-attention)",
@@ -151,23 +153,45 @@ const MANCHESTER_COLOR: Record<string, string> = {
   "Azul":     "#3b82f6",
 };
 
-function WaitingForBedTable() {
+const WAITING_STATUSES = ["Aguarda Leito", "Aguarda Exame", "Aguarda Liberação de Convênio"] as const;
+type WaitingStatus = (typeof WAITING_STATUSES)[number];
+
+const WAITING_STATUS_COLOR: Record<WaitingStatus, string> = {
+  "Aguarda Leito":                    "var(--status-critical)",
+  "Aguarda Exame":                    "var(--status-attention)",
+  "Aguarda Liberação de Convênio":    "#8b5cf6",
+};
+
+function waitingStatusFor(id: string): WaitingStatus {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  // avalanche mix — without it, sequential ids like "id-3"/"id-6"/"id-9" all
+  // collapse to the same bucket because 31 ≡ 1 (mod 3)
+  h = h ^ (h >>> 16);
+  h = Math.imul(h, 0x45d9f3b) >>> 0;
+  h = (h ^ (h >>> 16)) >>> 0;
+  return WAITING_STATUSES[h % WAITING_STATUSES.length];
+}
+
+interface WaitRow { bed: string; name: string; status: WaitingStatus; elapsed: number; manchester: string }
+
+function useWaitingForBedRows(): WaitRow[] {
   const beds        = useSimulationStore(useShallow((s) => s.beds.filter((b) => b.unit === "pronto-socorro")));
   const internacoes = useSimulationStore((s) => s.internacoes);
   const now         = Date.now();
 
-  interface WaitRow { bed: string; name: string; admissionProb: number; elapsed: number; manchester: string }
-
-  const rows = useMemo<WaitRow[]>(() => beds
+  return useMemo<WaitRow[]>(() => beds
     .filter((b) => b.internacaoId)
     .flatMap((b) => {
       const i = internacoes[b.internacaoId!];
       if (!i || i.admissionProbability < 40) return [];
-      return [{ bed: b.label, name: i.patient.name, admissionProb: i.admissionProbability, elapsed: now - i.patient.admittedAt, manchester: i.manchesterClass }];
+      return [{ bed: b.label, name: i.patient.name, status: waitingStatusFor(i.id), elapsed: now - i.patient.admittedAt, manchester: i.manchesterClass }];
     })
     .sort((a, b) => (MANCHESTER_PRIORITY[a.manchester] ?? 99) - (MANCHESTER_PRIORITY[b.manchester] ?? 99)),
   [beds, internacoes, now]);
+}
 
+function WaitingForBedTable({ rows }: { rows: WaitRow[] }) {
   return (
     <div
       className="rounded-lg overflow-hidden flex flex-col"
@@ -184,7 +208,7 @@ function WaitingForBedTable() {
         <table className="w-full text-xs">
           <thead>
             <tr style={{ background: "rgba(0,0,0,0.30)" }}>
-              {["Leito", "Paciente", "Prob. Internação", "Espera", "Manchester"].map((h) => (
+              {["Leito", "Paciente", "Status", "Espera", "Manchester"].map((h) => (
                 <th key={h} className="px-3 py-2 text-left font-medium"
                   style={{ color: "var(--foreground)", borderBottom: "1px solid var(--border)" }}>{h}</th>
               ))}
@@ -201,9 +225,16 @@ function WaitingForBedTable() {
               <tr key={row.bed} style={{ borderTop: i > 0 ? "1px solid var(--border)" : undefined, background: "var(--surface)" }}>
                 <td className="px-3 py-2 font-mono">{row.bed}</td>
                 <td className="px-3 py-2 font-medium whitespace-nowrap">{row.name}</td>
-                <td className="px-3 py-2 tabular-nums font-semibold"
-                  style={{ color: row.admissionProb >= 70 ? "var(--status-critical)" : row.admissionProb >= 50 ? "var(--status-attention)" : "var(--foreground)" }}>
-                  {row.admissionProb}%
+                <td className="px-3 py-2">
+                  <span
+                    className={`font-semibold whitespace-nowrap ${row.status === "Aguarda Liberação de Convênio" ? "" : "px-2 py-0.5 rounded-full"}`}
+                    style={{
+                      background: row.status === "Aguarda Liberação de Convênio" ? "transparent" : `${WAITING_STATUS_COLOR[row.status]}22`,
+                      color: WAITING_STATUS_COLOR[row.status],
+                    }}
+                  >
+                    {row.status}
+                  </span>
                 </td>
                 <td className="px-3 py-2 tabular-nums">{formatElapsed(row.elapsed)}</td>
                 <td className="px-3 py-2">
@@ -232,13 +263,15 @@ export default function EmergencyUnitPage() {
   const [data,       setData]       = useState("Hoje");
   const [lastUpdate, setLastUpdate] = useState(getLastUpdateLabel);
 
-  const waitingCount = useSimulationStore((s) => {
-    const psBeds = s.beds.filter((b) => b.unit === "pronto-socorro" && b.internacaoId);
-    return psBeds.filter((b) => {
-      const i = s.internacoes[b.internacaoId!];
-      return i && i.admissionProbability >= 40;
-    }).length;
-  });
+  const losRows     = useLOSRows();
+  const waitingRows = useWaitingForBedRows();
+  const waitingCount = waitingRows.length;
+  const avgWaitMs = waitingCount > 0 ? waitingRows.reduce((sum, r) => sum + r.elapsed, 0) / waitingCount : 0;
+  const avgWaitLabel = (avgWaitMs / 3_600_000).toFixed(1).replace(".", ",") + " h";
+
+  const patientsToday        = losRows.length + waitingRows.length;
+  const aguardandoExame      = waitingRows.filter((r) => r.status === "Aguarda Exame").length;
+  const aguardandoRetornoMed = waitingRows.filter((r) => r.status === "Aguarda Leito" || r.status === "Aguarda Liberação de Convênio").length;
 
   useEffect(() => {
     const id = setInterval(() => setLastUpdate(getLastUpdateLabel()), 30_000);
@@ -306,7 +339,7 @@ export default function EmergencyUnitPage() {
             display: "flex", flexDirection: "column", gap: 12,
           }}
         >
-          {/* 8 cards — 2 rows of 4, equal size */}
+          {/* Row 1 — 4 equal cards */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, flexShrink: 0 }}>
             <KpiCard label="Porta → Triagem"   value="8 min"  sub="média hoje" />
             <KpiCard label="Porta → Médico"    value="27 min" sub="média hoje" />
@@ -318,7 +351,7 @@ export default function EmergencyUnitPage() {
             >
               <div className="flex flex-col gap-1 flex-1">
                 <span className="text-xs uppercase tracking-wide" style={{ color: "var(--muted)" }}>Espera por Leito</span>
-                <span className="text-2xl font-bold tabular-nums">2,1 h</span>
+                <span className="text-2xl font-bold tabular-nums">{avgWaitLabel}</span>
                 <span className="text-xs" style={{ color: "var(--muted)" }}>aguardando leito</span>
               </div>
               <div style={{ width: 1, background: "var(--border)", flexShrink: 0, alignSelf: "stretch" }} />
@@ -328,15 +361,26 @@ export default function EmergencyUnitPage() {
                 <span className="text-xs" style={{ color: "var(--muted)" }}>pacientes aguardando</span>
               </div>
             </div>
-            {UNITS.map((u) => (
-              <UnitCard key={u.id} unitId={u.id} label={u.label} total={u.total} color={u.color} />
-            ))}
+          </div>
+
+          {/* Row 2 — left half: patient-count cards · right half: unit occupancy cards (aligned under row 1's last two cards) */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, flexShrink: 0 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+              <KpiCard compact label="Pacientes no Dia"            value={String(patientsToday)}        sub="total nas tabelas" />
+              <KpiCard compact label="Aguardando Exame"            value={String(aguardandoExame)}       sub="aguarda exame" />
+              <KpiCard compact label="Aguardando Retorno Médico"   value={String(aguardandoRetornoMed)}  sub="aguarda leito/convênio" />
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
+              {UNITS.map((u) => (
+                <UnitCard key={u.id} compact unitId={u.id} label={u.label} total={u.total} color={u.color} />
+              ))}
+            </div>
           </div>
 
           {/* Tables — fill remaining height */}
           <div style={{ flex: 1, minHeight: 0, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <LOSTable />
-            <WaitingForBedTable />
+            <LOSTable rows={losRows} />
+            <WaitingForBedTable rows={waitingRows} />
           </div>
         </div>
       </div>
