@@ -22,7 +22,7 @@ export function EWSForecastChart({ internacao, slots, windowMs }: Props) {
   const currentEws = internacao.currentEws;
   const forecast = internacao.ewsForecast;
 
-  const hasHighForecast = forecast.some((f) => f.ews >= 7);
+  const hasHighForecast = forecast.some((f) => f.ews >= 5);
   const forecastColor = hasHighForecast ? "#ef4444" : "#3b82f6";
   const n = forecast.length;
 
@@ -74,7 +74,7 @@ export function EWSForecastChart({ internacao, slots, windowMs }: Props) {
             className="ml-auto text-xs px-2 py-0.5 rounded font-medium"
             style={{ background: "#ef444420", color: "#ef4444" }}
           >
-            ⚠ Previsão Crítica
+            ⚠ Previsão Alto
           </span>
         )}
       </div>
@@ -129,9 +129,8 @@ export function EWSForecastChart({ internacao, slots, windowMs }: Props) {
           />
 
           {/* EWS threshold lines */}
-          <ReferenceLine y={3} stroke="#eab308" strokeDasharray="3 3" strokeOpacity={0.35} />
-          <ReferenceLine y={5} stroke="#f97316" strokeDasharray="3 3" strokeOpacity={0.45} />
-          <ReferenceLine y={7} stroke="#ef4444" strokeDasharray="3 3" strokeOpacity={0.55} />
+          <ReferenceLine y={3} stroke="#F59F00" strokeDasharray="3 3" strokeOpacity={0.4} />
+          <ReferenceLine y={5} stroke="#F03E3E" strokeDasharray="3 3" strokeOpacity={0.5} />
 
           {/* "Agora" vertical line */}
           <ReferenceLine
@@ -205,9 +204,9 @@ export function EWSForecastChart({ internacao, slots, windowMs }: Props) {
           Previsão
         </div>
         <div className="flex items-center gap-4 text-xs">
-          <span style={{ color: "#eab308" }}>— Atenção ≥3</span>
-          <span style={{ color: "#f97316" }}>— Risco ≥5</span>
-          <span style={{ color: "#ef4444" }}>— Crítico ≥7</span>
+          <span style={{ color: "#2F9E44" }}>— Baixo</span>
+          <span style={{ color: "#F59F00" }}>— Moderado ≥3</span>
+          <span style={{ color: "#F03E3E" }}>— Alto ≥5</span>
         </div>
       </div>
     </div>

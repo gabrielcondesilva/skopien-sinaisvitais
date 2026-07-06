@@ -686,7 +686,6 @@ function PatientContent({ id }: { id: string }) {
       <div className="flex px-6" style={{ borderBottom: "1px solid var(--border)" }}>
         {(Object.keys(TAB_LABELS) as Tab[])
           .filter((t) => t !== "internacao" || internacao.unit === "pronto-socorro")
-          .filter((t) => t !== "ews" || internacao.unit !== "uti")
           .map((t) => {
           const active = tab === t;
           return (
