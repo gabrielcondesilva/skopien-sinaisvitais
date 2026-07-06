@@ -98,12 +98,13 @@ Leitura bruta de um instante de tempo. Gerada a cada tick (~5 s).
 | `pas` | `number` | Pressão arterial sistólica (mmHg) |
 | `fc` | `number` | Frequência cardíaca (bpm) |
 | `temp` | `number` | Temperatura corporal (°C) |
+| `nc` | `"Alerta" \| "Confuso" \| "Responde à Dor" \| "Inconsciente"` | Nível de Consciência (AVPU). Avaliação categórica pontual — não sofre random walk, acompanha o estado atual do baseline/roteiro |
 
 ---
 
 ### SlotReading
 
-Mediana das `RawReading` em uma janela temporal (padrão 15 min). Valor exibido nos cards.
+Mediana das `RawReading` em uma janela temporal (padrão 15 min). Valor exibido nos cards. Exceção: `nc` não é medianado (é categórico) — usa o valor mais recente do slot.
 
 | Campo adicional | Tipo | Descrição |
 |---|---|---|

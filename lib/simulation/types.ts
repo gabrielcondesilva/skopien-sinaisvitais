@@ -1,5 +1,6 @@
 export type UnitId = "pronto-socorro" | "enfermaria" | "centro-cirurgico" | "uti";
-export type StatusClinico = "Estável" | "Atenção" | "Risco Elevado" | "Crítico";
+export type StatusClinico = "Baixo" | "Moderado" | "Alto";
+export type NivelConsciencia = "Alerta" | "Confuso" | "Responde à Dor" | "Inconsciente";
 export type ManchesterClass = "Vermelho" | "Laranja" | "Amarelo" | "Verde" | "Azul";
 export type Gender = "M" | "F";
 
@@ -9,6 +10,7 @@ export interface VitalsBaseline {
   pas: number;
   fc: number;
   temp: number;
+  nc: NivelConsciencia;
 }
 
 export interface RawReading {
@@ -18,6 +20,7 @@ export interface RawReading {
   pas: number;
   fc: number;
   temp: number;
+  nc: NivelConsciencia;
 }
 
 export interface SlotReading {
@@ -27,6 +30,7 @@ export interface SlotReading {
   pas: number;
   fc: number;
   temp: number;
+  nc: NivelConsciencia;
   ewsTotal: number;
   ewsStatus: StatusClinico;
 }

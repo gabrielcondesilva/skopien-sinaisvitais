@@ -8,10 +8,9 @@ import type { Alert, Bed, Internacao, SurgicalInternacao } from "@/lib/simulatio
 import { StreamlineIcon } from "./ui/StreamlineIcon";
 
 const STATUS_COLOR: Record<string, string> = {
-  "Estável":      "var(--status-stable)",
-  "Atenção":      "var(--status-attention)",
-  "Risco Elevado":"var(--status-elevated)",
-  "Crítico":      "var(--status-critical)",
+  "Baixo":    "var(--status-stable)",
+  "Moderado": "var(--status-attention)",
+  "Alto":     "var(--status-critical)",
 };
 
 const ALERT_META: Record<string, { icon: "sinal_vital" | "medicacao" | "predicao_alta"; color: string; label: string }> = {
@@ -90,7 +89,7 @@ export function BedCard({ bed, internacao }: Props) {
   }
 
   const statusColor  = STATUS_COLOR[internacao.currentStatus] ?? "var(--muted)";
-  const isCritical   = internacao.currentStatus === "Crítico";
+  const isCritical   = internacao.currentStatus === "Alto";
   const hasAlerts    = alerts.length > 0;
   const showRedPulse = isCritical || hasAlerts;
 

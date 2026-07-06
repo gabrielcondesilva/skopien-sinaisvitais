@@ -6,7 +6,11 @@ import {
 } from "recharts";
 import type { SlotReading } from "@/lib/simulation/types";
 
-// ─── EWS score per vital (mesmos limiares do ews.ts) ─────────────────────────
+// ─── Severidade visual por sinal (limiares clínicos independentes do Escore MEWS) ──
+// Cor do ponto/label no gráfico — não corresponde 1:1 à pontuação MEWS de lib/ews.ts,
+// que segue a tabela literal do documento institucional (com faixas não-intuitivas,
+// ex.: FR nunca pontua 0). Aqui usamos faixas de normalidade clínica padrão só para
+// destacar visualmente valores fora do comum.
 
 // 0 = normal, 1 = yellow, 2 = red
 function scoreVal(key: string, v: number): number {

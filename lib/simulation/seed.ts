@@ -33,7 +33,7 @@ function makeInternacao(
   } = {}
 ): Internacao {
   const now = NOW();
-  const windowMs = 12 * 3_600_000; // 12h history
+  const windowMs = 62 * 3_600_000; // cobre a maior Janela selecionável (62h)
   const rawHistory = buildHistory(baseline, now, windowMs);
   const last = rawHistory[rawHistory.length - 1];
   const ews = calculateEWS(last);
@@ -66,14 +66,14 @@ function makeBed(label: string, unit: UnitId, internacaoId: string | null): Bed 
 
 // ─── Baselines ────────────────────────────────────────────────────────────────
 
-const STABLE: VitalsBaseline       = { fr: 15, spo2: 98, pas: 122, fc: 72, temp: 36.8 };
-const MILD_CONCERN: VitalsBaseline  = { fr: 19, spo2: 96, pas: 105, fc: 92, temp: 37.4 };
-const ATTENTION: VitalsBaseline     = { fr: 22, spo2: 95, pas: 99,  fc: 96, temp: 37.9 };
-// UTI-01 starts at Atenção — will deteriorate in Cena 1
-const UTI_CENA1: VitalsBaseline     = { fr: 23, spo2: 95, pas: 102, fc: 98, temp: 37.6 };
-const UTI_STABLE: VitalsBaseline    = { fr: 14, spo2: 97, pas: 118, fc: 68, temp: 36.9 };
+const STABLE: VitalsBaseline       = { fr: 15, spo2: 98, pas: 122, fc: 72, temp: 36.8, nc: "Alerta" };
+const MILD_CONCERN: VitalsBaseline  = { fr: 19, spo2: 96, pas: 105, fc: 92, temp: 37.4, nc: "Alerta" };
+const ATTENTION: VitalsBaseline     = { fr: 22, spo2: 95, pas: 99,  fc: 96, temp: 37.9, nc: "Alerta" };
+// UTI-01 starts em Moderado — will deteriorate in Cena 1
+const UTI_CENA1: VitalsBaseline     = { fr: 23, spo2: 95, pas: 102, fc: 98, temp: 37.6, nc: "Alerta" };
+const UTI_STABLE: VitalsBaseline    = { fr: 14, spo2: 97, pas: 118, fc: 68, temp: 36.9, nc: "Alerta" };
 // UTI-02 starts already critical — seeds the initial sinal-vital demo alert
-const UTI_CRITICAL: VitalsBaseline  = { fr: 27, spo2: 88, pas: 84, fc: 120, temp: 38.8 };
+const UTI_CRITICAL: VitalsBaseline  = { fr: 27, spo2: 88, pas: 84, fc: 120, temp: 38.8, nc: "Confuso" };
 
 // ─── Build units ──────────────────────────────────────────────────────────────
 
@@ -228,7 +228,7 @@ export function buildSeed(): {
   );
   addOccupied("UTI-03", "uti",
     makePatient("Manoel Augusto Vieira", 83, "M", "Insuficiência Respiratória", 72),
-    { fr: 20, spo2: 96, pas: 108, fc: 94, temp: 37.8 }, { hasPump: false }
+    { fr: 20, spo2: 96, pas: 108, fc: 94, temp: 37.8, nc: "Alerta" }, { hasPump: false }
   );
   addOccupied("UTI-04", "uti",
     makePatient("Teresa Cristina Andrade", 55, "F", "Pós-op Cirurgia Cardíaca", 48),
@@ -236,7 +236,7 @@ export function buildSeed(): {
   );
   addOccupied("UTI-05", "uti",
     makePatient("Raimundo Nonato Pinheiro", 69, "M", "Infarto Agudo do Miocárdio", 60),
-    { fr: 18, spo2: 97, pas: 112, fc: 88, temp: 37.1 }, { hasPump: false }
+    { fr: 18, spo2: 97, pas: 112, fc: 88, temp: 37.1, nc: "Alerta" }, { hasPump: false }
   );
   addOccupied("UTI-06", "uti",
     makePatient("Zélia Fátima Corrêa", 78, "F", "AVC Hemorrágico", 84),
@@ -248,7 +248,7 @@ export function buildSeed(): {
   );
   addOccupied("UTI-08", "uti",
     makePatient("Conceição Maria Rocha", 64, "F", "Diabetes + IAM", 72),
-    { fr: 17, spo2: 97, pas: 115, fc: 82, temp: 37.0 }, { hasPump: false }
+    { fr: 17, spo2: 97, pas: 115, fc: 82, temp: 37.0, nc: "Alerta" }, { hasPump: false }
   );
   addOccupied("UTI-09", "uti",
     makePatient("Armando Luiz Tavares", 58, "M", "Politrauma", 36),
@@ -309,7 +309,7 @@ export function buildSeed(): {
 
   for (const s of surgeries) {
     const bed = makeBed(s.label, "centro-cirurgico", "TBD");
-    const rawHistory = buildHistory(STABLE, now, 12 * 3_600_000);
+    const rawHistory = buildHistory(STABLE, now, 62 * 3_600_000);
     const ews = calculateEWS(rawHistory[rawHistory.length - 1]);
 
     const surgicalFlow = SURGICAL_STEP_NAMES.map((name, i) => {

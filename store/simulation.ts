@@ -4,7 +4,8 @@ import { nextReading, currentSlotValues, computeSlots } from "@/lib/simulation/v
 import { calculateEWS } from "@/lib/ews";
 import type { Bed, Internacao, SurgicalInternacao, SlotReading, UnitId } from "@/lib/simulation/types";
 
-const HISTORY_RETENTION_MS = 12 * 60 * 60 * 1000;
+// Deve cobrir a maior Janela selecionável na aba Sinais Vitais (62h, ver "Janela estendida")
+const HISTORY_RETENTION_MS = 62 * 60 * 60 * 1000;
 
 // Returned by checkScenes for each alert that should fire
 export interface SceneAlert {
@@ -89,7 +90,7 @@ export const useSimulationStore = create<SimulationState>()((set, get) => ({
         if (inv) {
           internacoesCopy[b.internacaoId] = {
             ...inv,
-            baseline: { fr: 29, spo2: 87, pas: 88, fc: 138, temp: 38.9 },
+            baseline: { fr: 29, spo2: 87, pas: 88, fc: 138, temp: 38.9, nc: "Confuso" },
           };
           stateChanged = true;
         }
@@ -169,7 +170,7 @@ export const useSimulationStore = create<SimulationState>()((set, get) => ({
 
   getCurrentVitals(internacaoId, slotMinutes) {
     const internacao = get().internacoes[internacaoId];
-    if (!internacao) return { t: Date.now(), fr: 0, spo2: 0, pas: 0, fc: 0, temp: 0 };
+    if (!internacao) return { t: Date.now(), fr: 0, spo2: 0, pas: 0, fc: 0, temp: 0, nc: "Alerta" };
     return currentSlotValues(internacao.rawHistory, slotMinutes, Date.now());
   },
 }));

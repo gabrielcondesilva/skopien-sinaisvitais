@@ -5,10 +5,10 @@ import type { SlotReading } from "@/lib/simulation/types";
 
 const VITALS = [
   { key: "fr"   as const, label: "FR"   },
-  { key: "spo2" as const, label: "SpO₂" },
   { key: "pas"  as const, label: "PAS"  },
   { key: "fc"   as const, label: "FC"   },
   { key: "temp" as const, label: "TEMP" },
+  { key: "nc"   as const, label: "NC"   },
 ];
 
 const SCORE_COLORS = ["#22c55e", "#eab308", "#f97316", "#ef4444"];

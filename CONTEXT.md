@@ -31,16 +31,20 @@ Equipamento utilizado por alguns pacientes, indicado por insígnia visual no car
 _Evitar_: Bomba, infusão contínua
 
 **Sinal Vital**:
-Medição fisiológica coletada pelo equipamento SKOPIEN em alta frequência (aproximadamente a cada segundo). Pertence a uma Internação. Os cinco sinais monitorados são: Frequência Respiratória (FR), Saturação de O₂ (SpO₂), Pressão Arterial Sistólica (PAS), Frequência Cardíaca (FC) e Temperatura (TEMP).
+Medição fisiológica coletada pelo equipamento SKOPIEN em alta frequência (aproximadamente a cada segundo). Pertence a uma Internação. Os cinco sinais monitorados são: Frequência Respiratória (FR), Saturação de O₂ (SpO₂), Pressão Arterial Sistólica (PAS), Frequência Cardíaca (FC) e Temperatura (TEMP). SpO₂ continua sendo medido e exibido nos gráficos, mas não compõe o Escore EWS (ver Escore EWS).
 _Evitar_: Medição, dado clínico, parâmetro
 
+**Nível de Consciência (NC)**:
+Avaliação categórica da consciência do paciente pela escala AVPU (Alerta, Confuso, Responde à Dor, Inconsciente), usada como o 5º parâmetro do Escore EWS no lugar de SpO₂. Diferente dos Sinais Vitais, não é uma leitura contínua de sensor — é uma avaliação pontual da enfermagem, por isso não passa pelo pipeline de mediana do Slot Temporal: o valor exibido é sempre o estado atual, não uma agregação.
+_Evitar_: Glasgow, escala de coma (é AVPU, uma escala distinta e mais simples)
+
 **Escore EWS**:
-Pontuação calculada a partir dos 5 Sinais Vitais (FR, SpO₂, PAS, FC, TEMP) usando as tabelas NEWS2. Escala de 0–14. Pertence à Internação, calculado sobre o Slot Temporal ativo.
-_Evitar_: Score, pontuação, índice
+Pontuação calculada a partir de FR, PAS, FC, TEMP e Nível de Consciência (NC) usando a tabela MEWS institucional. SpO₂ não entra na conta. Escala de 0–15. Pertence à Internação, calculado sobre o Slot Temporal ativo (exceto o componente NC, que usa o estado categórico atual).
+_Evitar_: Score, pontuação, índice, NEWS2 (a tabela em uso é MEWS)
 
 **Status Clínico**:
-Classificação qualitativa derivada do Escore EWS. Regras: 0–2 → Estável; 3–4 → Atenção; 5–6 → Risco Elevado; ≥7 → Crítico. Regra de exceção: qualquer sinal vital com pontuação individual 3 eleva o status mínimo a Atenção, independente do total.
-_Evitar_: Estado, condição, situação
+Classificação qualitativa derivada do Escore EWS. Regras: 0–2 → Baixo; 3–4 → Moderado; ≥5 → Alto. Não há regra de exceção por sinal individual — depende só da soma total.
+_Evitar_: Estado, condição, situação; Estável/Atenção/Risco Elevado/Crítico (nomenclatura antiga do NEWS2)
 
 ### Fluxos
 
@@ -53,7 +57,7 @@ Intervalo de tempo usado para agregar Sinais Vitais pela mediana. Padrão: 15 mi
 _Evitar_: Janela, período, intervalo de agregação
 
 **Heatmap de Sinais Vitais**:
-Visualização alternativa à série temporal na aba de Sinais Vitais. Grade com tempo no eixo X (slots) e os 5 sinais vitais no eixo Y. Cada célula é colorida pelo status clínico individual daquele sinal naquele slot (verde=normal, amarelo=atenção, laranja=risco elevado, vermelho=crítico). Permite identificar visualmente quando e qual sinal começou a deteriorar.
+Visualização alternativa à série temporal na aba de Sinais Vitais. Grade com tempo no eixo X (slots) e os 5 parâmetros do Escore EWS no eixo Y (FR, PAS, FC, TEMP, NC — SpO₂ fica de fora por não pontuar). Cada célula é colorida pela pontuação individual daquele parâmetro naquele slot (verde=0, amarelo=1, laranja=2, vermelho=3). Permite identificar visualmente quando e qual parâmetro começou a deteriorar.
 _Evitar_: Mapa de calor por hora, matriz de correlação
 
 ### Alertas
@@ -70,7 +74,7 @@ Estimativa de probabilidade de internação de um paciente, exibida na aba homô
 _Evitar_: Modelo preditivo (na v1 não há modelo real)
 
 **Predição EWS**:
-Gráfico na aba "Histórico e Predição EWS" que exibe histórico do Escore EWS (linha sólida) e previsão para as próximas 2 horas (linha tracejada com área sombreada de incerteza). Uma linha vertical "agora" separa histórico de previsão. Quando a previsão cruza o limiar de Crítico (≥7), a linha tracejada fica vermelha. Valores de previsão são roteirizados no seed de dados.
+Gráfico na aba "Histórico e Predição EWS" que exibe histórico do Escore EWS (linha sólida) e previsão para as próximas 2 horas (linha tracejada com área sombreada de incerteza). Uma linha vertical "agora" separa histórico de previsão. Quando a previsão cruza o limiar de Alto (≥5), a linha tracejada fica vermelha. Valores de previsão são roteirizados no seed de dados.
 _Evitar_: Forecast, projeção
 
 **Classificação de Manchester**:
@@ -111,7 +115,7 @@ Hospital fictício da v1: **Hospital Demo Skopien**. Usado em todos os dados ger
 ### Cenas roteirizadas (eventos com tempo relativo à abertura do app)
 
 **Cena 1 — Deterioração + Alerta de Sinal Vital** (~5 min)
-Paciente na UTI: SpO₂ cai progressivamente, FC sobe. Escore EWS vai de 3 → 7. Status muda para Crítico. Alerta de Sinal Vital dispara. Insígnia vermelha aparece no card do leito.
+Paciente na UTI: FC sobe e Nível de Consciência piora de Alerta para Confuso. SpO₂ também cai visualmente no gráfico (não pontua, mas reforça a leitura clínica). Escore EWS sobe de Moderado para Alto. Alerta de Sinal Vital dispara. Insígnia vermelha aparece no card do leito.
 
 **Cena 2 — Medicação Atrasada** (~8 min)
 Paciente na Enfermaria: horário de administração passa sem confirmação. Alerta de Medicação Atrasada dispara com nome do medicamento e horário previsto.
@@ -140,3 +144,6 @@ Tema base: dark mode global. Referência visual: Vercel dashboard — fundo quas
 
 > Dev: "Vou calcular o EWS usando o último valor de cada sinal vital."
 > Domínio: "Não — use a mediana do Slot Temporal selecionado, não o valor instantâneo."
+
+> Dev: "Vou aplicar mediana no Nível de Consciência também, igual aos outros parâmetros do Escore."
+> Domínio: "Não — NC não é medido por sensor, é avaliado pela enfermagem de tempo em tempo. Não faz sentido tirar mediana de uma sequência de 'Alerta'. Use o estado atual."

@@ -62,13 +62,18 @@ const VITALS = [
   { key: "pas"  as const, label: "PAS",  unit: "mmHg" },
   { key: "fc"   as const, label: "FC",   unit: "bpm"  },
   { key: "temp" as const, label: "TEMP", unit: "°C"   },
+  { key: "nc"   as const, label: "NC",   unit: ""     },
 ] as const;
 
+// SpO2 não entra no Escore MEWS — sem pontuação associada, sempre exibido neutro
+function scoreOf(scores: { fr: number; pas: number; fc: number; temp: number; nc: number }, key: string): number {
+  return key === "spo2" ? 0 : (scores as Record<string, number>)[key] ?? 0;
+}
+
 const STATUS_COLOR: Record<string, string> = {
-  "Estável":       "var(--status-stable)",
-  "Atenção":       "var(--status-attention)",
-  "Risco Elevado": "var(--status-elevated)",
-  "Crítico":       "var(--status-critical)",
+  "Baixo":    "var(--status-stable)",
+  "Moderado": "var(--status-attention)",
+  "Alto":     "var(--status-critical)",
 };
 
 const SCORE_COLOR = [
@@ -303,6 +308,7 @@ function SinaisVitaisTab({ internacao, slotMin, windowMs }: {
 
   const minMax = Object.fromEntries(
     VITALS.map((v) => {
+      if (v.key === "nc") return [v.key, undefined];
       const vals = slots.map((s) => s[v.key]).filter((x) => x != null) as number[];
       return [v.key, vals.length ? { min: Math.min(...vals), max: Math.max(...vals) } : undefined];
     })
@@ -339,7 +345,7 @@ function SinaisVitaisTab({ internacao, slotMin, windowMs }: {
             label={v.label}
             unit={v.unit}
             value={current[v.key]}
-            score={ews.scores[v.key]}
+            score={scoreOf(ews.scores, v.key)}
             min={minMax[v.key]?.min}
             max={minMax[v.key]?.max}
           />
@@ -415,7 +421,7 @@ function InternacaoTab({ internacao, slotMin }: {
     ...VITALS.map((v) => ({
       label: v.label,
       value: (
-        <span style={{ color: SCORE_COLOR[Math.min(ews.scores[v.key], 3)] }}>
+        <span style={{ color: SCORE_COLOR[Math.min(scoreOf(ews.scores, v.key), 3)] }}>
           {current[v.key]}&nbsp;{v.unit}
         </span>
       ),
@@ -489,7 +495,7 @@ function PatientContent({ id }: { id: string }) {
   const router = useRouter();
 
   const [tab, setTab]                 = useState<Tab>("sinais-vitais");
-  const [slotMin, setSlotMin]         = useState(15);
+  const [slotMin, setSlotMin]         = useState(60);
   const [windowMs, setWindowMs]       = useState(86_400_000);
   const [camOpen, setCamOpen]         = useState(false);
   const [camFullscreen, setCamFullscreen] = useState(false);

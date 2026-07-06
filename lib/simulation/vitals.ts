@@ -39,6 +39,10 @@ export function nextReading(
     next[k] = round(walk(reverted, k));
   }
 
+  // Nível de Consciência é avaliação pontual (AVPU), não sofre random walk —
+  // acompanha o estado atual do baseline/roteiro
+  next.nc = drift?.nc ?? baseline.nc;
+
   return next as RawReading;
 }
 
@@ -56,6 +60,7 @@ export function buildHistory(
     pas: round(baseline.pas),
     fc: round(baseline.fc),
     temp: round(baseline.temp, 1),
+    nc: baseline.nc,
   };
   history.push(initial);
 
@@ -103,10 +108,12 @@ export function computeSlots(
       const pas  = round(median(readings.map((r) => r.pas)));
       const fc   = round(median(readings.map((r) => r.fc)));
       const temp = round(median(readings.map((r) => r.temp)), 1);
-      const ews  = calculateEWS({ fr, spo2, pas, fc, temp });
+      // NC é estado categórico pontual — usa o valor mais recente do slot, não mediana
+      const nc   = readings[readings.length - 1].nc;
+      const ews  = calculateEWS({ fr, spo2, pas, fc, temp, nc });
       return {
         t: slotStart,
-        fr, spo2, pas, fc, temp,
+        fr, spo2, pas, fc, temp, nc,
         ewsTotal: ews.total,
         ewsStatus: ews.status,
       };
@@ -124,7 +131,7 @@ export function currentSlotValues(
 
   if (inSlot.length === 0) {
     const last = history[history.length - 1];
-    return last ?? { t: now, fr: 16, spo2: 98, pas: 120, fc: 75, temp: 37.0 };
+    return last ?? { t: now, fr: 16, spo2: 98, pas: 120, fc: 75, temp: 37.0, nc: "Alerta" };
   }
 
   return {
@@ -134,5 +141,6 @@ export function currentSlotValues(
     pas:  round(median(inSlot.map((r) => r.pas))),
     fc:   round(median(inSlot.map((r) => r.fc))),
     temp: round(median(inSlot.map((r) => r.temp)), 1),
+    nc:   inSlot[inSlot.length - 1].nc,
   };
 }

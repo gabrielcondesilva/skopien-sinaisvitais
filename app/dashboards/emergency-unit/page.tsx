@@ -89,10 +89,9 @@ function useLOSRows(): LOSRow[] {
 
 function LOSTable({ rows }: { rows: LOSRow[] }) {
   const STATUS_COLOR: Record<string, string> = {
-    "Estável":       "var(--status-stable)",
-    "Atenção":       "var(--status-attention)",
-    "Risco Elevado": "var(--status-elevated)",
-    "Crítico":       "var(--status-critical)",
+    "Baixo":    "var(--status-stable)",
+    "Moderado": "var(--status-attention)",
+    "Alto":     "var(--status-critical)",
   };
 
   return (

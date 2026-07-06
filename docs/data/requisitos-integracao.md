@@ -27,6 +27,7 @@ A versão demo usa simulação client-side; este documento descreve o que substi
 | Campo necessário | Frequência | Formato sugerido |
 |---|---|---|
 | Sinais vitais: FR, SpO₂, PAS, FC, Temperatura | Tempo real (30–60 s) | HL7 v2 ORU ou FHIR Observation |
+| Nível de Consciência (AVPU) | Por avaliação de enfermagem (pontual, não contínuo) | FHIR Observation (código AVPU) |
 | Admissão/alta de leito | Evento | HL7 ADT A01/A03 |
 | Dados demográficos do paciente | Admissão | HL7 ADT A01 |
 | Diagnóstico principal (CID-10) | Admissão / atualização | FHIR Condition |

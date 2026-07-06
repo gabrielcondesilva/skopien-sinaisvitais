@@ -4,15 +4,15 @@ import { useEffect } from "react";
 import { useSimulationStore } from "@/store/simulation";
 import { useAlertStore } from "@/store/alerts";
 import { currentSlotValues } from "@/lib/simulation/vitals";
-import { calculateEWS } from "@/lib/ews";
+import { calculateEWS, type NivelConsciencia } from "@/lib/ews";
 import type { Alert } from "@/lib/simulation/types";
 
 const VITAL_META = [
-  { key: "fr"   as const, label: "FR",   unit: "rpm",  fmt: (v: number) => `${v} rpm`  },
-  { key: "spo2" as const, label: "SpO₂", unit: "%",    fmt: (v: number) => `${v}%`     },
-  { key: "pas"  as const, label: "PAS",  unit: "mmHg", fmt: (v: number) => `${v} mmHg` },
-  { key: "fc"   as const, label: "FC",   unit: "bpm",  fmt: (v: number) => `${v} bpm`  },
-  { key: "temp" as const, label: "TEMP", unit: "°C",   fmt: (v: number) => `${v} °C`   },
+  { key: "fr"   as const, label: "FR",   unit: "rpm",  fmt: (v: number | NivelConsciencia) => `${v} rpm`  },
+  { key: "pas"  as const, label: "PAS",  unit: "mmHg", fmt: (v: number | NivelConsciencia) => `${v} mmHg` },
+  { key: "fc"   as const, label: "FC",   unit: "bpm",  fmt: (v: number | NivelConsciencia) => `${v} bpm`  },
+  { key: "temp" as const, label: "TEMP", unit: "°C",   fmt: (v: number | NivelConsciencia) => `${v} °C`   },
+  { key: "nc"   as const, label: "NC",   unit: "",     fmt: (v: number | NivelConsciencia) => `${v}`      },
 ];
 
 const TICK_INTERVAL_MS = 15_000;
@@ -49,7 +49,7 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
         patientName: uti02.patient.name,
         bedLabel: "UTI-02",
         unit: "uti",
-        message: "SpO₂ 88% · FR 27 rpm · PAS 84 mmHg",
+        message: "FR 27 rpm · PAS 84 mmHg · NC Confuso",
       });
       criticalIds.push(uti02.id);
     }

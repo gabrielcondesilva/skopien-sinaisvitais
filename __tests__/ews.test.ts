@@ -1,42 +1,48 @@
 import { calculateEWS, type VitalSigns } from "@/lib/ews";
 
-const NORMAL: VitalSigns = { fr: 16, spo2: 98, pas: 120, fc: 75, temp: 37.0 };
+const NORMAL: VitalSigns = { fr: 16, spo2: 98, pas: 120, fc: 75, temp: 37.0, nc: "Alerta" };
 
 function vitals(overrides: Partial<VitalSigns>): VitalSigns {
   return { ...NORMAL, ...overrides };
 }
 
-describe("EWSCalculator", () => {
-  describe("todos os sinais normais", () => {
-    it("retorna escore 0 e status Estável", () => {
+describe("EWSCalculator (tabela MEWS)", () => {
+  describe("valores fisiológicos comuns", () => {
+    it("NORMAL (FR=16→1, PAS=120→0, FC=75→1, TEMP=37.0→2, NC=Alerta→0) soma 4 e status Moderado", () => {
+      // FR e TEMP nunca pontuam 0 nesta tabela — mesmo vitais "comuns" não zeram o total
       const result = calculateEWS(NORMAL);
-      expect(result.total).toBe(0);
-      expect(result.status).toBe("Estável");
-      expect(Object.values(result.scores).every((s) => s === 0)).toBe(true);
+      expect(result.total).toBe(4);
+      expect(result.status).toBe("Moderado");
     });
   });
 
-  describe("FR (Frequência Respiratória)", () => {
+  describe("SpO₂ não entra no cálculo do Escore", () => {
+    it.each([100, 95, 88, 70])("SpO₂=%d não altera total nem status", (spo2) => {
+      const base = calculateEWS(NORMAL);
+      const result = calculateEWS(vitals({ spo2 }));
+      expect(result.total).toBe(base.total);
+      expect(result.status).toBe(base.status);
+    });
+
+    it("scores não contém a chave spo2", () => {
+      const result = calculateEWS(NORMAL);
+      expect(result.scores).not.toHaveProperty("spo2");
+    });
+  });
+
+  describe("FR (Frequência Respiratória) — nunca pontua 0", () => {
     it.each([
-      [8, 3], [9, 1], [11, 1], [12, 0], [20, 0],
-      [21, 2], [24, 2], [25, 3], [30, 3],
+      [8, 3], [9, 2], [14, 2], [15, 1], [20, 1],
+      [21, 1], [29, 1], [30, 2], [35, 2],
     ])("FR=%d → pontuação %d", (fr, expected) => {
       expect(calculateEWS(vitals({ fr })).scores.fr).toBe(expected);
     });
   });
 
-  describe("SpO₂", () => {
-    it.each([
-      [91, 3], [92, 2], [93, 2], [94, 1], [95, 1], [96, 0], [100, 0],
-    ])("SpO₂=%d → pontuação %d", (spo2, expected) => {
-      expect(calculateEWS(vitals({ spo2 })).scores.spo2).toBe(expected);
-    });
-  });
-
   describe("PAS (Pressão Arterial Sistólica)", () => {
     it.each([
-      [90, 3], [91, 2], [100, 2], [101, 1], [110, 1],
-      [111, 0], [219, 0], [220, 3], [250, 3],
+      [70, 3], [71, 2], [80, 2], [81, 1], [100, 1],
+      [101, 0], [199, 0], [200, 1], [250, 1],
     ])("PAS=%d → pontuação %d", (pas, expected) => {
       expect(calculateEWS(vitals({ pas })).scores.pas).toBe(expected);
     });
@@ -44,104 +50,63 @@ describe("EWSCalculator", () => {
 
   describe("FC (Frequência Cardíaca)", () => {
     it.each([
-      [40, 3], [41, 1], [50, 1], [51, 0], [90, 0],
-      [91, 1], [110, 1], [111, 2], [130, 2], [131, 3], [150, 3],
+      [40, 3], [41, 2], [50, 2], [51, 1], [100, 1],
+      [101, 0], [110, 0], [111, 1], [120, 1], [121, 2], [150, 2],
     ])("FC=%d → pontuação %d", (fc, expected) => {
       expect(calculateEWS(vitals({ fc })).scores.fc).toBe(expected);
     });
   });
 
-  describe("TEMP (Temperatura)", () => {
+  describe("TEMP (Temperatura) — nunca pontua 0", () => {
     it.each([
-      [35.0, 3], [35.1, 1], [36.0, 1], [36.1, 0], [38.0, 0],
-      [38.1, 1], [39.0, 1], [39.1, 2], [40.0, 2],
+      [35.0, 3], [35.1, 2], [37.8, 2], [37.9, 1], [40.0, 1],
     ])("TEMP=%d → pontuação %d", (temp, expected) => {
       expect(calculateEWS(vitals({ temp })).scores.temp).toBe(expected);
     });
   });
 
-  describe("Status Clínico por faixa de escore total", () => {
-    it("escore 1 → Estável", () => {
-      // FR=9 (score 1), demais normais → total 1
-      expect(calculateEWS(vitals({ fr: 9 })).status).toBe("Estável");
-    });
-
-    it("escore 2 → Estável", () => {
-      // FR=21 (score 2), demais normais → total 2
-      expect(calculateEWS(vitals({ fr: 21 })).status).toBe("Estável");
-    });
-
-    it("escore 3 → Atenção", () => {
-      // FR=21 (2) + SpO₂=94 (1) → total 3
-      expect(calculateEWS(vitals({ fr: 21, spo2: 94 })).status).toBe("Atenção");
-    });
-
-    it("escore 4 → Atenção", () => {
-      // FR=21 (2) + SpO₂=92 (2) → total 4
-      expect(calculateEWS(vitals({ fr: 21, spo2: 92 })).status).toBe("Atenção");
-    });
-
-    it("escore 5 → Risco Elevado", () => {
-      // FR=21 (2) + SpO₂=92 (2) + FC=91 (1) → total 5
-      expect(calculateEWS(vitals({ fr: 21, spo2: 92, fc: 91 })).status).toBe("Risco Elevado");
-    });
-
-    it("escore 6 → Risco Elevado", () => {
-      // FR=21 (2) + SpO₂=92 (2) + FC=111 (2) → total 6
-      expect(calculateEWS(vitals({ fr: 21, spo2: 92, fc: 111 })).status).toBe("Risco Elevado");
-    });
-
-    it("escore 7 → Crítico", () => {
-      // FR=21 (2) + SpO₂=92 (2) + FC=111 (2) + TEMP=35 (3) → total 9... use simpler combo
-      // FR=25 (3) + SpO₂=92 (2) + FC=111 (2) → total 7
-      expect(calculateEWS(vitals({ fr: 25, spo2: 92, fc: 111 })).status).toBe("Crítico");
-    });
-
-    it("escore 14 (máximo) → Crítico", () => {
-      // FR=8(3) + SpO₂=91(3) + PAS=90(3) + FC=40(3) + TEMP=35(3) → total 15... wait max is 14
-      // Let me recalc: max score per sign is 3, 5 signs = 15 max...
-      // Actually: FR=8(3) + SpO₂=91(3) + PAS=90(3) + FC=40(3) + TEMP=35(3) = 15 but scale is 0-14
-      // The scale 0-14 comes from NEWS2 without 2 parameters... let me just verify total
-      const result = calculateEWS({ fr: 8, spo2: 91, pas: 90, fc: 40, temp: 35.0 });
-      expect(result.total).toBe(15); // 5 signs × 3 = 15 max (noted in CONTEXT.md as 0-14, but actual max with these 5 is 15)
-      expect(result.status).toBe("Crítico");
+  describe("NC (Nível de Consciência — escala AVPU)", () => {
+    it.each([
+      ["Alerta", 0], ["Confuso", 1], ["Responde à Dor", 2], ["Inconsciente", 3],
+    ] as const)("NC=%s → pontuação %d", (nc, expected) => {
+      expect(calculateEWS(vitals({ nc })).scores.nc).toBe(expected);
     });
   });
 
-  describe("Regra de exceção — sinal individual com pontuação 3", () => {
-    it("FC=131 (individual 3) com total 3 → Atenção (não Risco Elevado)", () => {
-      // FC=131 scores 3, demais normais → total 3 → without exception would be Atenção anyway
-      // Key test: total=3 with one individual=3 → Atenção (not elevated by exception since total already ≥3)
-      const result = calculateEWS(vitals({ fc: 131 }));
-      expect(result.scores.fc).toBe(3);
+  describe("Status Clínico por faixa de escore total", () => {
+    // Base fixa: FR=16(1) + PAS=120(0) + FC=105(0) + TEMP=38.0(1) = 2 — só o NC varia a seguir
+    const base = { fr: 16, pas: 120, fc: 105, temp: 38.0 } as const;
+
+    it("escore 2 (NC=Alerta) → Baixo", () => {
+      const result = calculateEWS(vitals({ ...base, nc: "Alerta" }));
+      expect(result.total).toBe(2);
+      expect(result.status).toBe("Baixo");
+    });
+
+    it("escore 3 (NC=Confuso) → Moderado", () => {
+      const result = calculateEWS(vitals({ ...base, nc: "Confuso" }));
       expect(result.total).toBe(3);
-      expect(result.status).toBe("Atenção");
+      expect(result.status).toBe("Moderado");
     });
 
-    it("sinal individual 3 com total 2 → Atenção (regra de exceção eleva de Estável)", () => {
-      // FR=8 (score 3) + SpO₂=94 (score 1) → total 4... use only FR=8 (3) → total 3
-      // Need total ≤2 with one sign=3 — impossible since min score when sign=3 is total=3
-      // The exception matters when: total < 3 but one sign = 3 (impossible with this scoring)
-      // Actually minimum total when one sign scores 3 is 3 (that sign alone contributes 3)
-      // So the exception applies when total would be exactly 3 from a single sign=3 and rest=0
-      // total=3 without exception → Atenção (already). Exception doesn't change result here.
-      // Real test: confirm exception is applied (defensive test)
-      const result = calculateEWS(vitals({ fr: 8 })); // FR=8 → score 3, rest normal → total 3
-      expect(result.scores.fr).toBe(3);
-      expect(result.total).toBe(3);
-      expect(result.status).toBe("Atenção");
+    it("escore 4 (NC=Responde à Dor) → Moderado", () => {
+      const result = calculateEWS(vitals({ ...base, nc: "Responde à Dor" }));
+      expect(result.total).toBe(4);
+      expect(result.status).toBe("Moderado");
     });
 
-    it("PAS=220 (individual 3) com restante normal → Atenção", () => {
-      const result = calculateEWS(vitals({ pas: 220 }));
-      expect(result.scores.pas).toBe(3);
-      expect(result.status).toBe("Atenção");
+    it("escore 5 (NC=Inconsciente) → Alto", () => {
+      const result = calculateEWS(vitals({ ...base, nc: "Inconsciente" }));
+      expect(result.total).toBe(5);
+      expect(result.status).toBe("Alto");
     });
 
-    it("SpO₂=91 (individual 3) com restante normal → Atenção", () => {
-      const result = calculateEWS(vitals({ spo2: 91 }));
-      expect(result.scores.spo2).toBe(3);
-      expect(result.status).toBe("Atenção");
+    it("escore máximo (15) → Alto", () => {
+      const result = calculateEWS({
+        fr: 8, spo2: 98, pas: 70, fc: 40, temp: 35.0, nc: "Inconsciente",
+      });
+      expect(result.total).toBe(15);
+      expect(result.status).toBe("Alto");
     });
   });
 
@@ -152,10 +117,10 @@ describe("EWSCalculator", () => {
       expect(result).toHaveProperty("total");
       expect(result).toHaveProperty("status");
       expect(result.scores).toHaveProperty("fr");
-      expect(result.scores).toHaveProperty("spo2");
       expect(result.scores).toHaveProperty("pas");
       expect(result.scores).toHaveProperty("fc");
       expect(result.scores).toHaveProperty("temp");
+      expect(result.scores).toHaveProperty("nc");
     });
   });
 });

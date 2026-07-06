@@ -10,7 +10,7 @@ const SCORE_COLOR = [
 interface Props {
   label: string;
   unit: string;
-  value: number;
+  value: number | string;
   score: number;
   min?: number;
   max?: number;
