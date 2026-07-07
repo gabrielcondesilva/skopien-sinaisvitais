@@ -89,14 +89,14 @@ export function EWSForecastChart({ internacao, slots, windowMs }: Props) {
             scale="time"
             domain={xDomain}
             tickFormatter={fmtTime}
-            tick={{ fontSize: 10, fill: "#666" }}
+            tick={{ fontSize: 10, fill: "var(--muted)" }}
             tickLine={false}
             axisLine={false}
           />
 
           <YAxis
             domain={[0, 15]}
-            tick={{ fontSize: 10, fill: "#666" }}
+            tick={{ fontSize: 10, fill: "var(--muted)" }}
             tickLine={false}
             axisLine={false}
             width={28}

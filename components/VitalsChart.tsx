@@ -77,7 +77,7 @@ function VitalDot({
 
 // ─── Custom label ─────────────────────────────────────────────────────────────
 
-function makeLabel(vitalKey: string, vitalColor: string, showAll: boolean) {
+function makeLabel(vitalKey: string, vitalColor: string) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return function VitalLabel(props: any) {
     const { x, y, value } = props as { x?: string | number; y?: string | number; value?: unknown };
@@ -88,16 +88,14 @@ function makeLabel(vitalKey: string, vitalColor: string, showAll: boolean) {
     const [cx2, cy2] = [nx, ny];
     const value2 = numVal;
 
-    // Em alta densidade, só mostra labels de valores fora do padrão
     const score = scoreVal(vitalKey, value2);
-    if (!showAll && score === 0) return null;
 
     const formatted =
       vitalKey === "temp"
         ? value2.toFixed(1)
         : String(Math.round(value2));
 
-    const color = score >= 2 ? ALERT_RED : score === 1 ? ALERT_YELLOW : "#888888";
+    const color = score >= 2 ? ALERT_RED : score === 1 ? ALERT_YELLOW : "var(--muted)";
 
     return (
       <text
@@ -158,14 +156,11 @@ export function VitalsChart({ slots }: Props) {
     return <p className="text-sm py-6 text-center" style={{ color: "var(--muted)" }}>Sem dados no intervalo</p>;
   }
 
-  // Acima de 24 pontos, labels somente para valores fora do padrão
-  const showAllLabels = slots.length <= 24;
-
   return (
     <div className="flex flex-col gap-3">
       {VITALS_CFG.map((v) => {
         const domain    = computeDomain(slots, v.key, v.absMin, v.absMax, v.minRange);
-        const LabelComp = makeLabel(v.key, v.color, showAllLabels);
+        const LabelComp = makeLabel(v.key, v.color);
 
         return (
           <div
@@ -188,14 +183,14 @@ export function VitalsChart({ slots }: Props) {
                 <XAxis
                   dataKey="t"
                   tickFormatter={fmtTime}
-                  tick={{ fontSize: 10, fill: "#666" }}
+                  tick={{ fontSize: 10, fill: "var(--muted)" }}
                   tickLine={false}
                   axisLine={false}
                   interval="preserveStartEnd"
                 />
                 <YAxis
                   domain={domain}
-                  tick={{ fontSize: 10, fill: "#666" }}
+                  tick={{ fontSize: 10, fill: "var(--muted)" }}
                   tickLine={false}
                   axisLine={false}
                   width={34}

@@ -27,7 +27,7 @@ function ScoreDot({ cx, cy, value, index }: { cx?: number; cy?: number; value?: 
   return <circle key={`ews-dot-${index}`} cx={cx} cy={cy} r={3} fill={statusColor(value)} />;
 }
 
-function makeScoreLabel(showAll: boolean) {
+function makeScoreLabel() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return function ScoreLabel(props: any) {
     const { x, y, value } = props as { x?: string | number; y?: string | number; value?: unknown };
@@ -35,9 +35,6 @@ function makeScoreLabel(showAll: boolean) {
     const ny = typeof y === "string" ? parseFloat(y) : (y as number | undefined);
     const numVal = typeof value === "number" ? value : undefined;
     if (nx == null || isNaN(nx) || ny == null || isNaN(ny) || numVal == null) return null;
-
-    // Em alta densidade, só mostra labels de escore Moderado/Alto (≥3)
-    if (!showAll && numVal < 3) return null;
 
     return (
       <text
@@ -59,9 +56,7 @@ interface Props {
 }
 
 export function EWSScoreChart({ slots }: Props) {
-  // Acima de 24 pontos, labels somente para escores Moderado/Alto
-  const showAllLabels = slots.length <= 24;
-  const ScoreLabel = makeScoreLabel(showAllLabels);
+  const ScoreLabel = makeScoreLabel();
 
   return (
     <div
@@ -79,7 +74,7 @@ export function EWSScoreChart({ slots }: Props) {
           <XAxis
             dataKey="t"
             tickFormatter={fmtTime}
-            tick={{ fontSize: 10, fill: "#666" }}
+            tick={{ fontSize: 10, fill: "var(--muted)" }}
             tickLine={false}
             axisLine={false}
             interval="preserveStartEnd"
@@ -87,7 +82,7 @@ export function EWSScoreChart({ slots }: Props) {
 
           <YAxis
             domain={[0, 15]}
-            tick={{ fontSize: 10, fill: "#666" }}
+            tick={{ fontSize: 10, fill: "var(--muted)" }}
             tickLine={false}
             axisLine={false}
             width={28}
