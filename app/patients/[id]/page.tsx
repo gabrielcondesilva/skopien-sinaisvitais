@@ -9,6 +9,7 @@ import { VitalCard } from "@/components/VitalCard";
 import { VitalsChart } from "@/components/VitalsChart";
 import { VitalsHeatmap } from "@/components/VitalsHeatmap";
 import { EWSForecastChart } from "@/components/EWSForecastChart";
+import { EWSScoreChart } from "@/components/EWSScoreChart";
 import { CameraPlayer } from "@/components/CameraPlayer";
 import { BradenModal } from "@/components/BradenModal";
 import { Icon } from "@/components/ui/Icon";
@@ -302,8 +303,9 @@ function SinaisVitaisTab({ internacao, slotMin, windowMs }: {
   const [view, setView] = useState<"graficos" | "heatmap">("graficos");
 
   const rawHistory = useSimulationStore((s) => s.internacoes[internacao.id]?.rawHistory ?? []);
-  const slots   = computeSlots(rawHistory, slotMin, windowMs, Date.now());
-  const current = currentSlotValues(rawHistory, slotMin, Date.now());
+  const slots = computeSlots(rawHistory, slotMin, windowMs, Date.now());
+  // Cartão sempre reflete o último ponto do gráfico (mesmo slot em andamento) — nunca uma leitura bruta à parte
+  const current = slots[slots.length - 1] ?? currentSlotValues(rawHistory, slotMin, Date.now());
   const ews     = calculateEWS(current);
 
   const minMax = Object.fromEntries(
@@ -351,6 +353,9 @@ function SinaisVitaisTab({ internacao, slotMin, windowMs }: {
           />
         ))}
       </div>
+
+      {/* Escore EWS — mostra por que o escore está no valor atual */}
+      <EWSScoreChart slots={slots} />
 
       {view === "graficos" ? <VitalsChart slots={slots} /> : <VitalsHeatmap slots={slots} />}
     </div>
