@@ -340,8 +340,40 @@ export default function EmergencyUnitPage() {
         >
           {/* Row 1 — 4 equal cards */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, flexShrink: 0 }}>
-            <KpiCard label="Porta → Triagem"   value="8 min"  sub="média hoje" />
-            <KpiCard label="Porta → Médico"    value="27 min" sub="média hoje" />
+            {/* Porta → Triagem */}
+            <div
+              className="rounded-lg p-4 flex gap-3"
+              style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
+            >
+              <div className="flex flex-col gap-1 flex-1">
+                <span className="text-xs uppercase tracking-wide" style={{ color: "var(--muted)" }}>Porta → Triagem</span>
+                <span className="text-2xl font-bold tabular-nums">8 min</span>
+                <span className="text-xs" style={{ color: "var(--muted)" }}>tempo médio</span>
+              </div>
+              <div style={{ width: 1, background: "var(--border)", flexShrink: 0, alignSelf: "stretch" }} />
+              <div className="flex flex-col gap-1 flex-1">
+                <span className="text-xs uppercase tracking-wide" style={{ color: "var(--muted)" }}>Pacientes</span>
+                <span className="text-2xl font-bold tabular-nums">7</span>
+                <span className="text-xs" style={{ color: "var(--muted)" }}>na fila</span>
+              </div>
+            </div>
+            {/* Porta → Médico */}
+            <div
+              className="rounded-lg p-4 flex gap-3"
+              style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
+            >
+              <div className="flex flex-col gap-1 flex-1">
+                <span className="text-xs uppercase tracking-wide" style={{ color: "var(--muted)" }}>Porta → Médico</span>
+                <span className="text-2xl font-bold tabular-nums">27 min</span>
+                <span className="text-xs" style={{ color: "var(--muted)" }}>tempo médio</span>
+              </div>
+              <div style={{ width: 1, background: "var(--border)", flexShrink: 0, alignSelf: "stretch" }} />
+              <div className="flex flex-col gap-1 flex-1">
+                <span className="text-xs uppercase tracking-wide" style={{ color: "var(--muted)" }}>Pacientes</span>
+                <span className="text-2xl font-bold tabular-nums">7</span>
+                <span className="text-xs" style={{ color: "var(--muted)" }}>na fila</span>
+              </div>
+            </div>
             <KpiCard label="Permanência Média" value="4,2 h"  sub="em atendimento" />
             {/* Espera por Leito + Leito Virtual */}
             <div
