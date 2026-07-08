@@ -38,7 +38,7 @@ function makeInternacao(
   const last = rawHistory[rawHistory.length - 1];
   const ews = calculateEWS(last);
 
-  const forecastSteps = 24; // 24 × 5min = 2h
+  const forecastSteps = 36; // 36 × 5min = 3h
   const ewsForecast = Array.from({ length: forecastSteps }, (_, i) => ({
     t: now + (i + 1) * 5 * 60_000,
     ews: Math.max(0, ews.total + Math.round((Math.random() - 0.4) * i * 0.15)),

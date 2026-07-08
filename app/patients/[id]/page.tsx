@@ -364,19 +364,19 @@ function SinaisVitaisTab({ internacao, slotMin, windowMs }: {
 
 // ─── Tab: Predição EWS ───────────────────────────────────────────────────────
 
-function EWSTab({ internacao, slotMin, windowMs }: {
+const EWS_FORECAST_WINDOW_MS = 3 * 3_600_000; // esta aba é sempre 3h histórico + 3h previsão
+
+function EWSTab({ internacao, slotMin }: {
   internacao: Internacao | SurgicalInternacao;
   slotMin: number;
-  windowMs: number;
 }) {
   const rawHistory = useSimulationStore((s) => s.internacoes[internacao.id]?.rawHistory ?? []);
-  const slots = computeSlots(rawHistory, slotMin, windowMs, Date.now());
+  const slots = computeSlots(rawHistory, slotMin, EWS_FORECAST_WINDOW_MS, Date.now());
 
   return (
     <EWSForecastChart
       internacao={internacao}
       slots={slots}
-      windowMs={windowMs}
     />
   );
 }
@@ -724,7 +724,7 @@ function PatientContent({ id }: { id: string }) {
           <SinaisVitaisTab internacao={internacao} slotMin={slotMin} windowMs={windowMs} />
         )}
         {tab === "ews" && (
-          <EWSTab internacao={internacao} slotMin={slotMin} windowMs={windowMs} />
+          <EWSTab internacao={internacao} slotMin={slotMin} />
         )}
         {tab === "internacao" && (
           <InternacaoTab internacao={internacao} slotMin={slotMin} />

@@ -3,7 +3,7 @@
 import {
   ComposedChart, Area, Line,
   XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine,
-  ResponsiveContainer,
+  ResponsiveContainer, LabelList,
 } from "recharts";
 import type { Internacao, SurgicalInternacao, SlotReading } from "@/lib/simulation/types";
 
@@ -11,13 +11,52 @@ function fmtTime(t: number) {
   return new Date(t).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
 
+// Janela fixa desta visualização: 3h de histórico + 3h de previsão
+const FORECAST_WINDOW_MS = 3 * 3_600_000;
+
+function statusColor(total: number): string {
+  if (total >= 5) return "#F03E3E"; // Alto
+  if (total >= 3) return "#F59F00"; // Moderado
+  return "#2F9E44"; // Baixo
+}
+
+// Recharts não repassa o datum original ao content de LabelList — usamos o
+// índice posicional dentro do array ordenado do gráfico (`chartData`) para
+// decidir quais pontos ganham rótulo.
+function makeEwsLabel(dashed: boolean, isVisible: (index: number) => boolean) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return function EwsLabel(props: any) {
+    const { x, y, value, index } = props as {
+      x?: string | number; y?: string | number; value?: unknown; index?: number;
+    };
+    const nx = typeof x === "string" ? parseFloat(x) : (x as number | undefined);
+    const ny = typeof y === "string" ? parseFloat(y) : (y as number | undefined);
+    const numVal = typeof value === "number" ? value : undefined;
+    if (nx == null || isNaN(nx) || ny == null || isNaN(ny) || numVal == null) return null;
+    if (index == null || !isVisible(index)) return null;
+
+    return (
+      <text
+        x={nx}
+        y={ny - 9}
+        textAnchor="middle"
+        fontSize={9}
+        fontWeight={numVal >= 3 ? 600 : 400}
+        fill={statusColor(numVal)}
+        fontStyle={dashed ? "italic" : "normal"}
+      >
+        {numVal}
+      </text>
+    );
+  };
+}
+
 interface Props {
   internacao: Internacao | SurgicalInternacao;
   slots: SlotReading[];
-  windowMs: number;
 }
 
-export function EWSForecastChart({ internacao, slots, windowMs }: Props) {
+export function EWSForecastChart({ internacao, slots }: Props) {
   const now = Date.now();
   const currentEws = internacao.currentEws;
   const forecast = internacao.ewsForecast;
@@ -56,9 +95,20 @@ export function EWSForecastChart({ internacao, slots, windowMs }: Props) {
     };
   });
 
+  // chartData preserva a ordem de concatenação (hist < now < forecast), então
+  // o índice posicional de cada ponto é estável e pode ser usado p/ rótulos
+  const connectorIndex = histPoints.length;
+  const forecastStartIndex = connectorIndex + 1;
+  const histLabel = makeEwsLabel(false, () => true);
+  const fcastLabel = makeEwsLabel(true, (index) => {
+    // ponto "agora" já é rotulado pela linha histórica — evita label duplicado
+    const fi = index - forecastStartIndex;
+    return fi >= 0 && fi % 6 === 5; // 1 a cada 30min (passos de 5min)
+  });
+
   const chartData = [...histPoints, connector, ...fcastPoints].sort((a, b) => a.t - b.t);
 
-  const xDomain: [number, number] = [now - windowMs, now + 2 * 3_600_000];
+  const xDomain: [number, number] = [now - FORECAST_WINDOW_MS, now + FORECAST_WINDOW_MS];
 
   return (
     <div
@@ -68,7 +118,7 @@ export function EWSForecastChart({ internacao, slots, windowMs }: Props) {
       {/* Title row */}
       <div className="flex items-center gap-3 mb-4">
         <p className="text-sm font-medium">Histórico + Previsão EWS</p>
-        <span className="text-xs" style={{ color: "var(--muted)" }}>próximas 2h</span>
+        <span className="text-xs" style={{ color: "var(--muted)" }}>3h histórico · 3h previsão</span>
         {hasHighForecast && (
           <span
             className="ml-auto text-xs px-2 py-0.5 rounded font-medium"
@@ -80,7 +130,7 @@ export function EWSForecastChart({ internacao, slots, windowMs }: Props) {
       </div>
 
       <ResponsiveContainer width="100%" height={280}>
-        <ComposedChart data={chartData} margin={{ top: 8, right: 20, left: -8, bottom: 0 }}>
+        <ComposedChart data={chartData} margin={{ top: 18, right: 20, left: -8, bottom: 0 }}>
           <CartesianGrid stroke="rgba(255,255,255,0.04)" vertical={false} />
 
           <XAxis
@@ -173,7 +223,9 @@ export function EWSForecastChart({ internacao, slots, windowMs }: Props) {
             dot={false}
             isAnimationActive={false}
             connectNulls={false}
-          />
+          >
+            <LabelList content={histLabel} />
+          </Line>
 
           {/* Forecast dashed line */}
           <Line
@@ -184,7 +236,9 @@ export function EWSForecastChart({ internacao, slots, windowMs }: Props) {
             dot={false}
             isAnimationActive={false}
             connectNulls={false}
-          />
+          >
+            <LabelList content={fcastLabel} />
+          </Line>
         </ComposedChart>
       </ResponsiveContainer>
 
