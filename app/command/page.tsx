@@ -66,7 +66,7 @@ const DASHBOARDS = [
   },
   {
     id: "medicamentos-atrasados",
-    label: "Medicamentos Atrasados",
+    label: "Medicamentos",
     desc: "Distribuição de atrasos de medicação por faixa de tempo e setor",
   },
 ] as const;
