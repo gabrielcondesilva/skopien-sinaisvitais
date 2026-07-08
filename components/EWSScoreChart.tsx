@@ -53,9 +53,10 @@ function makeScoreLabel() {
 
 interface Props {
   slots: SlotReading[];
+  syncId?: string;
 }
 
-export function EWSScoreChart({ slots }: Props) {
+export function EWSScoreChart({ slots, syncId }: Props) {
   const ScoreLabel = makeScoreLabel();
 
   return (
@@ -68,7 +69,7 @@ export function EWSScoreChart({ slots }: Props) {
       </div>
 
       <ResponsiveContainer width="100%" height={220}>
-        <ComposedChart data={slots} margin={{ top: 18, right: 20, left: -8, bottom: 0 }}>
+        <ComposedChart data={slots} syncId={syncId} margin={{ top: 18, right: 20, left: -8, bottom: 0 }}>
           <CartesianGrid stroke="rgba(255,255,255,0.04)" vertical={false} />
 
           <XAxis
@@ -96,9 +97,9 @@ export function EWSScoreChart({ slots }: Props) {
               const slot = payload[0].payload as SlotReading;
               const ews = calculateEWS(slot);
               const rows = [
-                { label: "FR",   value: `${Math.round(slot.fr)}`, score: ews.scores.fr },
-                { label: "PAS",  value: `${Math.round(slot.pas)}`, score: ews.scores.pas },
-                { label: "FC",   value: `${Math.round(slot.fc)}`, score: ews.scores.fc },
+                { label: "FR",   value: slot.fr.toFixed(1), score: ews.scores.fr },
+                { label: "PAS",  value: slot.pas.toFixed(1), score: ews.scores.pas },
+                { label: "FC",   value: slot.fc.toFixed(1), score: ews.scores.fc },
                 { label: "TEMP", value: slot.temp.toFixed(1), score: ews.scores.temp },
                 { label: "NC",   value: slot.nc, score: ews.scores.nc },
               ];

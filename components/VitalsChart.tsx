@@ -90,10 +90,7 @@ function makeLabel(vitalKey: string, vitalColor: string) {
 
     const score = scoreVal(vitalKey, value2);
 
-    const formatted =
-      vitalKey === "temp"
-        ? value2.toFixed(1)
-        : String(Math.round(value2));
+    const formatted = value2.toFixed(1);
 
     const color = score >= 2 ? ALERT_RED : score === 1 ? ALERT_YELLOW : "var(--muted)";
 
@@ -149,9 +146,9 @@ function fmtTime(t: number) {
 
 // ─── Chart ───────────────────────────────────────────────────────────────────
 
-interface Props { slots: SlotReading[] }
+interface Props { slots: SlotReading[]; syncId?: string }
 
-export function VitalsChart({ slots }: Props) {
+export function VitalsChart({ slots, syncId }: Props) {
   if (slots.length === 0) {
     return <p className="text-sm py-6 text-center" style={{ color: "var(--muted)" }}>Sem dados no intervalo</p>;
   }
@@ -172,7 +169,7 @@ export function VitalsChart({ slots }: Props) {
               {v.label}&nbsp;<span style={{ opacity: 0.6, fontSize: 11 }}>({v.unit})</span>
             </p>
             <ResponsiveContainer width="100%" height={180}>
-              <AreaChart data={slots} margin={{ top: 18, right: 8, left: -16, bottom: 0 }}>
+              <AreaChart data={slots} syncId={syncId} margin={{ top: 18, right: 8, left: -16, bottom: 0 }}>
                 <defs>
                   <linearGradient id={`g-${v.key}`} x1="0" y1="0" x2="0" y2="1">
                     <stop offset="10%" stopColor={v.color} stopOpacity={0.35} />
@@ -206,7 +203,7 @@ export function VitalsChart({ slots }: Props) {
                       >
                         <span style={{ color: "var(--muted)" }}>{fmtTime(label as number)}</span>
                         <span className="ml-2 font-semibold" style={{ color: v.color }}>
-                          {payload[0].value} {v.unit}
+                          {(payload[0].value as number).toFixed(1)} {v.unit}
                         </span>
                       </div>
                     );

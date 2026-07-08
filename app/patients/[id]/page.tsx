@@ -355,9 +355,11 @@ function SinaisVitaisTab({ internacao, slotMin, windowMs }: {
       </div>
 
       {/* Escore EWS — mostra por que o escore está no valor atual */}
-      <EWSScoreChart slots={slots} />
+      <EWSScoreChart slots={slots} syncId={`vitals-${internacao.id}`} />
 
-      {view === "graficos" ? <VitalsChart slots={slots} /> : <VitalsHeatmap slots={slots} />}
+      {view === "graficos"
+        ? <VitalsChart slots={slots} syncId={`vitals-${internacao.id}`} />
+        : <VitalsHeatmap slots={slots} />}
     </div>
   );
 }
