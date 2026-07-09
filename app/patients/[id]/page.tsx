@@ -305,6 +305,8 @@ function SinaisVitaisTab({ internacao, slotMin, windowMs }: {
   windowMs: number;
 }) {
   const [view, setView] = useState<"graficos" | "heatmap">("graficos");
+  const [cardsVisible, setCardsVisible] = useState(true);
+  const isAntonio = useAuthStore((s) => s.email === "antonio@hospital.com");
 
   const rawHistory = useSimulationStore((s) => s.internacoes[internacao.id]?.rawHistory ?? []);
   const slots = computeSlots(rawHistory, slotMin, windowMs, Date.now());
@@ -320,43 +322,62 @@ function SinaisVitaisTab({ internacao, slotMin, windowMs }: {
     })
   ) as Record<string, { min: number; max: number } | undefined>;
 
+  const legend = (
+    <div className="flex items-center gap-4">
+      {[
+        { color: "#888888", label: "Normal" },
+        { color: "#eab308", label: "Atenção" },
+        { color: "#ef4444", label: "Crítico" },
+      ].map(({ color, label }) => (
+        <span key={label} className="flex items-center gap-1.5 text-xs" style={{ color: "var(--muted)" }}>
+          <span style={{ width: 8, height: 8, borderRadius: "50%", background: color, display: "inline-block" }} />
+          {label}
+        </span>
+      ))}
+      {isAntonio && (
+        <button
+          onClick={() => setCardsVisible((v) => !v)}
+          aria-label={cardsVisible ? "Ocultar cartões" : "Mostrar cartões"}
+          title={cardsVisible ? "Ocultar cartões" : "Mostrar cartões"}
+          className="flex items-center justify-center w-6 h-6 rounded transition-colors hover:bg-white/5"
+          style={{ color: "var(--muted)" }}
+        >
+          <Icon name={cardsVisible ? "eye" : "eye-off"} size={15} color="currentColor" />
+        </button>
+      )}
+    </div>
+  );
+
   return (
     <div className="flex flex-col gap-5">
-      {/* View toggle */}
-      <div className="flex items-center gap-1.5">
-        <span className="text-xs" style={{ color: "var(--muted)" }}>Visualização</span>
-        <SelBtn active={view === "graficos"} onClick={() => setView("graficos")}>Gráficos</SelBtn>
-        <SelBtn active={view === "heatmap"}  onClick={() => setView("heatmap")}>Heatmap</SelBtn>
+      {/* View toggle + legenda */}
+      <div className={`flex items-center gap-1.5 ${isAntonio ? "justify-between" : ""}`}>
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs" style={{ color: "var(--muted)" }}>Visualização</span>
+          <SelBtn active={view === "graficos"} onClick={() => setView("graficos")}>Gráficos</SelBtn>
+          <SelBtn active={view === "heatmap"}  onClick={() => setView("heatmap")}>Heatmap</SelBtn>
+        </div>
+        {isAntonio && legend}
       </div>
 
-      {/* Legenda */}
-      <div className="flex items-center gap-4">
-        {[
-          { color: "#888888", label: "Normal" },
-          { color: "#eab308", label: "Atenção" },
-          { color: "#ef4444", label: "Crítico" },
-        ].map(({ color, label }) => (
-          <span key={label} className="flex items-center gap-1.5 text-xs" style={{ color: "var(--muted)" }}>
-            <span style={{ width: 8, height: 8, borderRadius: "50%", background: color, display: "inline-block" }} />
-            {label}
-          </span>
-        ))}
-      </div>
+      {!isAntonio && legend}
 
       {/* Vital cards */}
-      <div className="flex gap-3">
-        {VITALS.map((v) => (
-          <VitalCard
-            key={v.key}
-            label={v.label}
-            unit={v.unit}
-            value={current[v.key]}
-            score={scoreOf(ews.scores, v.key)}
-            min={minMax[v.key]?.min}
-            max={minMax[v.key]?.max}
-          />
-        ))}
-      </div>
+      {(!isAntonio || cardsVisible) && (
+        <div className="flex gap-3">
+          {VITALS.map((v) => (
+            <VitalCard
+              key={v.key}
+              label={v.label}
+              unit={v.unit}
+              value={current[v.key]}
+              score={scoreOf(ews.scores, v.key)}
+              min={minMax[v.key]?.min}
+              max={minMax[v.key]?.max}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Escore EWS — mostra por que o escore está no valor atual */}
       <EWSScoreChart slots={slots} syncId={`vitals-${internacao.id}`} />
@@ -540,6 +561,7 @@ function PatientContent({ id }: { id: string }) {
     internacao.patient.admissionReason,
     `Admissão: ${formatAdmissionDate(internacao.patient.admittedAt)}`,
   ];
+  const ADMISSION_REASON_INDEX = 2;
 
   return (
     <div className="flex flex-col min-h-0" style={{ background: "var(--background)" }}>
@@ -624,7 +646,7 @@ function PatientContent({ id }: { id: string }) {
               {metaItems.map((item, i) => (
                 <span key={i} className="flex items-center gap-1.5">
                   {i > 0 && <span>·</span>}
-                  <span>{item}</span>
+                  <span style={i === ADMISSION_REASON_INDEX ? { color: "var(--accent)" } : undefined}>{item}</span>
                 </span>
               ))}
               {internacao.unit !== "pronto-socorro" && (
