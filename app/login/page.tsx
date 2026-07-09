@@ -36,6 +36,7 @@ export default function LoginPage() {
 
   const DEMO_CREDENTIALS = [
     { email: "assistencial@hospital.com", label: "Equipe Assistencial", desc: "Leitos, sinais vitais, alertas" },
+    { email: "antonio@hospital.com",      label: "Antonio (teste)",     desc: "Cópia do assistencial p/ comparação" },
     { email: "gestor@hospital.com",       label: "Gestor Hospitalar",   desc: "Gestão + visão assistencial" },
     { email: "executivo@hospital.com",    label: "Executivo",           desc: "Painel estratégico / admin" },
     { email: "dashboards@hospital.com",   label: "Painéis",             desc: "Command center & dashboards" },

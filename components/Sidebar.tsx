@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/auth";
@@ -8,6 +9,7 @@ import { useSidebarStore } from "@/store/sidebar";
 import { useSimulationStore } from "@/store/simulation";
 import { Icon } from "./ui/Icon";
 import Image from "next/image";
+import { RealtimeClock } from "./RealtimeClock";
 import type { UserProfile } from "@/store/auth";
 
 const UNITS = [
@@ -125,12 +127,56 @@ function NavBtn({
 export function Sidebar() {
   const pathname    = usePathname();
   const profile     = useAuthStore((s) => s.profile);
+  const isAntonio   = useAuthStore((s) => s.email === "antonio@hospital.com");
   const router      = useRouter();
   const adminTab    = useAdminStore((s) => s.tab);
   const setAdminTab = useAdminStore((s) => s.setTab);
   const collapsed    = useSidebarStore((s) => s.collapsed);
   const toggle       = useSidebarStore((s) => s.toggle);
+  const isFullscreen = useSidebarStore((s) => s.fullscreen);
+  const setFullscreen = useSidebarStore((s) => s.setFullscreen);
   const internacoes  = useSimulationStore((s) => s.internacoes);
+
+  useEffect(() => {
+    function onFullscreenChange() {
+      setFullscreen(!!document.fullscreenElement);
+    }
+    document.addEventListener("fullscreenchange", onFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", onFullscreenChange);
+  }, [setFullscreen]);
+
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen?.();
+    } else {
+      document.exitFullscreen?.();
+    }
+  }
+
+  // Em tela cheia, a sidebar inteira some — só resta um botão flutuante para sair
+  if (isFullscreen) {
+    return (
+      <button
+        onClick={toggleFullscreen}
+        aria-label="Sair da tela cheia"
+        title="Sair da tela cheia"
+        className="fixed z-30 flex items-center justify-center transition-opacity opacity-25 hover:opacity-100"
+        style={{
+          bottom: 16,
+          right: 16,
+          width: 36,
+          height: 36,
+          borderRadius: "50%",
+          background: "var(--surface)",
+          border: "1px solid var(--border)",
+          color: "var(--muted)",
+          cursor: "pointer",
+        }}
+      >
+        <Icon name="minimize" size={16} color="currentColor" />
+      </button>
+    );
+  }
 
   // Mantém a unidade destacada mesmo dentro de /patients/[id]
   let activeUnit: string | null = null;
@@ -255,6 +301,27 @@ export function Sidebar() {
             </>
           )}
         </nav>
+
+        {/* Demo branding: full screen + logo DEMO + relógio (somente Antonio) */}
+        {isAntonio && !collapsed && (
+          <div className="shrink-0 flex flex-col items-center gap-2 pt-2 pb-1">
+            <button
+              onClick={toggleFullscreen}
+              className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider font-semibold transition-colors hover:opacity-80"
+              style={{ color: "var(--muted)", cursor: "pointer" }}
+            >
+              <Icon name={isFullscreen ? "minimize" : "maximize"} size={12} color="currentColor" />
+              {isFullscreen ? "Sair da Tela Cheia" : "Tela Cheia"}
+            </button>
+            <Image
+              src="/logo_demo.png"
+              alt="DEMO"
+              width={72}
+              height={30}
+            />
+            <RealtimeClock style={{ fontSize: 10, textAlign: "center" }} />
+          </div>
+        )}
 
         {/* SkinOne integration logo */}
         <div

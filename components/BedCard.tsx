@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAlertStore } from "@/store/alerts";
+import { useAuthStore } from "@/store/auth";
 import { useShallow } from "zustand/react/shallow";
 import type { Alert, Bed, Internacao, SurgicalInternacao } from "@/lib/simulation/types";
 import { StreamlineIcon } from "./ui/StreamlineIcon";
@@ -50,6 +51,7 @@ interface Props {
 export function BedCard({ bed, internacao }: Props) {
   const router = useRouter();
   const [hovered, setHovered] = useState(false);
+  const isAntonio = useAuthStore((s) => s.email === "antonio@hospital.com");
   const alerts = useAlertStore(useShallow((s) =>
     internacao
       ? s.active.filter((a) => a.internacaoId === internacao.id && !(a.type === "alta" && bed.unit === "pronto-socorro"))
@@ -131,7 +133,10 @@ export function BedCard({ bed, internacao }: Props) {
       </div>
 
       {/* Admission reason */}
-      <p className="text-xs leading-tight line-clamp-1" style={{ color: "var(--muted)" }}>
+      <p
+        className="text-xs leading-tight line-clamp-1"
+        style={{ color: isAntonio ? "var(--accent)" : "var(--muted)" }}
+      >
         {internacao.patient.admissionReason}
       </p>
 

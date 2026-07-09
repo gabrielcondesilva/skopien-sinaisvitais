@@ -83,6 +83,7 @@ export default function UnitPage({ params }: { params: Promise<{ unit: string }>
   const { unit } = use(params);
   const label = UNIT_LABELS[unit] ?? unit;
   const collapsed = useSidebarStore((s) => s.collapsed);
+  const fullscreen = useSidebarStore((s) => s.fullscreen);
 
   return (
     <AuthGuard>
@@ -91,7 +92,7 @@ export default function UnitPage({ params }: { params: Promise<{ unit: string }>
         <main
           className="flex-1 overflow-y-auto flex flex-col"
           style={{
-            marginLeft: collapsed ? 56 : 224,
+            marginLeft: fullscreen ? 0 : collapsed ? 56 : 224,
             transition: "margin-left 200ms ease",
             minHeight: "100vh",
             background: "var(--background)",

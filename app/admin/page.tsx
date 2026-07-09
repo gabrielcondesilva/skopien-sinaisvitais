@@ -649,13 +649,14 @@ export default function AdminPage() {
   const tab       = useAdminStore((s) => s.tab);
   const setTab    = useAdminStore((s) => s.setTab);
   const collapsed = useSidebarStore((s) => s.collapsed);
+  const fullscreen = useSidebarStore((s) => s.fullscreen);
 
   return (
     <AuthGuard>
       <div className="flex" style={{ height: "100vh", overflow: "hidden" }}>
         <Sidebar />
         <main className="flex-1 flex flex-col overflow-hidden"
-          style={{ marginLeft: collapsed ? 56 : 224, transition: "margin-left 200ms ease", background: "var(--background)" }}>
+          style={{ marginLeft: fullscreen ? 0 : collapsed ? 56 : 224, transition: "margin-left 200ms ease", background: "var(--background)" }}>
           <TopBar />
 
           <div className="flex flex-col flex-1 min-h-0 px-5 pt-4 pb-3 gap-2">

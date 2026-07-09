@@ -11,10 +11,14 @@ import { VitalsHeatmap } from "@/components/VitalsHeatmap";
 import { EWSForecastChart } from "@/components/EWSForecastChart";
 import { EWSScoreChart } from "@/components/EWSScoreChart";
 import { CameraPlayer } from "@/components/CameraPlayer";
+import { FloatingCameraWindow } from "@/components/FloatingCameraWindow";
 import { BradenModal } from "@/components/BradenModal";
+import { AlertsPanel } from "@/components/AlertsPanel";
 import { Icon } from "@/components/ui/Icon";
 import { useSimulationStore } from "@/store/simulation";
 import { useSidebarStore } from "@/store/sidebar";
+import { useAlertStore } from "@/store/alerts";
+import { useAuthStore } from "@/store/auth";
 import { computeSlots, currentSlotValues } from "@/lib/simulation/vitals";
 import { calculateEWS } from "@/lib/ews";
 import type { Internacao, SurgicalInternacao } from "@/lib/simulation/types";
@@ -507,6 +511,11 @@ function PatientContent({ id }: { id: string }) {
   const [camOpen, setCamOpen]         = useState(false);
   const [camFullscreen, setCamFullscreen] = useState(false);
   const [bradenOpen, setBradenOpen]   = useState(false);
+  const [panelOpen, setPanelOpen]     = useState(false);
+
+  const isAntonio = useAuthStore((s) => s.email === "antonio@hospital.com");
+  const logout    = useAuthStore((s) => s.logout);
+  const active    = useAlertStore((s) => s.active);
 
   const internacao = useSimulationStore((s) => s.internacoes[id] ?? null);
   const bed = useSimulationStore((s) => s.beds.find((b) => b.internacaoId === id) ?? null);
@@ -523,6 +532,7 @@ function PatientContent({ id }: { id: string }) {
   const proxyUrl = process.env.NEXT_PUBLIC_CAMERA_PROXY_URL;
   const isLiveCamera = bed?.label === "UTI-01" && !!proxyUrl;
   const streamUrl = `${proxyUrl}/stream/index.m3u8`;
+  const activeAlertCount = active.filter((a) => a.unit === internacao.unit).length;
 
   const metaItems = [
     `${internacao.patient.age} anos`,
@@ -534,159 +544,296 @@ function PatientContent({ id }: { id: string }) {
   return (
     <div className="flex flex-col min-h-0" style={{ background: "var(--background)" }}>
 
-      {/* ── Patient header ── */}
-      <div className="px-6 pt-4 pb-4" style={{ borderBottom: "1px solid var(--border)" }}>
-        {/* Name + EWS badge */}
-        <div className="flex items-center gap-3 mb-1.5 flex-wrap">
-          <button
-            onClick={() => router.push(`/units/${internacao.unit}`)}
-            className="text-base hover:opacity-70 transition-opacity shrink-0"
-            style={{ color: "var(--muted)" }}
-            aria-label={`Voltar para ${UNIT_LABELS[internacao.unit] ?? internacao.unit}`}
-          >
-            ←
-          </button>
-          <h1 className="text-xl font-semibold">{internacao.patient.name}</h1>
-          <span
-            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs tabular-nums"
-            style={{
-              background: `${statusColor}18`,
-              border: `1px solid ${statusColor}55`,
-              color: statusColor,
-            }}
-          >
-            EWS {internacao.currentEws} · {internacao.currentStatus}
-          </span>
-
-          {/* Badge Braden — apenas para UTI-01 */}
-          {bed?.label === "UTI-01" && (
-            <button
-              onClick={() => setBradenOpen(true)}
-              className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-medium transition-opacity hover:opacity-80"
-              style={{
-                background: "rgba(56,189,248,0.12)",
-                border: "1px solid rgba(56,189,248,0.4)",
-                color: "#38bdf8",
-                cursor: "pointer",
-              }}
-            >
-              <span
-                className="w-1.5 h-1.5 rounded-full shrink-0"
-                style={{ background: "#38bdf8" }}
-              />
-              Braden 10 · Alto Risco
-            </button>
-          )}
-        </div>
-
-        {/* Compact metadata row */}
-        <div
-          className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm pl-6"
-          style={{ color: "var(--muted)" }}
-        >
-          {metaItems.map((item, i) => (
-            <span key={i} className="flex items-center gap-1.5">
-              {i > 0 && <span>·</span>}
-              <span>{item}</span>
-            </span>
-          ))}
-          {internacao.unit !== "pronto-socorro" && (
-            <span className="flex items-center gap-1.5">
-              <span>·</span>
-              <span style={{ color: "var(--foreground)" }}>
-                ⏱ Internado há {formatElapsed(internacao.patient.admittedAt)}
-              </span>
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* ── Camera collapsible ── */}
-      <div style={{ borderBottom: "1px solid var(--border)" }}>
-        <button
-          onClick={() => setCamOpen((v) => !v)}
-          className="w-full flex items-center justify-between px-6 py-3 text-sm hover:bg-white/[0.02] transition-colors"
-          style={{ background: "var(--surface)" }}
-        >
-          <div className="flex items-center gap-2.5" style={{ color: "var(--muted)" }}>
-            <Icon name="video" size={15} color="currentColor" />
-            <span>Câmera do {bed?.label ?? "Leito"} — Detecção automática</span>
-          </div>
-          <div className="flex items-center gap-3">
-            {isLiveCamera && (
-              <span
-                className="flex items-center gap-1.5 text-xs"
-                style={{ color: "var(--status-stable)" }}
+      {isAntonio ? (
+        /* ── Antonio: header compacto (sem TopBar) — ganha espaço vertical de tela ── */
+        <div className="px-6 pt-3 pb-3" style={{ borderBottom: "1px solid var(--border)" }}>
+          {/* Linha 1: identidade do paciente + controles de perfil */}
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-3 flex-wrap">
+              <button
+                onClick={() => router.push(`/units/${internacao.unit}`)}
+                className="text-base hover:opacity-70 transition-opacity shrink-0"
+                style={{ color: "var(--muted)" }}
+                aria-label={`Voltar para ${UNIT_LABELS[internacao.unit] ?? internacao.unit}`}
               >
-                <span
-                  className="w-1.5 h-1.5 rounded-full shrink-0"
-                  style={{ background: "var(--status-stable)" }}
-                />
-                LIVE
+                ←
+              </button>
+              <h1 className="text-xl font-semibold">{internacao.patient.name}</h1>
+              <span
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs tabular-nums"
+                style={{
+                  background: `${statusColor}18`,
+                  border: `1px solid ${statusColor}55`,
+                  color: statusColor,
+                }}
+              >
+                EWS {internacao.currentEws} · {internacao.currentStatus}
               </span>
-            )}
-            <Icon
-              name={camOpen ? "chevron-up" : "chevron-down"}
-              size={14}
-              color="var(--muted)"
-            />
-          </div>
-        </button>
 
-        {camOpen && (
-          <div
-            className="relative overflow-hidden"
-            style={{ height: 240, background: "#000" }}
-          >
-            {isLiveCamera ? (
-              <>
-                <CameraPlayer streamUrl={streamUrl} />
+              {/* Braden — apenas para UTI-01 — texto simples, sem fundo/bolinha */}
+              {bed?.label === "UTI-01" && (
                 <button
-                  onClick={() => setCamFullscreen(true)}
-                  className="absolute bottom-3 right-3 text-xs px-2.5 py-1 rounded transition-opacity hover:opacity-80"
-                  style={{ background: "rgba(0,0,0,0.65)", color: "#fff" }}
+                  onClick={() => setBradenOpen(true)}
+                  className="text-xs font-medium transition-opacity hover:opacity-80"
+                  style={{ color: "#eab308", cursor: "pointer" }}
                 >
-                  ⛶ Expandir
+                  Braden 10 - Risco Alto
                 </button>
-              </>
-            ) : (
-              <div
-                className="w-full h-full flex flex-col items-center justify-center gap-1.5"
+              )}
+            </div>
+
+            <div className="flex items-center gap-0.5 shrink-0">
+              <div className="flex items-center gap-2 px-3 py-1.5 text-sm" style={{ color: "var(--muted)" }}>
+                <Icon name="user-circle" size={15} color="currentColor" />
+                <span className="text-xs">Profissional Assistencial</span>
+              </div>
+
+              <button
+                onClick={() => setPanelOpen(true)}
+                aria-label="Abrir painel de alertas"
+                className={`relative flex items-center justify-center w-9 h-9 rounded-lg transition-colors ${
+                  activeAlertCount > 0 ? "sk-alert-blink" : "hover:bg-white/5"
+                }`}
+                style={{ color: activeAlertCount > 0 ? "var(--status-critical)" : "var(--muted)" }}
+              >
+                <Icon name="bell-ringing" size={17} color="currentColor" />
+                {activeAlertCount > 0 && (
+                  <span
+                    className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full text-[10px] font-bold px-1"
+                    style={{ background: "var(--status-critical)", color: "#fff" }}
+                  >
+                    {activeAlertCount > 99 ? "99+" : activeAlertCount}
+                  </span>
+                )}
+              </button>
+
+              <button
+                onClick={() => { logout(); router.replace("/login"); }}
+                aria-label="Sair da sessão"
+                className="flex items-center justify-center w-9 h-9 rounded-lg transition-colors hover:bg-white/5"
                 style={{ color: "var(--muted)" }}
               >
-                <svg width={28} height={28} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" />
-                </svg>
-                <span className="text-xs">Câmera Indisponível</span>
+                <Icon name="logout" size={17} color="currentColor" />
+              </button>
+            </div>
+          </div>
+
+          {/* Linha 2: metadados + Exames / Prontuário / Câmera */}
+          <div className="flex items-center justify-between gap-3 flex-wrap mt-1.5 pl-6">
+            <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm" style={{ color: "var(--muted)" }}>
+              {metaItems.map((item, i) => (
+                <span key={i} className="flex items-center gap-1.5">
+                  {i > 0 && <span>·</span>}
+                  <span>{item}</span>
+                </span>
+              ))}
+              {internacao.unit !== "pronto-socorro" && (
+                <span className="flex items-center gap-1.5">
+                  <span>·</span>
+                  <span style={{ color: "var(--foreground)" }}>
+                    ⏱ Internado há {formatElapsed(internacao.patient.admittedAt)}
+                  </span>
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg transition-colors hover:bg-white/5"
+                style={{ background: "rgba(255,255,255,0.06)", color: "var(--muted)" }}
+              >
+                <Icon name="flask" size={14} color="currentColor" />
+                Exames
+              </button>
+              <button
+                className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg transition-colors hover:bg-white/5"
+                style={{ background: "rgba(255,255,255,0.06)", color: "var(--muted)" }}
+              >
+                <Icon name="file-text" size={14} color="currentColor" />
+                Prontuário
+              </button>
+              <button
+                onClick={() => setCamFullscreen(true)}
+                className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg transition-colors hover:bg-white/5"
+                style={{ background: "rgba(255,255,255,0.06)", color: "var(--muted)" }}
+              >
+                <Icon name="video" size={14} color="currentColor" />
+                Câmera
+                {isLiveCamera && (
+                  <span className="flex items-center gap-1 text-xs" style={{ color: "var(--status-stable)" }}>
+                    <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: "var(--status-stable)" }} />
+                    LIVE
+                  </span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* ── Patient header ── */}
+          <div className="px-6 pt-4 pb-4" style={{ borderBottom: "1px solid var(--border)" }}>
+            {/* Name + EWS badge */}
+            <div className="flex items-center gap-3 mb-1.5 flex-wrap">
+              <button
+                onClick={() => router.push(`/units/${internacao.unit}`)}
+                className="text-base hover:opacity-70 transition-opacity shrink-0"
+                style={{ color: "var(--muted)" }}
+                aria-label={`Voltar para ${UNIT_LABELS[internacao.unit] ?? internacao.unit}`}
+              >
+                ←
+              </button>
+              <h1 className="text-xl font-semibold">{internacao.patient.name}</h1>
+              <span
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs tabular-nums"
+                style={{
+                  background: `${statusColor}18`,
+                  border: `1px solid ${statusColor}55`,
+                  color: statusColor,
+                }}
+              >
+                EWS {internacao.currentEws} · {internacao.currentStatus}
+              </span>
+
+              {/* Badge Braden — apenas para UTI-01 */}
+              {bed?.label === "UTI-01" && (
+                <button
+                  onClick={() => setBradenOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-medium transition-opacity hover:opacity-80"
+                  style={{
+                    background: "rgba(56,189,248,0.12)",
+                    border: "1px solid rgba(56,189,248,0.4)",
+                    color: "#38bdf8",
+                    cursor: "pointer",
+                  }}
+                >
+                  <span
+                    className="w-1.5 h-1.5 rounded-full shrink-0"
+                    style={{ background: "#38bdf8" }}
+                  />
+                  Braden 10 · Alto Risco
+                </button>
+              )}
+            </div>
+
+            {/* Compact metadata row */}
+            <div
+              className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm pl-6"
+              style={{ color: "var(--muted)" }}
+            >
+              {metaItems.map((item, i) => (
+                <span key={i} className="flex items-center gap-1.5">
+                  {i > 0 && <span>·</span>}
+                  <span>{item}</span>
+                </span>
+              ))}
+              {internacao.unit !== "pronto-socorro" && (
+                <span className="flex items-center gap-1.5">
+                  <span>·</span>
+                  <span style={{ color: "var(--foreground)" }}>
+                    ⏱ Internado há {formatElapsed(internacao.patient.admittedAt)}
+                  </span>
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* ── Camera collapsible ── */}
+          <div style={{ borderBottom: "1px solid var(--border)" }}>
+            <button
+              onClick={() => setCamOpen((v) => !v)}
+              className="w-full flex items-center justify-between px-6 py-3 text-sm hover:bg-white/[0.02] transition-colors"
+              style={{ background: "var(--surface)" }}
+            >
+              <div className="flex items-center gap-2.5" style={{ color: "var(--muted)" }}>
+                <Icon name="video" size={15} color="currentColor" />
+                <span>Câmera do {bed?.label ?? "Leito"} — Detecção automática</span>
+              </div>
+              <div className="flex items-center gap-3">
+                {isLiveCamera && (
+                  <span
+                    className="flex items-center gap-1.5 text-xs"
+                    style={{ color: "var(--status-stable)" }}
+                  >
+                    <span
+                      className="w-1.5 h-1.5 rounded-full shrink-0"
+                      style={{ background: "var(--status-stable)" }}
+                    />
+                    LIVE
+                  </span>
+                )}
+                <Icon
+                  name={camOpen ? "chevron-up" : "chevron-down"}
+                  size={14}
+                  color="var(--muted)"
+                />
+              </div>
+            </button>
+
+            {camOpen && (
+              <div
+                className="relative overflow-hidden"
+                style={{ height: 240, background: "#000" }}
+              >
+                {isLiveCamera ? (
+                  <>
+                    <CameraPlayer streamUrl={streamUrl} />
+                    <button
+                      onClick={() => setCamFullscreen(true)}
+                      className="absolute bottom-3 right-3 text-xs px-2.5 py-1 rounded transition-opacity hover:opacity-80"
+                      style={{ background: "rgba(0,0,0,0.65)", color: "#fff" }}
+                    >
+                      ⛶ Expandir
+                    </button>
+                  </>
+                ) : (
+                  <div
+                    className="w-full h-full flex flex-col items-center justify-center gap-1.5"
+                    style={{ color: "var(--muted)" }}
+                  >
+                    <svg width={28} height={28} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" />
+                    </svg>
+                    <span className="text-xs">Câmera Indisponível</span>
+                  </div>
+                )}
               </div>
             )}
           </div>
-        )}
-      </div>
+        </>
+      )}
 
       {/* Camera fullscreen modal */}
       {camFullscreen && isLiveCamera && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center"
-          style={{ background: "rgba(0,0,0,0.85)" }}
-          onClick={() => setCamFullscreen(false)}
-        >
+        isAntonio ? (
+          <FloatingCameraWindow
+            streamUrl={streamUrl}
+            bedLabel={bed?.label}
+            onClose={() => setCamFullscreen(false)}
+          />
+        ) : (
           <div
-            className="relative rounded-xl overflow-hidden"
-            style={{ width: "min(900px, 90vw)", aspectRatio: "16/9" }}
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-50 flex items-center justify-center"
+            style={{ background: "rgba(0,0,0,0.85)" }}
+            onClick={() => setCamFullscreen(false)}
           >
-            <CameraPlayer streamUrl={streamUrl} />
-            <button
-              onClick={() => setCamFullscreen(false)}
-              className="absolute top-3 right-3 rounded-full w-8 h-8 flex items-center justify-center text-sm transition-opacity hover:opacity-80"
-              style={{ background: "rgba(0,0,0,0.6)", color: "#fff" }}
+            <div
+              className="relative rounded-xl overflow-hidden"
+              style={{ width: "min(900px, 90vw)", aspectRatio: "16/9" }}
+              onClick={(e) => e.stopPropagation()}
             >
-              ✕
-            </button>
+              <CameraPlayer streamUrl={streamUrl} />
+              <button
+                onClick={() => setCamFullscreen(false)}
+                className="absolute top-3 right-3 rounded-full w-8 h-8 flex items-center justify-center text-sm transition-opacity hover:opacity-80"
+                style={{ background: "rgba(0,0,0,0.6)", color: "#fff" }}
+              >
+                ✕
+              </button>
+            </div>
           </div>
-        </div>
+        )
       )}
 
       {/* ── Tab nav ── */}
@@ -737,6 +884,18 @@ function PatientContent({ id }: { id: string }) {
       {bradenOpen && (
         <BradenModal onClose={() => setBradenOpen(false)} />
       )}
+
+      {/* ── Alerts panel (header compacto do Antonio) ── */}
+      {isAntonio && panelOpen && (
+        <>
+          <div
+            className="fixed inset-0 z-40"
+            style={{ background: "rgba(0,0,0,0.35)" }}
+            onClick={() => setPanelOpen(false)}
+          />
+          <AlertsPanel onClose={() => setPanelOpen(false)} unitFilter={internacao.unit} />
+        </>
+      )}
     </div>
   );
 }
@@ -746,6 +905,8 @@ function PatientContent({ id }: { id: string }) {
 export default function PatientPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const collapsed = useSidebarStore((s) => s.collapsed);
+  const fullscreen = useSidebarStore((s) => s.fullscreen);
+  const isAntonio = useAuthStore((s) => s.email === "antonio@hospital.com");
   return (
     <AuthGuard>
       <div className="flex min-h-screen">
@@ -753,12 +914,12 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
         <main
           className="flex-1 overflow-y-auto flex flex-col"
           style={{
-            marginLeft: collapsed ? 56 : 224,
+            marginLeft: fullscreen ? 0 : collapsed ? 56 : 224,
             transition: "margin-left 200ms ease",
             minHeight: "100vh",
           }}
         >
-          <TopBar />
+          {!isAntonio && <TopBar />}
           <PatientContent id={id} />
         </main>
       </div>

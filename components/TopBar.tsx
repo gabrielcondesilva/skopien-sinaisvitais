@@ -54,6 +54,7 @@ export function TopBar() {
   }, []);
 
   const profileLabel = profile ? (PROFILE_LABELS[profile] ?? profile) : "";
+  const isAntonio = useAuthStore((s) => s.email === "antonio@hospital.com");
 
   return (
     <>
@@ -67,7 +68,7 @@ export function TopBar() {
         {/* Left: hospital name + date */}
         <div className="flex items-center gap-3">
           <span className="font-semibold text-sm">{HOSPITAL_NAME}</span>
-          {dateStr && (
+          {dateStr && !isAntonio && (
             <span className="text-xs" style={{ color: "var(--muted)" }}>
               {dateStr}
             </span>
