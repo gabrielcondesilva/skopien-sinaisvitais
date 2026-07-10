@@ -13,6 +13,7 @@ import { EWSScoreChart } from "@/components/EWSScoreChart";
 import { CameraPlayer } from "@/components/CameraPlayer";
 import { FloatingCameraWindow } from "@/components/FloatingCameraWindow";
 import { BradenModal } from "@/components/BradenModal";
+import { PatientRecordPanel } from "@/components/PatientRecordPanel";
 import { AlertsPanel } from "@/components/AlertsPanel";
 import { Icon } from "@/components/ui/Icon";
 import { useSimulationStore } from "@/store/simulation";
@@ -539,6 +540,7 @@ function PatientContent({ id }: { id: string }) {
   const [camFullscreen, setCamFullscreen] = useState(false);
   const [bradenOpen, setBradenOpen]   = useState(false);
   const [panelOpen, setPanelOpen]     = useState(false);
+  const [recordPanel, setRecordPanel] = useState<null | "exames" | "prontuario">(null);
 
   const isAntonio = useAuthStore((s) => s.email === "antonio@hospital.com");
   const logout    = useAuthStore((s) => s.logout);
@@ -667,15 +669,23 @@ function PatientContent({ id }: { id: string }) {
 
             <div className="flex items-center gap-2 shrink-0">
               <button
+                onClick={() => setRecordPanel((p) => (p === "exames" ? null : "exames"))}
                 className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg transition-colors hover:bg-white/5"
-                style={{ background: "rgba(255,255,255,0.06)", color: "var(--muted)" }}
+                style={{
+                  background: recordPanel === "exames" ? "var(--accent)" : "rgba(255,255,255,0.06)",
+                  color: recordPanel === "exames" ? "#fff" : "var(--muted)",
+                }}
               >
                 <Icon name="flask" size={14} color="currentColor" />
                 Exames
               </button>
               <button
+                onClick={() => setRecordPanel((p) => (p === "prontuario" ? null : "prontuario"))}
                 className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg transition-colors hover:bg-white/5"
-                style={{ background: "rgba(255,255,255,0.06)", color: "var(--muted)" }}
+                style={{
+                  background: recordPanel === "prontuario" ? "var(--accent)" : "rgba(255,255,255,0.06)",
+                  color: recordPanel === "prontuario" ? "#fff" : "var(--muted)",
+                }}
               >
                 <Icon name="file-text" size={14} color="currentColor" />
                 Prontuário
@@ -895,16 +905,26 @@ function PatientContent({ id }: { id: string }) {
         setWindowMs={setWindowMs}
       />
 
-      {/* ── Tab content ── */}
-      <div className="flex-1 p-6">
-        {tab === "sinais-vitais" && (
-          <SinaisVitaisTab internacao={internacao} slotMin={slotMin} windowMs={windowMs} />
-        )}
-        {tab === "ews" && (
-          <EWSTab internacao={internacao} slotMin={slotMin} />
-        )}
-        {tab === "internacao" && (
-          <InternacaoTab internacao={internacao} slotMin={slotMin} />
+      {/* ── Tab content + painel de Exames/Prontuário (contexto lado a lado) ── */}
+      <div className="flex-1 flex items-start gap-4 p-6 min-w-0">
+        <div className="flex-1 min-w-0">
+          {tab === "sinais-vitais" && (
+            <SinaisVitaisTab internacao={internacao} slotMin={slotMin} windowMs={windowMs} />
+          )}
+          {tab === "ews" && (
+            <EWSTab internacao={internacao} slotMin={slotMin} />
+          )}
+          {tab === "internacao" && (
+            <InternacaoTab internacao={internacao} slotMin={slotMin} />
+          )}
+        </div>
+
+        {recordPanel && (
+          <PatientRecordPanel
+            mode={recordPanel}
+            patientName={internacao.patient.name}
+            onClose={() => setRecordPanel(null)}
+          />
         )}
       </div>
 
