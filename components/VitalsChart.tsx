@@ -5,43 +5,13 @@ import {
   ResponsiveContainer, CartesianGrid, LabelList,
 } from "recharts";
 import type { SlotReading } from "@/lib/simulation/types";
+import { vitalSeverity, VITAL_SEVERITY_COLOR } from "@/lib/vitalSeverity";
 
-// ─── Severidade visual por sinal (limiares clínicos independentes do Escore MEWS) ──
-// Cor do ponto/label no gráfico — não corresponde 1:1 à pontuação MEWS de lib/ews.ts,
-// que segue a tabela literal do documento institucional (com faixas não-intuitivas,
-// ex.: FR nunca pontua 0). Aqui usamos faixas de normalidade clínica padrão só para
-// destacar visualmente valores fora do comum.
-
-// 0 = normal, 1 = yellow, 2 = red
 function scoreVal(key: string, v: number): number {
-  switch (key) {
-    case "fr":
-      if (v <= 9  || v >= 25) return 2;
-      if (v <= 11 || v >= 21) return 1;
-      return 0;
-    case "spo2":
-      if (v <= 91) return 2;
-      if (v <= 94) return 1;
-      return 0;
-    case "pas":
-      if (v <= 89  || v >= 180) return 2;
-      if (v <= 99  || v >= 140) return 1;
-      return 0;
-    case "fc":
-      if (v <= 49  || v >= 121) return 2;
-      if (v <= 59  || v >= 101) return 1;
-      return 0;
-    case "temp":
-      if (v <= 35.4 || v >= 38.5) return 2;
-      if (v <= 35.9 || v >= 37.5) return 1;
-      return 0;
-    default:
-      return 0;
-  }
+  return vitalSeverity(key, v);
 }
 
-const ALERT_YELLOW = "#eab308";
-const ALERT_RED    = "#ef4444";
+const [, ALERT_YELLOW, ALERT_RED] = VITAL_SEVERITY_COLOR;
 
 // ─── Custom dot ──────────────────────────────────────────────────────────────
 
@@ -110,34 +80,67 @@ function makeLabel(vitalKey: string, vitalColor: string) {
 }
 
 // ─── Domain dinâmico ─────────────────────────────────────────────────────────
+// Janela de 4 valores no eixo Y (3 × step) centralizada nos dados, com folga de
+// meio step acima e abaixo — os valores não devem grudar no topo/fundo do gráfico.
+// A janela só cresce além do padrão quando os dados não cabem nela (ex.: evento
+// de deterioração roteirizado), e só desliza quando um valor alcança a borda.
 
 const VITALS_CFG = [
-  { key: "fr"   as const, label: "FR",   unit: "rpm",  color: "#3b82f6", absMin: 4,  absMax: 60,  minRange: 8   },
-  { key: "spo2" as const, label: "SpO₂", unit: "%",    color: "#a78bfa", absMin: 70, absMax: 100, minRange: 4   },
-  { key: "pas"  as const, label: "PAS",  unit: "mmHg", color: "#fb923c", absMin: 40, absMax: 250, minRange: 20  },
-  { key: "fc"   as const, label: "FC",   unit: "bpm",  color: "#f472b6", absMin: 20, absMax: 220, minRange: 20  },
-  { key: "temp" as const, label: "TEMP", unit: "°C",   color: "#facc15", absMin: 33, absMax: 43,  minRange: 1.5 },
+  { key: "fr"   as const, label: "FR",   unit: "rpm",  color: "#3b82f6", absMin: 4,  absMax: 60,  step: 2   },
+  { key: "spo2" as const, label: "SpO₂", unit: "%",    color: "#a78bfa", absMin: 70, absMax: 100, step: 1   },
+  { key: "pas"  as const, label: "PAS",  unit: "mmHg", color: "#fb923c", absMin: 40, absMax: 250, step: 5   },
+  { key: "fc"   as const, label: "FC",   unit: "bpm",  color: "#f472b6", absMin: 20, absMax: 220, step: 5   },
+  { key: "temp" as const, label: "TEMP", unit: "°C",   color: "#facc15", absMin: 33, absMax: 43,  step: 0.5 },
 ];
+
+const AXIS_TICK_COUNT = 4;
+
+function round2(v: number): number {
+  return Math.round(v * 100) / 100;
+}
 
 function computeDomain(
   slots: SlotReading[],
   key: (typeof VITALS_CFG)[number]["key"],
   absMin: number,
   absMax: number,
-  minRange: number,
-): [number, number] {
+  step: number,
+): { domain: [number, number]; ticks: number[] } {
+  const minSpan = step * (AXIS_TICK_COUNT - 1);
   const vals = slots
     .map((s) => s[key] as number | undefined)
     .filter((v): v is number => v != null && !isNaN(v));
-  if (vals.length === 0) return [absMin, absMax];
-  const dataMin = Math.min(...vals);
-  const dataMax = Math.max(...vals);
-  const range   = Math.max(dataMax - dataMin, minRange);
-  const pad     = range * 0.25;
-  return [
-    Math.max(absMin, Math.floor(dataMin - pad)),
-    Math.min(absMax, Math.ceil(dataMax  + pad)),
-  ];
+
+  let base: number;
+  let span: number;
+
+  if (vals.length === 0) {
+    base = absMin;
+    span = minSpan;
+  } else {
+    const dataMin = Math.min(...vals);
+    const dataMax = Math.max(...vals);
+    // folga de meio step de cada lado, arredondada pra cima em múltiplos de step
+    const neededSpan = Math.ceil((dataMax - dataMin + step) / step) * step;
+    span = Math.max(minSpan, neededSpan);
+
+    const mid = (dataMin + dataMax) / 2;
+    base = Math.round((mid - span / 2) / step) * step;
+
+    // garante que os dados fiquem dentro da janela mesmo após o arredondamento
+    while (dataMin < base + step * 0.4) base -= step;
+    while (dataMax > base + span - step * 0.4) base += step;
+  }
+
+  let top = base + span;
+  if (base < absMin) { base = absMin; top = Math.min(absMax, base + span); }
+  if (top  > absMax) { top  = absMax; base = Math.max(absMin, top - span); }
+
+  const ticks: number[] = [];
+  const tickStep = (top - base) / (AXIS_TICK_COUNT - 1);
+  for (let i = 0; i < AXIS_TICK_COUNT; i++) ticks.push(round2(base + tickStep * i));
+
+  return { domain: [round2(base), round2(top)], ticks };
 }
 
 function fmtTime(t: number) {
@@ -156,7 +159,7 @@ export function VitalsChart({ slots, syncId }: Props) {
   return (
     <div className="flex flex-col gap-3">
       {VITALS_CFG.map((v) => {
-        const domain    = computeDomain(slots, v.key, v.absMin, v.absMax, v.minRange);
+        const { domain, ticks } = computeDomain(slots, v.key, v.absMin, v.absMax, v.step);
         const LabelComp = makeLabel(v.key, v.color);
 
         return (
@@ -169,7 +172,7 @@ export function VitalsChart({ slots, syncId }: Props) {
               {v.label}&nbsp;<span style={{ opacity: 0.6, fontSize: 11 }}>({v.unit})</span>
             </p>
             <ResponsiveContainer width="100%" height={180}>
-              <AreaChart data={slots} syncId={syncId} margin={{ top: 18, right: 8, left: -16, bottom: 0 }}>
+              <AreaChart data={slots} syncId={syncId} margin={{ top: 18, right: 8, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id={`g-${v.key}`} x1="0" y1="0" x2="0" y2="1">
                     <stop offset="10%" stopColor={v.color} stopOpacity={0.35} />
@@ -184,13 +187,15 @@ export function VitalsChart({ slots, syncId }: Props) {
                   tickLine={false}
                   axisLine={false}
                   interval="preserveStartEnd"
+                  padding={{ left: 20, right: 20 }}
                 />
                 <YAxis
                   domain={domain}
+                  ticks={ticks}
                   tick={{ fontSize: 10, fill: "var(--muted)" }}
                   tickLine={false}
                   axisLine={false}
-                  width={34}
+                  width={40}
                 />
                 <Tooltip
                   isAnimationActive={false}

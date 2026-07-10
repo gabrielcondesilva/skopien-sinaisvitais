@@ -21,7 +21,10 @@ import { useAlertStore } from "@/store/alerts";
 import { useAuthStore } from "@/store/auth";
 import { computeSlots, currentSlotValues } from "@/lib/simulation/vitals";
 import { calculateEWS } from "@/lib/ews";
-import type { Internacao, SurgicalInternacao } from "@/lib/simulation/types";
+import { vitalSeverity } from "@/lib/vitalSeverity";
+import type { Internacao, SurgicalInternacao, NivelConsciencia } from "@/lib/simulation/types";
+
+const NC_OPTIONS: readonly NivelConsciencia[] = ["Alerta", "Confuso", "Responde à Dor", "Inconsciente"];
 
 // ─── Shared config ────────────────────────────────────────────────────────────
 
@@ -307,6 +310,7 @@ function SinaisVitaisTab({ internacao, slotMin, windowMs }: {
   const [view, setView] = useState<"graficos" | "heatmap">("graficos");
   const [cardsVisible, setCardsVisible] = useState(true);
   const isAntonio = useAuthStore((s) => s.email === "antonio@hospital.com");
+  const setNivelConsciencia = useSimulationStore((s) => s.setNivelConsciencia);
 
   const rawHistory = useSimulationStore((s) => s.internacoes[internacao.id]?.rawHistory ?? []);
   const slots = computeSlots(rawHistory, slotMin, windowMs, Date.now());
@@ -371,9 +375,11 @@ function SinaisVitaisTab({ internacao, slotMin, windowMs }: {
               label={v.label}
               unit={v.unit}
               value={current[v.key]}
-              score={scoreOf(ews.scores, v.key)}
+              score={vitalSeverity(v.key, current[v.key])}
               min={minMax[v.key]?.min}
               max={minMax[v.key]?.max}
+              editOptions={v.key === "nc" ? NC_OPTIONS : undefined}
+              onEdit={v.key === "nc" ? (nc) => setNivelConsciencia(internacao.id, nc as NivelConsciencia) : undefined}
             />
           ))}
         </div>

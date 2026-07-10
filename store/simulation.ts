@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { buildSeed } from "@/lib/simulation/seed";
 import { nextReading, currentSlotValues, computeSlots } from "@/lib/simulation/vitals";
 import { calculateEWS } from "@/lib/ews";
-import type { Bed, Internacao, SurgicalInternacao, SlotReading, UnitId } from "@/lib/simulation/types";
+import type { Bed, Internacao, SurgicalInternacao, SlotReading, UnitId, NivelConsciencia, RawReading } from "@/lib/simulation/types";
 
 // Deve cobrir a maior Janela selecionável na aba Sinais Vitais (62h, ver "Janela estendida")
 const HISTORY_RETENTION_MS = 62 * 60 * 60 * 1000;
@@ -27,6 +27,7 @@ interface SimulationState {
 
   advance: () => void;
   checkScenes: () => SceneAlert[];
+  setNivelConsciencia: (internacaoId: string, nc: NivelConsciencia) => void;
 
   getBedsForUnit: (unit: string) => Bed[];
   getInternacao: (id: string) => Internacao | SurgicalInternacao | null;
@@ -65,6 +66,38 @@ export const useSimulationStore = create<SimulationState>()((set, get) => ({
       }
 
       return { internacoes: updated, tick: state.tick + 1, lastUpdated: now };
+    });
+  },
+
+  // Edição manual do enfermeiro/médico via AVPU (Alerta/Confuso/Responde à Dor/Inconsciente).
+  // Atualiza o baseline (pra próximas leituras simuladas seguirem o novo valor) e registra
+  // uma leitura imediata, já que NC é avaliação pontual — não sofre random walk.
+  setNivelConsciencia(internacaoId, nc) {
+    set((state) => {
+      const internacao = state.internacoes[internacaoId];
+      if (!internacao) return state;
+
+      const now = Date.now();
+      const last = internacao.rawHistory[internacao.rawHistory.length - 1];
+      const reading: RawReading = last
+        ? { ...last, t: now, nc }
+        : { t: now, fr: internacao.baseline.fr, spo2: internacao.baseline.spo2, pas: internacao.baseline.pas, fc: internacao.baseline.fc, temp: internacao.baseline.temp, nc };
+
+      const current = currentSlotValues([...internacao.rawHistory, reading], 5, now);
+      const ews = calculateEWS(current);
+
+      return {
+        internacoes: {
+          ...state.internacoes,
+          [internacaoId]: {
+            ...internacao,
+            baseline: { ...internacao.baseline, nc },
+            rawHistory: [...internacao.rawHistory, reading],
+            currentEws: ews.total,
+            currentStatus: ews.status,
+          },
+        },
+      };
     });
   },
 

@@ -22,6 +22,34 @@ function statusColor(total: number): string {
   return "#2F9E44"; // Baixo
 }
 
+// ─── Domain dinâmico ─────────────────────────────────────────────────────────
+// Piso de 8 (headroom o suficiente pra ver variação em torno de escores baixos/moderados).
+// Sobe de 2 em 2 sempre que algum valor da janela alcança o teto atual, até o máximo de 15.
+
+const EWS_DOMAIN_FLOOR = 8;
+const EWS_DOMAIN_MAX = 15;
+const EWS_DOMAIN_STEP = 2;
+
+function computeEwsDomain(slots: SlotReading[]): [number, number] {
+  const vals = slots
+    .map((s) => s.ewsTotal)
+    .filter((v): v is number => v != null && !isNaN(v));
+  const dataMax = vals.length > 0 ? Math.max(...vals) : 0;
+
+  let top = EWS_DOMAIN_FLOOR;
+  while (dataMax >= top && top < EWS_DOMAIN_MAX) {
+    top = Math.min(EWS_DOMAIN_MAX, top + EWS_DOMAIN_STEP);
+  }
+  return [0, top];
+}
+
+function computeEwsTicks(top: number): number[] {
+  const ticks: number[] = [];
+  for (let i = 0; i <= top; i += EWS_DOMAIN_STEP) ticks.push(i);
+  if (ticks[ticks.length - 1] !== top) ticks.push(top);
+  return ticks;
+}
+
 function ScoreDot({ cx, cy, value, index }: { cx?: number; cy?: number; value?: number; index?: number }) {
   if (cx == null || cy == null || value == null) return null;
   return <circle key={`ews-dot-${index}`} cx={cx} cy={cy} r={3} fill={statusColor(value)} />;
@@ -58,6 +86,8 @@ interface Props {
 
 export function EWSScoreChart({ slots, syncId }: Props) {
   const ScoreLabel = makeScoreLabel();
+  const [domainMin, domainMax] = computeEwsDomain(slots);
+  const ticks = computeEwsTicks(domainMax);
 
   return (
     <div
@@ -68,8 +98,8 @@ export function EWSScoreChart({ slots, syncId }: Props) {
         <p className="text-sm font-medium">Early Warning Score</p>
       </div>
 
-      <ResponsiveContainer width="100%" height={220}>
-        <ComposedChart data={slots} syncId={syncId} margin={{ top: 18, right: 20, left: -8, bottom: 0 }}>
+      <ResponsiveContainer width="100%" height={180}>
+        <ComposedChart data={slots} syncId={syncId} margin={{ top: 18, right: 20, left: 0, bottom: 0 }}>
           <CartesianGrid stroke="rgba(255,255,255,0.04)" vertical={false} />
 
           <XAxis
@@ -79,15 +109,16 @@ export function EWSScoreChart({ slots, syncId }: Props) {
             tickLine={false}
             axisLine={false}
             interval="preserveStartEnd"
+            padding={{ left: 20, right: 20 }}
           />
 
           <YAxis
-            domain={[0, 15]}
+            domain={[domainMin, domainMax]}
+            ticks={ticks}
             tick={{ fontSize: 10, fill: "var(--muted)" }}
             tickLine={false}
             axisLine={false}
-            width={28}
-            tickCount={6}
+            width={30}
           />
 
           <Tooltip
