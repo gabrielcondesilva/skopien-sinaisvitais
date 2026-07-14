@@ -146,6 +146,68 @@ const MOCK_LESIONS: Lesion[] = [
 
 export const LESION_COUNT = MOCK_LESIONS.length;
 
+// ── Healed lesions (Cicatrizadas) ───────────────────────────────────────────────
+
+interface LesionComment {
+  author: string;
+  date: string;
+  time: string;
+  text: string;
+}
+
+interface HealedLesion {
+  id: number;
+  local: string;
+  type: LesionType;
+  dataAbertura: string;
+  dataCicatrizacao: string;
+  estadiamento: string;
+  materiais: string;
+  trocaProposta: string;
+  evolucao: string;
+  estado: string;
+  comments: LesionComment[];
+}
+
+const MOCK_HEALED_LESIONS: HealedLesion[] = [
+  {
+    id: 1,
+    local: "Sacra",
+    type: "Pressão",
+    dataAbertura: "19/03/2026 09:25",
+    dataCicatrizacao: "07/06/2026 16:05",
+    estadiamento: "Estágio II",
+    materiais: "Hidrocoloide",
+    trocaProposta: "48 em 48 horas",
+    evolucao: "Cicatrizada",
+    estado: "Resolvida",
+    comments: [
+      { author: "Antônio Benchimol", date: "07/06/2026", time: "16:05", text: "" },
+      { author: "Soraia Rizzo", date: "07/06/2026", time: "15:59", text: "Área totalmente reepitelizada, sem sinais de recidiva." },
+      { author: "Antônio Benchimol", date: "28/05/2026", time: "16:10", text: "" },
+    ],
+  },
+  {
+    id: 2,
+    local: "Trocânter Direito",
+    type: "Prevenção",
+    dataAbertura: "02/02/2026 08:40",
+    dataCicatrizacao: "20/04/2026 11:15",
+    estadiamento: "Estágio I",
+    materiais: "Espuma de Poliuretano",
+    trocaProposta: "72 em 72 horas",
+    evolucao: "Cicatrizada",
+    estado: "Resolvida",
+    comments: [
+      { author: "Antônio Benchimol", date: "20/04/2026", time: "11:15", text: "Alta do protocolo de prevenção. Pele íntegra." },
+    ],
+  },
+];
+
+export const HEALED_LESION_COUNT = MOCK_HEALED_LESIONS.length;
+
+const HEALED_ACCENT = "#2dd4bf";
+
 // ── Body SVG ──────────────────────────────────────────────────────────────────
 
 function BodySilhouette({
@@ -228,9 +290,9 @@ function WoundPlaceholder() {
   );
 }
 
-// ── Lesion detail panel ───────────────────────────────────────────────────────
+// ── Lesion detail panel (aparece abaixo da lista, não substitui) ───────────────
 
-function LesionDetailPanel({ lesion, onBack }: { lesion: Lesion; onBack: () => void }) {
+function LesionDetailPanel({ lesion, onClose }: { lesion: Lesion; onClose: () => void }) {
   const [examIdx, setExamIdx] = useState(lesion.examHistory.length - 1);
   const [expandedImg, setExpandedImg] = useState<string | null>(null);
   const color = LESION_COLORS[lesion.type];
@@ -264,36 +326,36 @@ function LesionDetailPanel({ lesion, onBack }: { lesion: Lesion; onBack: () => v
         </div>
       </div>
     )}
-    <div className="flex flex-col h-full gap-3" style={{ minHeight: 0 }}>
-      {/* Back + title */}
-      <div className="flex items-center gap-2 shrink-0">
-        <button
-          onClick={onBack}
-          className="flex items-center gap-1 text-[11px] px-2 py-1 rounded-lg transition-colors hover:bg-white/10"
-          style={{ color: "rgba(255,255,255,0.45)", border: "1px solid rgba(255,255,255,0.1)" }}
-        >
-          ← Voltar
-        </button>
+    <div className="flex flex-col gap-3">
+      {/* Title + fechar */}
+      <div className="flex items-center gap-2">
         <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: color }} />
         <span className="text-sm font-semibold truncate">{lesion.local}</span>
         <span
-          className="text-[10px] px-2 py-0.5 rounded-full shrink-0 ml-auto"
+          className="text-[10px] px-2 py-0.5 rounded-full shrink-0"
           style={{ background: color + "22", color }}
         >
           {lesion.type}
         </span>
+        <button
+          onClick={onClose}
+          className="ml-auto flex items-center gap-1 text-[11px] px-2 py-1 rounded-lg transition-colors hover:bg-white/10"
+          style={{ color: "rgba(255,255,255,0.45)", border: "1px solid rgba(255,255,255,0.1)" }}
+        >
+          ✕ Fechar
+        </button>
       </div>
 
       {/* Two columns: image+info | cronologia */}
-      <div className="flex gap-4 flex-1 min-h-0 overflow-hidden">
+      <div className="flex gap-4 flex-wrap lg:flex-nowrap">
 
         {/* Left: image + dimensions + AI */}
-        <div className="flex flex-col gap-2.5 flex-1 min-w-0 overflow-y-auto pr-1">
+        <div className="flex flex-col gap-2.5 flex-1 min-w-[280px]">
 
           {/* Image viewer */}
           <div
             className="relative rounded-xl overflow-hidden shrink-0"
-            style={{ height: 148, background: "#0d1520" }}
+            style={{ height: 220, background: "#0d1520" }}
           >
             {exam.image
               ? <>
@@ -327,7 +389,7 @@ function LesionDetailPanel({ lesion, onBack }: { lesion: Lesion; onBack: () => v
               </button>
             )}
             <div
-              className="absolute bottom-2 right-2 text-[10px] px-2 py-0.5 rounded-full"
+              className="absolute bottom-2 left-2 text-[10px] px-2 py-0.5 rounded-full"
               style={{ background: "rgba(0,0,0,0.65)", color: "rgba(255,255,255,0.65)" }}
             >
               {examIdx + 1}/{total}
@@ -360,7 +422,7 @@ function LesionDetailPanel({ lesion, onBack }: { lesion: Lesion; onBack: () => v
 
           {/* Análise de IA + Estágio */}
           <div
-            className="rounded-xl px-3 py-2.5 flex-1 shrink-0"
+            className="rounded-xl px-3 py-2.5 shrink-0"
             style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}
           >
             <div className="flex items-center justify-between mb-2">
@@ -384,7 +446,7 @@ function LesionDetailPanel({ lesion, onBack }: { lesion: Lesion; onBack: () => v
         </div>
 
         {/* Right: Cronologia */}
-        <div className="flex flex-col shrink-0 overflow-y-auto" style={{ width: 148 }}>
+        <div className="flex flex-col shrink-0" style={{ width: 200 }}>
           <div className="flex items-center justify-between mb-2 shrink-0">
             <p
               className="text-[10px] font-semibold uppercase tracking-widest"
@@ -448,83 +510,79 @@ function LesionDetailPanel({ lesion, onBack }: { lesion: Lesion; onBack: () => v
   );
 }
 
-// ── Lesion list ───────────────────────────────────────────────────────────────
+// ── Lesion list (ativas) ─────────────────────────────────────────────────────
 
 function LesionListView({
   lesions,
+  selectedId,
   hoveredId,
   onSelect,
+  onHover,
 }: {
   lesions: Lesion[];
+  selectedId: number | null;
   hoveredId: number | null;
   onSelect: (id: number) => void;
+  onHover: (id: number | null) => void;
 }) {
   return (
-    <div className="flex flex-col h-full gap-3">
+    <div className="flex flex-col gap-3">
       {/* Legend */}
       <div className="flex flex-wrap gap-x-4 gap-y-1.5 shrink-0">
         {(Object.entries(LESION_COLORS) as [LesionType, string][]).map(([type, color]) => (
           <div key={type} className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full shrink-0" style={{ background: color }} />
-            <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.4)" }}>{type}</span>
+            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: color }} />
+            <span className="text-xs font-medium" style={{ color }}>{type}</span>
           </div>
         ))}
       </div>
 
-      {/* Cards grid */}
-      <div className="grid grid-cols-2 gap-2.5 overflow-y-auto pr-1">
+      {/* Cards list — 1 coluna, largura cheia */}
+      <div className="flex flex-col gap-2.5">
         {lesions.map((l) => {
           const color = LESION_COLORS[l.type];
           const lastExam = l.examHistory[l.examHistory.length - 1];
+          const isSelected = selectedId === l.id;
           const isHovered = hoveredId === l.id;
           return (
             <div
               key={l.id}
               onClick={() => onSelect(l.id)}
-              className="rounded-xl p-3.5 cursor-pointer transition-all hover:bg-white/[0.06] active:scale-[0.98]"
+              onMouseEnter={() => onHover(l.id)}
+              onMouseLeave={() => onHover(null)}
+              className="rounded-xl px-4 py-3.5 cursor-pointer transition-all hover:bg-white/[0.06] active:scale-[0.99] flex items-center gap-4"
               style={{
-                background: isHovered ? `${color}0d` : "rgba(255,255,255,0.025)",
-                border: `1px solid ${isHovered ? color + "66" : "rgba(255,255,255,0.07)"}`,
+                background: isSelected ? `${color}14` : isHovered ? `${color}0d` : "rgba(255,255,255,0.025)",
+                border: `1px solid ${isSelected ? color : isHovered ? color + "66" : "rgba(255,255,255,0.07)"}`,
                 transition: "border-color 150ms ease, background 150ms ease",
               }}
             >
-              {/* Header row */}
-              <div className="flex items-start gap-2 mb-2.5">
-                <span
-                  className="w-2.5 h-2.5 rounded-full mt-0.5 shrink-0"
-                  style={{ background: color, boxShadow: `0 0 0 3px ${color}22` }}
-                />
-                <div className="flex-1 min-w-0">
+              {/* Badge: cor do tipo + número de exames */}
+              <span
+                className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
+                style={{ background: color, color: "#0d1520" }}
+              >
+                {l.examHistory.length}
+              </span>
+
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap mb-0.5">
                   <p className="text-[13px] font-semibold leading-snug truncate">{l.local}</p>
-                  <p className="text-[11px] mt-0.5 font-medium" style={{ color }}>{l.type}</p>
+                  <span
+                    className="text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0"
+                    style={{ background: color + "1a", color }}
+                  >
+                    {lastExam.stage}
+                  </span>
                 </div>
-              </div>
-
-              {/* Stage badge */}
-              <div className="flex items-center gap-2 mb-2.5">
-                <span
-                  className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
-                  style={{ background: color + "1a", color }}
+                <p className="text-[11px] font-medium" style={{ color }}>{l.type}</p>
+                <div
+                  className="flex flex-wrap gap-x-4 gap-y-0.5 mt-1.5 text-[11px]"
+                  style={{ color: "rgba(255,255,255,0.4)" }}
                 >
-                  {lastExam.stage}
-                </span>
-                <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.32)" }}>
-                  {l.diasDesde}d
-                </span>
-              </div>
-
-              {/* Divider */}
-              <div style={{ height: 1, background: "rgba(255,255,255,0.06)", marginBottom: 10 }} />
-
-              {/* Dates */}
-              <div className="space-y-1">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[9px] uppercase tracking-wide" style={{ color: "rgba(255,255,255,0.28)" }}>Último</span>
-                  <span className="text-[10px] font-medium" style={{ color: "rgba(255,255,255,0.55)" }}>{l.ultimoExame.split(" ")[0]}</span>
-                </div>
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[9px] uppercase tracking-wide" style={{ color: "rgba(255,255,255,0.28)" }}>Próximo</span>
-                  <span className="text-[10px] font-medium" style={{ color: "rgba(255,255,255,0.55)" }}>{l.proximoExame.split(" ")[0]}</span>
+                  <span>Surgiu em: <span style={{ color: "rgba(255,255,255,0.68)" }}>{l.surgiu}</span> ({l.diasDesde}d)</span>
+                  <span>Último exame: <span style={{ color: "rgba(255,255,255,0.68)" }}>{l.ultimoExame}</span></span>
+                  <span>Próximo exame: <span style={{ color: "rgba(255,255,255,0.68)" }}>{l.proximoExame}</span></span>
                 </div>
               </div>
             </div>
@@ -535,14 +593,144 @@ function LesionListView({
   );
 }
 
+// ── Healed lesion list (cicatrizadas) ───────────────────────────────────────────
+
+function HealedLesionListView({
+  lesions,
+  onSelect,
+  onBack,
+}: {
+  lesions: HealedLesion[];
+  onSelect: (id: number) => void;
+  onBack: () => void;
+}) {
+  return (
+    <div className="flex flex-col gap-3">
+      <button
+        onClick={onBack}
+        className="flex items-center gap-1 text-[11px] px-2 py-1 rounded-lg transition-colors hover:bg-white/10 self-start"
+        style={{ color: "rgba(255,255,255,0.45)", border: "1px solid rgba(255,255,255,0.1)" }}
+      >
+        ← Voltar
+      </button>
+
+      <p
+        className="text-[10px] font-semibold uppercase tracking-widest"
+        style={{ color: "rgba(255,255,255,0.32)" }}
+      >
+        Lesões Cicatrizadas
+      </p>
+
+      <div className="flex flex-col gap-2.5">
+        {lesions.map((l) => {
+          const color = LESION_COLORS[l.type];
+          return (
+            <div
+              key={l.id}
+              onClick={() => onSelect(l.id)}
+              className="rounded-xl px-4 py-3.5 cursor-pointer transition-all hover:bg-white/[0.06] active:scale-[0.99] flex items-center gap-4"
+              style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.07)" }}
+            >
+              <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: color }} />
+              <div className="flex-1 min-w-0">
+                <p className="text-[13px] font-semibold leading-snug truncate">{l.local}</p>
+                <p className="text-[11px] font-medium mt-0.5" style={{ color }}>{l.type}</p>
+              </div>
+              <span className="text-[11px] shrink-0" style={{ color: "rgba(255,255,255,0.45)" }}>
+                Cicatrizada em {l.dataCicatrizacao}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Healed lesion detail ("Dados da Lesão") ─────────────────────────────────────
+
+function HealedLesionDetailPanel({ lesion, onClose }: { lesion: HealedLesion; onClose: () => void }) {
+  const fields: { label: string; value: string }[] = [
+    { label: "Tipo da lesão", value: lesion.type },
+    { label: "Local da lesão", value: lesion.local },
+    { label: "Data de Abertura", value: lesion.dataAbertura },
+    { label: "Data de Cicatrização", value: lesion.dataCicatrizacao },
+    { label: "Estadiamento", value: lesion.estadiamento },
+    { label: "Materiais", value: lesion.materiais },
+    { label: "Troca Proposta", value: lesion.trocaProposta },
+    { label: "Evolução", value: lesion.evolucao },
+    { label: "Estado", value: lesion.estado },
+  ];
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-semibold">
+          Dados da Lesão <span style={{ color: "rgba(255,255,255,0.4)", fontWeight: 400 }}>({lesion.dataAbertura})</span>
+        </p>
+        <button
+          onClick={onClose}
+          className="flex items-center gap-1 text-[11px] px-2 py-1 rounded-lg transition-colors hover:bg-white/10"
+          style={{ color: "rgba(255,255,255,0.45)", border: "1px solid rgba(255,255,255,0.1)" }}
+        >
+          ✕ Fechar
+        </button>
+      </div>
+
+      <div
+        className="grid grid-cols-2 gap-x-6 gap-y-3 rounded-xl px-4 py-3.5"
+        style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}
+      >
+        {fields.map((f) => (
+          <div key={f.label}>
+            <p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: HEALED_ACCENT }}>
+              {f.label}
+            </p>
+            <p className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.75)" }}>{f.value}</p>
+          </div>
+        ))}
+      </div>
+
+      <div>
+        <p
+          className="text-[10px] font-semibold uppercase tracking-widest mb-2"
+          style={{ color: "rgba(255,255,255,0.32)" }}
+        >
+          Comentários da Lesão
+        </p>
+        <div className="flex flex-col gap-2">
+          {lesion.comments.map((c, i) => (
+            <div
+              key={i}
+              className="rounded-xl px-3.5 py-2.5"
+              style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}
+            >
+              <p className="text-xs" style={{ color: c.text ? "rgba(255,255,255,0.75)" : "rgba(255,255,255,0.32)" }}>
+                {c.text || "Sem comentários"}
+              </p>
+              <p className="text-[10px] mt-1" style={{ color: "rgba(255,255,255,0.32)" }}>
+                Por {c.author} em {c.date} {c.time}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── SkinLesionTab ─────────────────────────────────────────────────────────────
 // Conteúdo mock da aba "Lesão de Pele" — sem backend real, ver CLAUDE.md.
+
+type View = "ativas" | "cicatrizadas" | "cicatrizada-detalhe";
 
 export function SkinLesionTab() {
   const [side, setSide] = useState<"front" | "back">("front");
   const [flipping, setFlipping] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [hoveredId, setHoveredId] = useState<number | null>(null);
+  const [view, setView] = useState<View>("ativas");
+  const [selectedHealedId, setSelectedHealedId] = useState<number | null>(null);
 
   function flip() {
     if (flipping) return;
@@ -554,16 +742,16 @@ export function SkinLesionTab() {
   }
 
   const selectedLesion = MOCK_LESIONS.find((l) => l.id === selectedId) ?? null;
+  const selectedHealedLesion = MOCK_HEALED_LESIONS.find((l) => l.id === selectedHealedId) ?? null;
   const frontCount = MOCK_LESIONS.filter(l => l.side === "front").length;
   const backCount = MOCK_LESIONS.filter(l => l.side === "back").length;
 
   return (
     <div
-      className="flex flex-col rounded-2xl overflow-hidden"
+      className="flex flex-col rounded-2xl"
       style={{
         background: "#131823",
         border: "1px solid rgba(255,255,255,0.1)",
-        height: 620,
       }}
     >
       {/* ── Header ── */}
@@ -576,113 +764,151 @@ export function SkinLesionTab() {
 
       {/* ── Summary bar ── */}
       <div
-        className="flex items-center justify-end gap-2.5 px-6 py-3 shrink-0"
+        className="flex items-center justify-start gap-3 px-6 py-4 shrink-0"
         style={{ borderBottom: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.015)" }}
       >
-        <div
-          className="flex flex-col items-center justify-between px-4 py-2 rounded-xl"
-          style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", width: 96, height: 72 }}
+        <button
+          onClick={() => setView("ativas")}
+          className="flex flex-col items-center justify-between px-5 py-3 rounded-xl transition-colors hover:bg-white/[0.06]"
+          style={{
+            background: view === "ativas" ? "rgba(255,255,255,0.07)" : "rgba(255,255,255,0.04)",
+            border: "1px solid rgba(255,255,255,0.1)",
+            width: 128, height: 92,
+          }}
         >
-          <p className="text-[10px] text-center leading-tight" style={{ color: "rgba(255,255,255,0.38)" }}>Lesões Ativas</p>
-          <p className="text-2xl font-bold leading-none">{MOCK_LESIONS.length}</p>
+          <p className="text-xs text-center leading-tight" style={{ color: "rgba(255,255,255,0.38)" }}>Lesões Ativas</p>
+          <p className="text-3xl font-bold leading-none">{LESION_COUNT}</p>
           <span />
-        </div>
-        <div
-          className="flex flex-col items-center justify-between px-4 py-2 rounded-xl"
-          style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", width: 96, height: 72 }}
+        </button>
+        <button
+          onClick={() => { setView("cicatrizadas"); setSelectedHealedId(null); }}
+          className="flex flex-col items-center justify-between px-5 py-3 rounded-xl transition-colors hover:bg-white/[0.06]"
+          style={{
+            background: view !== "ativas" ? "rgba(255,255,255,0.07)" : "rgba(255,255,255,0.04)",
+            border: "1px solid rgba(255,255,255,0.1)",
+            width: 128, height: 92,
+          }}
         >
-          <p className="text-[10px] text-center leading-tight" style={{ color: "rgba(255,255,255,0.38)" }}>Cicatrizadas</p>
-          <p className="text-2xl font-bold leading-none">2</p>
+          <p className="text-xs text-center leading-tight" style={{ color: "rgba(255,255,255,0.38)" }}>Cicatrizadas</p>
+          <p className="text-3xl font-bold leading-none">{HEALED_LESION_COUNT}</p>
           <span />
-        </div>
+        </button>
         <div
-          className="flex flex-col items-center justify-between px-4 py-2 rounded-xl"
-          style={{ background: "rgba(56,189,248,0.08)", border: "1px solid rgba(56,189,248,0.25)", width: 96, height: 72 }}
+          className="flex flex-col items-center justify-between px-5 py-3 rounded-xl"
+          style={{ background: "rgba(56,189,248,0.08)", border: "1px solid rgba(56,189,248,0.25)", width: 128, height: 92 }}
         >
-          <p className="text-[10px] text-center leading-tight" style={{ color: "rgba(56,189,248,0.6)" }}>Braden</p>
-          <p className="text-2xl font-bold leading-none" style={{ color: "#38bdf8" }}>10</p>
-          <p className="text-[9px] font-semibold" style={{ color: "#38bdf8" }}>Alto Risco</p>
+          <p className="text-xs text-center leading-tight" style={{ color: "rgba(56,189,248,0.6)" }}>Braden</p>
+          <p className="text-3xl font-bold leading-none" style={{ color: "#38bdf8" }}>10</p>
+          <p className="text-[10px] font-semibold" style={{ color: "#38bdf8" }}>Alto Risco</p>
         </div>
       </div>
 
-      {/* ── Body + main panel ── */}
-      <div className="flex flex-1 min-h-0 overflow-hidden">
-        {/* Left: silhouette column */}
-        <div
-          className="flex flex-col items-center gap-3 py-4 px-3 shrink-0"
-          style={{ width: 220, borderRight: "1px solid rgba(255,255,255,0.08)" }}
-        >
-          {/* Flip button with counts */}
-          <div className="flex items-center gap-2 w-full justify-center">
-            <span
-              className="text-[10px] tabular-nums"
-              style={{ color: side === "front" ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.25)" }}
+      {view === "ativas" && (
+        <>
+          {/* ── Body + lista de lesões ativas ── */}
+          <div className="flex">
+            {/* Left: silhouette column — largura alinhada com o bloco de cards do resumo (Braden) */}
+            <div
+              className="flex flex-col items-center gap-3 py-4 px-3 shrink-0"
+              style={{ width: 420, borderRight: "1px solid rgba(255,255,255,0.08)" }}
             >
-              {frontCount} frente
-            </span>
-            <button
-              onClick={flip}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] transition-all hover:bg-white/10"
-              style={{ border: "1px solid rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.5)" }}
-            >
-              <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
-                <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              Virar
-            </button>
-            <span
-              className="text-[10px] tabular-nums"
-              style={{ color: side === "back" ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.25)" }}
-            >
-              {backCount} costas
-            </span>
+              {/* Flip button with counts */}
+              <div className="flex items-center gap-2 w-full justify-center">
+                <span
+                  className="text-sm tabular-nums"
+                  style={{ color: side === "front" ? "#fff" : "rgba(255,255,255,0.65)" }}
+                >
+                  {frontCount} frente
+                </span>
+                <button
+                  onClick={flip}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm transition-all hover:bg-white/10"
+                  style={{ border: "1px solid rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.5)" }}
+                >
+                  <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Virar
+                </button>
+                <span
+                  className="text-sm tabular-nums"
+                  style={{ color: side === "back" ? "#fff" : "rgba(255,255,255,0.65)" }}
+                >
+                  {backCount} costas
+                </span>
+              </div>
+
+              {/* Side label */}
+              <p className="text-[10px] uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.65)" }}>
+                {side === "front" ? "Vista Frontal" : "Vista Posterior"}
+              </p>
+
+              {/* Silhouette */}
+              <div
+                className="flex items-center justify-center w-full"
+                style={{ transform: flipping ? "scaleX(0)" : "scaleX(1)", transition: "transform 150ms ease-in-out" }}
+              >
+                <BodySilhouette
+                  lesions={MOCK_LESIONS}
+                  side={side}
+                  selectedId={selectedId}
+                  hoveredId={hoveredId}
+                  onSelect={setSelectedId}
+                  onHover={setHoveredId}
+                  w={190}
+                  h={440}
+                />
+              </div>
+
+              {/* Hint */}
+              <p className="text-xs text-center leading-snug" style={{ color: "rgba(255,255,255,0.65)" }}>
+                Toque nos marcadores<br />para ver detalhes
+              </p>
+            </div>
+
+            {/* Right: lesion list */}
+            <div className="flex-1 p-4 min-w-0">
+              <LesionListView
+                lesions={MOCK_LESIONS}
+                selectedId={selectedId}
+                hoveredId={hoveredId}
+                onSelect={setSelectedId}
+                onHover={setHoveredId}
+              />
+            </div>
           </div>
 
-          {/* Side label */}
-          <p className="text-[10px] uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.25)" }}>
-            {side === "front" ? "Vista Frontal" : "Vista Posterior"}
-          </p>
-
-          {/* Silhouette */}
-          <div
-            className="flex items-center justify-center flex-1"
-            style={{ transform: flipping ? "scaleX(0)" : "scaleX(1)", transition: "transform 150ms ease-in-out" }}
-          >
-            <BodySilhouette
-              lesions={MOCK_LESIONS}
-              side={side}
-              selectedId={selectedId}
-              hoveredId={hoveredId}
-              onSelect={setSelectedId}
-              onHover={setHoveredId}
-              w={150}
-              h={370}
-            />
-          </div>
-
-          {/* Hint */}
-          <p className="text-[9px] text-center leading-snug" style={{ color: "rgba(255,255,255,0.2)" }}>
-            Toque nos marcadores<br />para ver detalhes
-          </p>
-        </div>
-
-        {/* Right: lesion list OR detail view */}
-        <div className="flex-1 p-4 overflow-hidden">
-          {selectedLesion ? (
-            <LesionDetailPanel
-              key={selectedLesion.id}
-              lesion={selectedLesion}
-              onBack={() => setSelectedId(null)}
-            />
-          ) : (
-            <LesionListView
-              lesions={MOCK_LESIONS}
-              hoveredId={hoveredId}
-              onSelect={setSelectedId}
-            />
+          {/* ── Detalhe da lesão selecionada: empilhado abaixo, não substitui a lista ── */}
+          {selectedLesion && (
+            <div className="p-4" style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+              <LesionDetailPanel
+                key={selectedLesion.id}
+                lesion={selectedLesion}
+                onClose={() => setSelectedId(null)}
+              />
+            </div>
           )}
+        </>
+      )}
+
+      {view === "cicatrizadas" && (
+        <div className="p-4">
+          <HealedLesionListView
+            lesions={MOCK_HEALED_LESIONS}
+            onSelect={(id) => { setSelectedHealedId(id); setView("cicatrizada-detalhe"); }}
+            onBack={() => setView("ativas")}
+          />
         </div>
-      </div>
+      )}
+
+      {view === "cicatrizada-detalhe" && selectedHealedLesion && (
+        <div className="p-4">
+          <HealedLesionDetailPanel
+            lesion={selectedHealedLesion}
+            onClose={() => setView("cicatrizadas")}
+          />
+        </div>
+      )}
     </div>
   );
 }
