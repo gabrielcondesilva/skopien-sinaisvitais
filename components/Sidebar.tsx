@@ -298,6 +298,36 @@ export function Sidebar() {
                   />
                 </>
               )}
+
+              {/* Antonio (teste): também enxerga o Painel Executivo completo, além das Unidades */}
+              {isAntonio && (
+                <>
+                  {!collapsed && (
+                    <>
+                      <div className="mx-5 mt-2" style={{ borderTop: "1px solid var(--border)" }} />
+                      <p
+                        className="px-5 pt-3 pb-1 text-xs font-semibold uppercase tracking-widest"
+                        style={{ color: "var(--sk-text-secondary)" }}
+                      >
+                        Visão Administrativa
+                      </p>
+                    </>
+                  )}
+                  {ADMIN_TABS.map((t) => (
+                    <NavBtn
+                      key={t.id}
+                      abbr={t.abbr}
+                      label={t.label}
+                      collapsed={collapsed}
+                      active={pathname.startsWith("/admin") && adminTab === t.id}
+                      onClick={() => {
+                        setAdminTab(t.id);
+                        if (!pathname.startsWith("/admin")) router.push("/admin");
+                      }}
+                    />
+                  ))}
+                </>
+              )}
             </>
           )}
         </nav>

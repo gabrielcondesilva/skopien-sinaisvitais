@@ -13,7 +13,7 @@ import { EWSScoreChart } from "@/components/EWSScoreChart";
 import { CameraPlayer } from "@/components/CameraPlayer";
 import { FloatingCameraWindow } from "@/components/FloatingCameraWindow";
 import { SkinLesionTab, LESION_COUNT } from "@/components/SkinLesionTab";
-import { MedicationTab } from "@/components/MedicationTab";
+import { MedicationTab, MEDICATION_ALERT_COUNT } from "@/components/MedicationTab";
 import { PatientRecordPanel } from "@/components/PatientRecordPanel";
 import { AlertsPanel } from "@/components/AlertsPanel";
 import { Icon } from "@/components/ui/Icon";
@@ -449,8 +449,8 @@ function InternacaoTab({ internacao, slotMin }: {
     {
       label: "Escore EWS atual",
       value: (
-        <span style={{ color: STATUS_COLOR[internacao.currentStatus] ?? "var(--muted)" }}>
-          {internacao.currentEws}&nbsp;·&nbsp;{internacao.currentStatus}
+        <span style={{ color: STATUS_COLOR[ews.status] ?? "var(--muted)" }}>
+          {ews.total}&nbsp;·&nbsp;{ews.status}
         </span>
       ),
     },
@@ -558,7 +558,13 @@ function PatientContent({ id }: { id: string }) {
     );
   }
 
-  const statusColor = STATUS_COLOR[internacao.currentStatus] ?? "var(--muted)";
+  // Mesma base de cálculo do gráfico da aba Sinais Vitais (mediana do Slot Temporal
+  // selecionado) — evita que o valor ao lado do nome divirja do que o gráfico mostra.
+  const slots   = computeSlots(internacao.rawHistory, slotMin, windowMs, Date.now());
+  const current = slots[slots.length - 1] ?? currentSlotValues(internacao.rawHistory, slotMin, Date.now());
+  const ews     = calculateEWS(current);
+
+  const statusColor = STATUS_COLOR[ews.status] ?? "var(--muted)";
   const proxyUrl = process.env.NEXT_PUBLIC_CAMERA_PROXY_URL;
   const isLiveCamera = bed?.label === "UTI-01" && !!proxyUrl;
   const streamUrl = `${proxyUrl}/stream/index.m3u8`;
@@ -591,24 +597,24 @@ function PatientContent({ id }: { id: string }) {
               </button>
               <h1 className="text-xl font-semibold">{internacao.patient.name}</h1>
               <span
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-sm tabular-nums"
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-base tabular-nums"
                 style={{
                   background: `${statusColor}18`,
                   border: `1px solid ${statusColor}55`,
                   color: "var(--muted)",
                 }}
               >
-                EWS {internacao.currentEws} · <span style={{ color: statusColor, fontWeight: 600 }}>{internacao.currentStatus}</span>
+                EWS <span style={{ color: statusColor, fontWeight: 700 }}>{ews.total} · {ews.status}</span>
               </span>
 
               {/* Braden — apenas para UTI-01 — texto simples, sem fundo/bolinha */}
               {bed?.label === "UTI-01" && (
                 <button
                   onClick={() => setTab("lesao-pele")}
-                  className="text-sm font-medium transition-opacity hover:opacity-80"
+                  className="text-base font-medium transition-opacity hover:opacity-80"
                   style={{ color: "var(--muted)", cursor: "pointer" }}
                 >
-                  Braden 10 - <span style={{ color: "var(--status-critical)", fontWeight: 600 }}>Alto</span>
+                  Braden <span style={{ color: "var(--status-critical)", fontWeight: 700 }}>10 - Alto</span>
                 </button>
               )}
             </div>
@@ -733,7 +739,7 @@ function PatientContent({ id }: { id: string }) {
                   color: statusColor,
                 }}
               >
-                EWS {internacao.currentEws} · {internacao.currentStatus}
+                EWS {ews.total} · {ews.status}
               </span>
 
               {/* Badge Braden — apenas para UTI-01 */}
@@ -887,22 +893,32 @@ function PatientContent({ id }: { id: string }) {
             <button
               key={t}
               onClick={() => setTab(t)}
-              className="flex items-center gap-1.5 px-4 py-3 text-sm transition-colors"
+              className="flex items-center px-4 py-3 text-sm transition-colors"
               style={{
                 color: active ? "var(--foreground)" : "var(--muted)",
                 borderBottom: active ? "2px solid var(--accent)" : "2px solid transparent",
                 marginBottom: "-1px",
               }}
             >
-              {TAB_LABELS[t]}
-              {t === "lesao-pele" && (
-                <span
-                  className="min-w-[18px] h-[18px] flex items-center justify-center rounded-full text-[10px] font-bold px-1"
-                  style={{ background: "var(--accent)", color: "#fff" }}
-                >
-                  {LESION_COUNT}
-                </span>
-              )}
+              <span className="relative inline-block">
+                {TAB_LABELS[t]}
+                {t === "lesao-pele" && (
+                  <span
+                    className="absolute -top-1.5 -right-2.5 min-w-[16px] h-[16px] flex items-center justify-center rounded-full text-[9px] font-bold px-1"
+                    style={{ background: "var(--accent)", color: "#fff" }}
+                  >
+                    {LESION_COUNT}
+                  </span>
+                )}
+                {t === "medicamento" && MEDICATION_ALERT_COUNT > 0 && (
+                  <span
+                    className="absolute -top-1.5 -right-2.5 min-w-[16px] h-[16px] flex items-center justify-center rounded-full text-[9px] font-bold px-1"
+                    style={{ background: "var(--status-critical)", color: "#fff" }}
+                  >
+                    {MEDICATION_ALERT_COUNT}
+                  </span>
+                )}
+              </span>
             </button>
           );
         })}

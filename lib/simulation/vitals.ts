@@ -9,6 +9,9 @@ const BOUNDS = {
   temp: { min: 34.5, max: 40.5, step: 0.05 },
 };
 
+// Slot Temporal padrão usado para o valor exibido nos cards (EWS/status) — nunca o valor bruto.
+export const CARD_SLOT_MINUTES = 15;
+
 function clamp(v: number, min: number, max: number) {
   return Math.min(Math.max(v, min), max);
 }

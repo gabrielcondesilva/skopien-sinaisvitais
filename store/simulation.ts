@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { buildSeed } from "@/lib/simulation/seed";
-import { nextReading, currentSlotValues, computeSlots } from "@/lib/simulation/vitals";
+import { nextReading, currentSlotValues, computeSlots, CARD_SLOT_MINUTES } from "@/lib/simulation/vitals";
 import { calculateEWS } from "@/lib/ews";
 import type { Bed, Internacao, SurgicalInternacao, SlotReading, UnitId, NivelConsciencia, RawReading } from "@/lib/simulation/types";
 
@@ -56,7 +56,9 @@ export const useSimulationStore = create<SimulationState>()((set, get) => ({
         const trimmed = internacao.rawHistory.filter((r) => r.t >= cutoff);
         trimmed.push(next);
 
-        const ews = calculateEWS(next);
+        // Card/badge EWS reflete a mediana do Slot Temporal, nunca a leitura bruta
+        const cardCurrent = currentSlotValues(trimmed, CARD_SLOT_MINUTES, now);
+        const ews = calculateEWS(cardCurrent);
         updated[id] = {
           ...internacao,
           rawHistory: trimmed,
@@ -83,7 +85,7 @@ export const useSimulationStore = create<SimulationState>()((set, get) => ({
         ? { ...last, t: now, nc }
         : { t: now, fr: internacao.baseline.fr, spo2: internacao.baseline.spo2, pas: internacao.baseline.pas, fc: internacao.baseline.fc, temp: internacao.baseline.temp, nc };
 
-      const current = currentSlotValues([...internacao.rawHistory, reading], 5, now);
+      const current = currentSlotValues([...internacao.rawHistory, reading], CARD_SLOT_MINUTES, now);
       const ews = calculateEWS(current);
 
       return {

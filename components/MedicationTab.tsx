@@ -35,6 +35,8 @@ const STATUS_COLOR: Record<Prescription["status"], string> = {
   pendente:     "var(--status-attention)",
 };
 
+export const MEDICATION_ALERT_COUNT = MOCK_PRESCRIPTIONS.filter((p) => p.status === "atrasado").length;
+
 const FILTERS = ["todos", "administrado", "atrasado", "pendente"] as const;
 type Filter = (typeof FILTERS)[number];
 

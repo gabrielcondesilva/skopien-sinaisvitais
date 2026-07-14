@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   ComposedChart, Line,
   XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine,
@@ -7,6 +8,7 @@ import {
 } from "recharts";
 import type { SlotReading } from "@/lib/simulation/types";
 import { calculateEWS } from "@/lib/ews";
+import { Icon } from "./ui/Icon";
 
 function fmtTime(t: number) {
   return new Date(t).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
@@ -85,6 +87,7 @@ interface Props {
 }
 
 export function EWSScoreChart({ slots, syncId }: Props) {
+  const [collapsed, setCollapsed] = useState(false);
   const ScoreLabel = makeScoreLabel();
   const [domainMin, domainMax] = computeEwsDomain(slots);
   const ticks = computeEwsTicks(domainMax);
@@ -94,10 +97,19 @@ export function EWSScoreChart({ slots, syncId }: Props) {
       className="rounded-lg p-4"
       style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
     >
-      <div className="flex items-center gap-3 mb-4">
+      <button
+        onClick={() => setCollapsed((c) => !c)}
+        aria-expanded={!collapsed}
+        className="flex items-center gap-2 w-full text-left"
+        style={{ cursor: "pointer" }}
+      >
+        <Icon name={collapsed ? "chevron-right" : "chevron-down"} size={14} color="var(--muted)" />
         <p className="text-sm font-medium">Early Warning Score</p>
-      </div>
+      </button>
 
+      {!collapsed && (
+      <>
+      <div className="mt-4">
       <ResponsiveContainer width="100%" height={180}>
         <ComposedChart data={slots} syncId={syncId} margin={{ top: 18, right: 20, left: 0, bottom: 0 }}>
           <CartesianGrid stroke="rgba(255,255,255,0.04)" vertical={false} />
@@ -180,6 +192,9 @@ export function EWSScoreChart({ slots, syncId }: Props) {
         <span className="text-xs" style={{ color: "#F59F00" }}>— Moderado ≥3</span>
         <span className="text-xs" style={{ color: "#F03E3E" }}>— Alto ≥5</span>
       </div>
+      </div>
+      </>
+      )}
     </div>
   );
 }
