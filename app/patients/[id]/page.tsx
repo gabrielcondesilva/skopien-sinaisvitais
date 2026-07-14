@@ -12,7 +12,8 @@ import { EWSForecastChart } from "@/components/EWSForecastChart";
 import { EWSScoreChart } from "@/components/EWSScoreChart";
 import { CameraPlayer } from "@/components/CameraPlayer";
 import { FloatingCameraWindow } from "@/components/FloatingCameraWindow";
-import { BradenModal } from "@/components/BradenModal";
+import { SkinLesionTab, LESION_COUNT } from "@/components/SkinLesionTab";
+import { MedicationTab } from "@/components/MedicationTab";
 import { PatientRecordPanel } from "@/components/PatientRecordPanel";
 import { AlertsPanel } from "@/components/AlertsPanel";
 import { Icon } from "@/components/ui/Icon";
@@ -521,11 +522,13 @@ function InternacaoTab({ internacao, slotMin }: {
 
 // ─── Patient content ─────────────────────────────────────────────────────────
 
-type Tab = "sinais-vitais" | "ews" | "internacao";
+type Tab = "sinais-vitais" | "ews" | "lesao-pele" | "medicamento" | "internacao";
 
 const TAB_LABELS: Record<Tab, string> = {
   "sinais-vitais": "Sinais Vitais",
   "ews":           "Predição EWS",
+  "lesao-pele":    "Lesão de Pele",
+  "medicamento":   "Medicamento",
   "internacao":    "Predição de Internação",
 };
 
@@ -537,7 +540,6 @@ function PatientContent({ id }: { id: string }) {
   const [windowMs, setWindowMs]       = useState(86_400_000);
   const [camOpen, setCamOpen]         = useState(false);
   const [camFullscreen, setCamFullscreen] = useState(false);
-  const [bradenOpen, setBradenOpen]   = useState(false);
   const [panelOpen, setPanelOpen]     = useState(false);
   const [recordPanel, setRecordPanel] = useState<null | "exames" | "prontuario">(null);
 
@@ -602,7 +604,7 @@ function PatientContent({ id }: { id: string }) {
               {/* Braden — apenas para UTI-01 — texto simples, sem fundo/bolinha */}
               {bed?.label === "UTI-01" && (
                 <button
-                  onClick={() => setBradenOpen(true)}
+                  onClick={() => setTab("lesao-pele")}
                   className="text-sm font-medium transition-opacity hover:opacity-80"
                   style={{ color: "var(--muted)", cursor: "pointer" }}
                 >
@@ -737,7 +739,7 @@ function PatientContent({ id }: { id: string }) {
               {/* Badge Braden — apenas para UTI-01 */}
               {bed?.label === "UTI-01" && (
                 <button
-                  onClick={() => setBradenOpen(true)}
+                  onClick={() => setTab("lesao-pele")}
                   className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-medium transition-opacity hover:opacity-80"
                   style={{
                     background: "rgba(56,189,248,0.12)",
@@ -885,7 +887,7 @@ function PatientContent({ id }: { id: string }) {
             <button
               key={t}
               onClick={() => setTab(t)}
-              className="px-4 py-3 text-sm transition-colors"
+              className="flex items-center gap-1.5 px-4 py-3 text-sm transition-colors"
               style={{
                 color: active ? "var(--foreground)" : "var(--muted)",
                 borderBottom: active ? "2px solid var(--accent)" : "2px solid transparent",
@@ -893,18 +895,28 @@ function PatientContent({ id }: { id: string }) {
               }}
             >
               {TAB_LABELS[t]}
+              {t === "lesao-pele" && (
+                <span
+                  className="min-w-[18px] h-[18px] flex items-center justify-center rounded-full text-[10px] font-bold px-1"
+                  style={{ background: "var(--accent)", color: "#fff" }}
+                >
+                  {LESION_COUNT}
+                </span>
+              )}
             </button>
           );
         })}
       </div>
 
       {/* ── Shared controls (slot + window) ── */}
-      <ControlsBar
-        slotMin={slotMin}
-        setSlotMin={setSlotMin}
-        windowMs={windowMs}
-        setWindowMs={setWindowMs}
-      />
+      {tab !== "lesao-pele" && tab !== "medicamento" && (
+        <ControlsBar
+          slotMin={slotMin}
+          setSlotMin={setSlotMin}
+          windowMs={windowMs}
+          setWindowMs={setWindowMs}
+        />
+      )}
 
       {/* ── Tab content + painel de Exames/Prontuário (contexto lado a lado) ── */}
       <div className="flex-1 flex items-start gap-4 p-6 min-w-0">
@@ -915,6 +927,8 @@ function PatientContent({ id }: { id: string }) {
           {tab === "ews" && (
             <EWSTab internacao={internacao} slotMin={slotMin} />
           )}
+          {tab === "lesao-pele" && <SkinLesionTab />}
+          {tab === "medicamento" && <MedicationTab />}
           {tab === "internacao" && (
             <InternacaoTab internacao={internacao} slotMin={slotMin} />
           )}
@@ -928,11 +942,6 @@ function PatientContent({ id }: { id: string }) {
           />
         )}
       </div>
-
-      {/* ── Braden / SkinOne modal ── */}
-      {bradenOpen && (
-        <BradenModal onClose={() => setBradenOpen(false)} />
-      )}
 
       {/* ── Alerts panel (header compacto do Antonio) ── */}
       {isAntonio && panelOpen && (
