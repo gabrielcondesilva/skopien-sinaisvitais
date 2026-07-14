@@ -67,9 +67,9 @@ function makeScoreLabel() {
     return (
       <text
         x={nx}
-        y={ny - 9}
+        y={ny - 10}
         textAnchor="middle"
-        fontSize={9}
+        fontSize={12}
         fontWeight={numVal >= 3 ? 600 : 400}
         fill={statusColor(numVal)}
       >

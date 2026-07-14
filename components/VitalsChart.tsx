@@ -67,9 +67,9 @@ function makeLabel(vitalKey: string, vitalColor: string) {
     return (
       <text
         x={cx2}
-        y={cy2 - 9}
+        y={cy2 - 10}
         textAnchor="middle"
-        fontSize={9}
+        fontSize={12}
         fontWeight={score > 0 ? 600 : 400}
         fill={color}
       >
@@ -80,10 +80,10 @@ function makeLabel(vitalKey: string, vitalColor: string) {
 }
 
 // ─── Domain dinâmico ─────────────────────────────────────────────────────────
-// Janela de 4 valores no eixo Y (3 × step) centralizada nos dados, com folga de
-// meio step acima e abaixo — os valores não devem grudar no topo/fundo do gráfico.
-// A janela só cresce além do padrão quando os dados não cabem nela (ex.: evento
-// de deterioração roteirizado), e só desliza quando um valor alcança a borda.
+// Janela no eixo Y centralizada nos dados, com folga de meio step acima e
+// abaixo — os valores não devem grudar no topo/fundo do gráfico. A janela só
+// cresce além do padrão quando os dados não cabem nela (ex.: evento de
+// deterioração roteirizado), e só desliza quando um valor alcança a borda.
 
 const VITALS_CFG = [
   { key: "fr"   as const, label: "FR",   unit: "rpm",  color: "#3b82f6", absMin: 4,  absMax: 60,  step: 2   },
@@ -93,7 +93,7 @@ const VITALS_CFG = [
   { key: "temp" as const, label: "TEMP", unit: "°C",   color: "#facc15", absMin: 33, absMax: 43,  step: 0.5 },
 ];
 
-const AXIS_TICK_COUNT = 4;
+const AXIS_TICK_COUNT = 2;
 
 function round2(v: number): number {
   return Math.round(v * 100) / 100;
