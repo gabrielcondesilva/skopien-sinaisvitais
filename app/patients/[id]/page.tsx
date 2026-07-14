@@ -608,7 +608,7 @@ function PatientContent({ id }: { id: string }) {
                   className="text-sm font-medium transition-opacity hover:opacity-80"
                   style={{ color: "var(--muted)", cursor: "pointer" }}
                 >
-                  Braden 10 - Risco <span style={{ color: "var(--status-critical)", fontWeight: 600 }}>Alto</span>
+                  Braden 10 - <span style={{ color: "var(--status-critical)", fontWeight: 600 }}>Alto</span>
                 </button>
               )}
             </div>

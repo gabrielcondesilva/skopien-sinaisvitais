@@ -83,8 +83,8 @@ export function BedCard({ bed, internacao }: Props) {
           className="flex items-center justify-between pt-2 mt-auto"
           style={{ borderTop: "1px solid var(--border)" }}
         >
-          <span className="text-xs invisible" aria-hidden>EWS</span>
-          <span className="text-xs px-2 py-0.5 rounded-md invisible" aria-hidden>0 –</span>
+          <span className="text-xs invisible" aria-hidden>EWS 0 –</span>
+          <span className="text-xs invisible" aria-hidden>Braden 0 –</span>
         </div>
       </div>
     );
@@ -140,22 +140,24 @@ export function BedCard({ bed, internacao }: Props) {
         {internacao.patient.admissionReason}
       </p>
 
-      {/* EWS footer */}
+      {/* EWS / Braden footer */}
       <div
         className="flex items-center justify-between pt-2 mt-auto"
         style={{ borderTop: "1px solid var(--border)" }}
       >
-        <span className="text-xs" style={{ color: "var(--muted)" }}>EWS</span>
-        <span
-          className="flex items-center gap-1 px-2 py-0.5 rounded-md text-xs tabular-nums"
-          style={{
-            background: `${statusColor}18`,
-            border: `1px solid ${statusColor}55`,
-            color: statusColor,
-          }}
-        >
-          {internacao.currentEws}&nbsp;{internacao.currentStatus}
+        <span className="text-xs tabular-nums">
+          <span style={{ color: "var(--muted)" }}>EWS</span>{" "}
+          <span style={{ color: statusColor, fontWeight: 600 }}>
+            {internacao.currentEws} {internacao.currentStatus}
+          </span>
         </span>
+
+        {bed.label === "UTI-01" && (
+          <span className="text-xs tabular-nums">
+            <span style={{ color: "var(--muted)" }}>Braden</span>{" "}
+            <span style={{ color: "var(--status-critical)", fontWeight: 600 }}>10 Alto</span>
+          </span>
+        )}
       </div>
     </div>
   );
