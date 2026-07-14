@@ -358,7 +358,6 @@ function SinaisVitaisTab({ internacao, slotMin, windowMs }: {
       {/* View toggle + legenda */}
       <div className={`flex items-center gap-1.5 ${isAntonio ? "justify-between" : ""}`}>
         <div className="flex items-center gap-1.5">
-          <span className="text-xs" style={{ color: "var(--muted)" }}>Visualização</span>
           <SelBtn active={view === "graficos"} onClick={() => setView("graficos")}>Gráficos</SelBtn>
           <SelBtn active={view === "heatmap"}  onClick={() => setView("heatmap")}>Heatmap</SelBtn>
         </div>
@@ -590,24 +589,24 @@ function PatientContent({ id }: { id: string }) {
               </button>
               <h1 className="text-xl font-semibold">{internacao.patient.name}</h1>
               <span
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs tabular-nums"
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-sm tabular-nums"
                 style={{
                   background: `${statusColor}18`,
                   border: `1px solid ${statusColor}55`,
-                  color: statusColor,
+                  color: "var(--muted)",
                 }}
               >
-                EWS {internacao.currentEws} · {internacao.currentStatus}
+                EWS {internacao.currentEws} · <span style={{ color: statusColor, fontWeight: 600 }}>{internacao.currentStatus}</span>
               </span>
 
               {/* Braden — apenas para UTI-01 — texto simples, sem fundo/bolinha */}
               {bed?.label === "UTI-01" && (
                 <button
                   onClick={() => setBradenOpen(true)}
-                  className="text-xs font-medium transition-opacity hover:opacity-80"
-                  style={{ color: "#eab308", cursor: "pointer" }}
+                  className="text-sm font-medium transition-opacity hover:opacity-80"
+                  style={{ color: "var(--muted)", cursor: "pointer" }}
                 >
-                  Braden 10 - Risco Alto
+                  Braden 10 - Risco <span style={{ color: "var(--status-critical)", fontWeight: 600 }}>Alto</span>
                 </button>
               )}
             </div>
@@ -654,7 +653,7 @@ function PatientContent({ id }: { id: string }) {
               {metaItems.map((item, i) => (
                 <span key={i} className="flex items-center gap-1.5">
                   {i > 0 && <span>·</span>}
-                  <span style={i === ADMISSION_REASON_INDEX ? { color: "var(--accent)" } : undefined}>{item}</span>
+                  <span style={i === ADMISSION_REASON_INDEX ? { color: "var(--accent)", fontWeight: 700 } : undefined}>{item}</span>
                 </span>
               ))}
               {internacao.unit !== "pronto-socorro" && (
@@ -674,6 +673,7 @@ function PatientContent({ id }: { id: string }) {
                 style={{
                   background: recordPanel === "exames" ? "var(--accent)" : "rgba(255,255,255,0.06)",
                   color: recordPanel === "exames" ? "#fff" : "var(--muted)",
+                  border: "1px solid var(--border)",
                 }}
               >
                 <Icon name="flask" size={14} color="currentColor" />
@@ -685,6 +685,7 @@ function PatientContent({ id }: { id: string }) {
                 style={{
                   background: recordPanel === "prontuario" ? "var(--accent)" : "rgba(255,255,255,0.06)",
                   color: recordPanel === "prontuario" ? "#fff" : "var(--muted)",
+                  border: "1px solid var(--border)",
                 }}
               >
                 <Icon name="file-text" size={14} color="currentColor" />
@@ -693,7 +694,7 @@ function PatientContent({ id }: { id: string }) {
               <button
                 onClick={() => setCamFullscreen(true)}
                 className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg transition-colors hover:bg-white/5"
-                style={{ background: "rgba(255,255,255,0.06)", color: "var(--muted)" }}
+                style={{ background: "rgba(255,255,255,0.06)", color: "var(--muted)", border: "1px solid var(--border)" }}
               >
                 <Icon name="video" size={14} color="currentColor" />
                 Câmera
