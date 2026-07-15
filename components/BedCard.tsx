@@ -25,12 +25,20 @@ export const BRADEN_COLOR: Record<string, string> = {
   "Baixo Risco": "#8CE99A",
 };
 
-export function ScorePill({ text, color, onClick }: { text: string; color: string; onClick?: () => void }) {
+const PILL_SIZE = {
+  sm: "px-2.5 py-1 text-[11px]",
+  md: "px-3.5 py-1.5 text-sm",
+  lg: "px-5 py-2 text-lg",
+} as const;
+
+export function ScorePill({ text, color, onClick, size = "sm" }: {
+  text: string; color: string; onClick?: () => void; size?: keyof typeof PILL_SIZE;
+}) {
   const Tag = onClick ? "button" : "span";
   return (
     <Tag
       onClick={onClick}
-      className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold tabular-nums leading-none whitespace-nowrap"
+      className={`inline-flex items-center rounded-full font-bold tabular-nums leading-none whitespace-nowrap ${PILL_SIZE[size]}`}
       style={{
         color,
         background: `${color}1F`,

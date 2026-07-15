@@ -598,7 +598,7 @@ function PatientContent({ id }: { id: string }) {
                 ←
               </button>
               <h1 className="text-xl font-semibold">{internacao.patient.name}</h1>
-              <ScorePill text={`EWS ${ews.total} - ${ews.status}`} color={statusColor} />
+              <ScorePill text={`EWS ${ews.total} - ${ews.status}`} color={statusColor} size="lg" />
 
               {/* Braden — apenas para UTI-01 */}
               {bed?.label === "UTI-01" && (
@@ -606,6 +606,7 @@ function PatientContent({ id }: { id: string }) {
                   text="Braden 10 - Alto"
                   color={BRADEN_COLOR["Alto"]}
                   onClick={() => setTab("lesao-pele")}
+                  size="lg"
                 />
               )}
             </div>
@@ -722,7 +723,7 @@ function PatientContent({ id }: { id: string }) {
                 ←
               </button>
               <h1 className="text-xl font-semibold">{internacao.patient.name}</h1>
-              <ScorePill text={`EWS ${ews.total} - ${ews.status}`} color={statusColor} />
+              <ScorePill text={`EWS ${ews.total} - ${ews.status}`} color={statusColor} size="lg" />
 
               {/* Badge Braden — apenas para UTI-01 */}
               {bed?.label === "UTI-01" && (
@@ -730,6 +731,7 @@ function PatientContent({ id }: { id: string }) {
                   text="Braden 10 - Alto"
                   color={BRADEN_COLOR["Alto"]}
                   onClick={() => setTab("lesao-pele")}
+                  size="lg"
                 />
               )}
             </div>
