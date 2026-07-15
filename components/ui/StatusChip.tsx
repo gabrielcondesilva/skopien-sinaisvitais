@@ -1,9 +1,10 @@
 import { Badge } from "./Badge";
 
 const STATUS_COLOR: Record<string, string> = {
-  "Baixo":    "var(--sk-stable)",
-  "Moderado": "var(--sk-warn)",
-  "Alto":     "var(--sk-crit)",
+  "Estável":       "var(--sk-stable)",
+  "Atenção":       "var(--sk-warn)",
+  "Risco Elevado": "var(--sk-high)",
+  "Crítico":       "var(--sk-crit)",
 };
 
 interface StatusChipProps {
@@ -14,7 +15,7 @@ interface StatusChipProps {
 export function StatusChip({ status, pulse }: StatusChipProps) {
   const color = STATUS_COLOR[status] ?? "var(--sk-text-muted)";
   return (
-    <Badge color={color} pulse={pulse ?? status === "Alto"}>
+    <Badge color={color} pulse={pulse ?? status === "Crítico"}>
       {status}
     </Badge>
   );

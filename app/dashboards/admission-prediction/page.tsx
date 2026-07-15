@@ -57,9 +57,10 @@ const PROB_COLOR = (p: number) =>
   p >= 70 ? "var(--status-critical)" : p >= 50 ? "var(--status-attention)" : "var(--foreground)";
 
 const STATUS_COLOR: Record<string, string> = {
-  "Baixo":    "var(--status-stable)",
-  "Moderado": "var(--status-attention)",
-  "Alto":     "var(--status-critical)",
+  "Estável":       "var(--status-stable)",
+  "Atenção":       "var(--status-attention)",
+  "Risco Elevado": "var(--status-elevated)",
+  "Crítico":       "var(--status-critical)",
 };
 
 const TS = { background:"var(--surface)", border:"1px solid var(--border)", borderRadius:6, fontSize:11, color:"var(--foreground)" };
@@ -300,7 +301,7 @@ export default function AdmissionPredictionPage() {
                         <td className="px-3 py-2.5 tabular-nums">{c.age}</td>
                         <td className="px-3 py-2.5 tabular-nums font-bold" style={{ color: PROB_COLOR(c.prob) }}>{c.prob}%</td>
                         <td className="px-3 py-2.5 tabular-nums font-semibold"
-                          style={{ color: c.ews>=7?"var(--status-critical)":c.ews>=5?"var(--status-elevated)":c.ews>=3?"var(--status-attention)":"var(--foreground)" }}>
+                          style={{ color: c.ews>=7?"var(--status-critical)":c.ews>=5?"var(--status-elevated)":c.ews>=4?"var(--status-attention)":"var(--foreground)" }}>
                           {c.ews}
                         </td>
                         <td className="px-3 py-2.5 whitespace-nowrap" style={{ color: STATUS_COLOR[c.status] ?? "var(--muted)" }}>{c.status}</td>

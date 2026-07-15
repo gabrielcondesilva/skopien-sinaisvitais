@@ -63,12 +63,16 @@ function UnitGrid({ unit }: { unit: string }) {
     );
   }
 
+  // Leitos com internação ativa primeiro, ordenados por EWS decrescente (maior risco no topo)
+  const sortedBeds = [...beds].sort((a, b) => {
+    const ewsA = a.internacaoId ? (internacoes[a.internacaoId]?.currentEws ?? -1) : -1;
+    const ewsB = b.internacaoId ? (internacoes[b.internacaoId]?.currentEws ?? -1) : -1;
+    return ewsB - ewsA;
+  });
+
   return (
-    <div
-      className="grid gap-3"
-      style={{ gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))" }}
-    >
-      {beds.map((bed) => (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      {sortedBeds.map((bed) => (
         <BedCard
           key={bed.id}
           bed={bed}

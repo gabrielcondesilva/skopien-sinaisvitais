@@ -65,10 +65,13 @@ function makeBed(label: string, unit: UnitId, internacaoId: string | null): Bed 
 
 // ─── Baselines ────────────────────────────────────────────────────────────────
 
-const STABLE: VitalsBaseline       = { fr: 15, spo2: 98, pas: 122, fc: 72, temp: 36.8, nc: "Alerta" };
+// EWS 3 (Estável): FR e TEMP nunca pontuam 0 nesta tabela, então vitais "de livro" (FR 15-29,
+// PAS 101-199, FC 51-100, TEMP 35.1-37.8) já somam 4 (Atenção). Para render Estável de fato,
+// usamos a faixa FC 101-110, que pontua 0 nesta tabela institucional.
+const STABLE: VitalsBaseline       = { fr: 16, spo2: 98, pas: 118, fc: 104, temp: 36.8, nc: "Alerta" };
 const MILD_CONCERN: VitalsBaseline  = { fr: 19, spo2: 96, pas: 105, fc: 92, temp: 37.4, nc: "Alerta" };
-const ATTENTION: VitalsBaseline     = { fr: 22, spo2: 95, pas: 99,  fc: 96, temp: 37.9, nc: "Alerta" };
-// UTI-01 starts em Moderado — will deteriorate in Cena 1
+const ATTENTION: VitalsBaseline     = { fr: 24, spo2: 94, pas: 95,  fc: 125, temp: 38.3, nc: "Alerta" };
+// UTI-01 starts em Atenção — will deteriorate in Cena 1
 const UTI_CENA1: VitalsBaseline     = { fr: 23, spo2: 95, pas: 102, fc: 98, temp: 37.6, nc: "Alerta" };
 const UTI_STABLE: VitalsBaseline    = { fr: 14, spo2: 97, pas: 118, fc: 68, temp: 36.9, nc: "Alerta" };
 // UTI-02 starts already critical — seeds the initial sinal-vital demo alert
@@ -143,7 +146,7 @@ export function buildSeed(): {
   );
   addOccupied("PS-09", "pronto-socorro",
     makePatient("Antônio Carlos Barbosa", 81, "M", "Queda com Trauma", 7),
-    MILD_CONCERN, { admissionProbability: 68, manchesterClass: "Laranja" }
+    STABLE, { admissionProbability: 68, manchesterClass: "Laranja" }
   );
   addOccupied("PS-10", "pronto-socorro",
     makePatient("Camila Rodrigues Nunes", 23, "F", "Reação Alérgica", 2),
@@ -180,7 +183,7 @@ export function buildSeed(): {
   );
   addOccupied("ENF-07", "enfermaria",
     makePatient("Cláudia Aparecida Ramos", 51, "F", "Pancreatite Aguda", 42),
-    MILD_CONCERN
+    STABLE
   );
   addOccupied("ENF-08", "enfermaria",
     makePatient("Leonardo Andrade Silva", 44, "M", "Herpes Zoster", 30),
@@ -196,7 +199,7 @@ export function buildSeed(): {
   );
   addOccupied("ENF-11", "enfermaria",
     makePatient("Rosana Pereira Almeida", 58, "F", "Fibrilação Atrial", 48),
-    MILD_CONCERN
+    STABLE
   );
   addOccupied("ENF-12", "enfermaria",
     makePatient("Hélio Gomes de Carvalho", 67, "M", "Insuficiência Renal Aguda", 54),

@@ -19,9 +19,10 @@ function fmtScore(n: number) {
 }
 
 function statusColor(total: number): string {
-  if (total >= 5) return "#F03E3E"; // Alto
-  if (total >= 3) return "#F59F00"; // Moderado
-  return "#2F9E44"; // Baixo
+  if (total >= 7) return "#F03E3E"; // Crítico
+  if (total >= 5) return "#F76707"; // Risco Elevado
+  if (total >= 4) return "#F59F00"; // Atenção
+  return "#2F9E44"; // Estável
 }
 
 // ─── Domain dinâmico ─────────────────────────────────────────────────────────
@@ -72,7 +73,7 @@ function makeScoreLabel() {
         y={ny - 10}
         textAnchor="middle"
         fontSize={12}
-        fontWeight={numVal >= 3 ? 600 : 400}
+        fontWeight={numVal >= 4 ? 600 : 400}
         fill={statusColor(numVal)}
       >
         {numVal}
@@ -167,8 +168,8 @@ export function EWSScoreChart({ slots, syncId }: Props) {
             }}
           />
 
-          <ReferenceLine y={3} stroke="#F59F00" strokeDasharray="3 3" strokeOpacity={0.4} />
-          <ReferenceLine y={5} stroke="#F03E3E" strokeDasharray="3 3" strokeOpacity={0.5} />
+          <ReferenceLine y={4} stroke="#F59F00" strokeDasharray="3 3" strokeOpacity={0.4} />
+          <ReferenceLine y={7} stroke="#F03E3E" strokeDasharray="3 3" strokeOpacity={0.5} />
 
           <Line
             dataKey="ewsTotal"
@@ -188,9 +189,10 @@ export function EWSScoreChart({ slots, syncId }: Props) {
       </ResponsiveContainer>
 
       <div className="flex items-center justify-center gap-4 mt-3 flex-wrap" style={{ color: "var(--muted)" }}>
-        <span className="text-xs" style={{ color: "#2F9E44" }}>— Baixo</span>
-        <span className="text-xs" style={{ color: "#F59F00" }}>— Moderado ≥3</span>
-        <span className="text-xs" style={{ color: "#F03E3E" }}>— Alto ≥5</span>
+        <span className="text-xs" style={{ color: "#2F9E44" }}>— Estável</span>
+        <span className="text-xs" style={{ color: "#F59F00" }}>— Atenção ≥4</span>
+        <span className="text-xs" style={{ color: "#F76707" }}>— Risco Elevado ≥5</span>
+        <span className="text-xs" style={{ color: "#F03E3E" }}>— Crítico ≥7</span>
       </div>
       </div>
       </>

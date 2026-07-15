@@ -15,6 +15,7 @@ import { FloatingCameraWindow } from "@/components/FloatingCameraWindow";
 import { SkinLesionTab, LESION_COUNT } from "@/components/SkinLesionTab";
 import { MedicationTab, MEDICATION_ALERT_COUNT } from "@/components/MedicationTab";
 import { PatientRecordPanel } from "@/components/PatientRecordPanel";
+import { ScorePill, BRADEN_COLOR } from "@/components/BedCard";
 import { AlertsPanel } from "@/components/AlertsPanel";
 import { Icon } from "@/components/ui/Icon";
 import { useSimulationStore } from "@/store/simulation";
@@ -81,9 +82,10 @@ function scoreOf(scores: { fr: number; pas: number; fc: number; temp: number; nc
 }
 
 const STATUS_COLOR: Record<string, string> = {
-  "Baixo":    "var(--status-stable)",
-  "Moderado": "var(--status-attention)",
-  "Alto":     "var(--status-critical)",
+  "Estável":       "#2F9E44",
+  "Atenção":       "#F59F00",
+  "Risco Elevado": "#F76707",
+  "Crítico":       "#F03E3E",
 };
 
 const SCORE_COLOR = [
@@ -596,26 +598,15 @@ function PatientContent({ id }: { id: string }) {
                 ←
               </button>
               <h1 className="text-xl font-semibold">{internacao.patient.name}</h1>
-              <span
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-base tabular-nums"
-                style={{
-                  background: `${statusColor}18`,
-                  border: `1px solid ${statusColor}55`,
-                  color: "var(--muted)",
-                }}
-              >
-                EWS <span style={{ color: statusColor, fontWeight: 700 }}>{ews.total} · {ews.status}</span>
-              </span>
+              <ScorePill text={`EWS ${ews.total} - ${ews.status}`} color={statusColor} />
 
-              {/* Braden — apenas para UTI-01 — texto simples, sem fundo/bolinha */}
+              {/* Braden — apenas para UTI-01 */}
               {bed?.label === "UTI-01" && (
-                <button
+                <ScorePill
+                  text="Braden 10 - Alto"
+                  color={BRADEN_COLOR["Alto"]}
                   onClick={() => setTab("lesao-pele")}
-                  className="text-base font-medium transition-opacity hover:opacity-80"
-                  style={{ color: "var(--muted)", cursor: "pointer" }}
-                >
-                  Braden <span style={{ color: "var(--status-critical)", fontWeight: 700 }}>10 - Alto</span>
-                </button>
+                />
               )}
             </div>
 
@@ -731,35 +722,15 @@ function PatientContent({ id }: { id: string }) {
                 ←
               </button>
               <h1 className="text-xl font-semibold">{internacao.patient.name}</h1>
-              <span
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs tabular-nums"
-                style={{
-                  background: `${statusColor}18`,
-                  border: `1px solid ${statusColor}55`,
-                  color: statusColor,
-                }}
-              >
-                EWS {ews.total} · {ews.status}
-              </span>
+              <ScorePill text={`EWS ${ews.total} - ${ews.status}`} color={statusColor} />
 
               {/* Badge Braden — apenas para UTI-01 */}
               {bed?.label === "UTI-01" && (
-                <button
+                <ScorePill
+                  text="Braden 10 - Alto"
+                  color={BRADEN_COLOR["Alto"]}
                   onClick={() => setTab("lesao-pele")}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-medium transition-opacity hover:opacity-80"
-                  style={{
-                    background: "rgba(56,189,248,0.12)",
-                    border: "1px solid rgba(56,189,248,0.4)",
-                    color: "#38bdf8",
-                    cursor: "pointer",
-                  }}
-                >
-                  <span
-                    className="w-1.5 h-1.5 rounded-full shrink-0"
-                    style={{ background: "#38bdf8" }}
-                  />
-                  Braden 10 · Alto Risco
-                </button>
+                />
               )}
             </div>
 

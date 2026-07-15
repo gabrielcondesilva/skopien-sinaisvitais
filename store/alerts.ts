@@ -7,7 +7,7 @@ const alertId = () => `alert-${_alertCounter++}`;
 interface AlertState {
   active: Alert[];
   history: Alert[];
-  // Track which internações were Alto last tick to detect re-deterioration
+  // Track which internações were Risco Elevado/Crítico last tick to detect re-deterioration
   _criticalSet: Set<string>;
 
   activeCount: number;
@@ -60,7 +60,7 @@ export const useAlertStore = create<AlertState>()((set, get) => ({
     const toFire: Alert[] = [];
 
     for (const inv of internacoes) {
-      const isCritical = inv.currentStatus === "Alto";
+      const isCritical = inv.currentStatus === "Risco Elevado" || inv.currentStatus === "Crítico";
       if (isCritical) next.add(inv.id);
 
       // Fire when: was NOT critical last tick, IS critical now

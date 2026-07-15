@@ -236,12 +236,6 @@ button, [role="button"] {
 
 .sk-pulse { animation: sk-pulse 1.2s infinite; }
 
-@keyframes sk-crit-pulse {
-  0%, 100% { box-shadow: 0 0 0 1px rgba(240,62,62,0.7), 0 0 10px rgba(240,62,62,0.25); }
-  50%      { box-shadow: 0 0 0 1px rgba(240,62,62,0.2), 0 0 18px rgba(240,62,62,0.08); }
-}
-.sk-crit-pulse { animation: sk-crit-pulse 1.5s ease-in-out infinite; }
-
 @keyframes sk-alert-blink {
   0%, 40%, 100% { background: rgba(240,62,62,0); }
   50%, 90%      { background: rgba(240,62,62,0.18); }

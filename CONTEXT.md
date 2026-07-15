@@ -43,8 +43,8 @@ Pontuação calculada a partir de FR, PAS, FC, TEMP e Nível de Consciência (NC
 _Evitar_: Score, pontuação, índice, NEWS2 (a tabela em uso é MEWS)
 
 **Status Clínico**:
-Classificação qualitativa derivada do Escore EWS. Regras: 0–2 → Baixo; 3–4 → Moderado; ≥5 → Alto. Não há regra de exceção por sinal individual — depende só da soma total.
-_Evitar_: Estado, condição, situação; Estável/Atenção/Risco Elevado/Crítico (nomenclatura antiga do NEWS2)
+Classificação qualitativa derivada do Escore EWS. Regras: 0–3 → Estável; 4 → Atenção; 5–6 → Risco Elevado; ≥7 → Crítico. Não há regra de exceção por sinal individual — depende só da soma total.
+_Evitar_: Estado, condição, situação; Baixo/Moderado/Alto (nomenclatura de 3 níveis descontinuada — a classificação em uso tem 4 níveis, apesar do nome coincidir com o do NEWS2 a tabela de pontuação continua sendo a MEWS)
 
 ### Fluxos
 
@@ -115,7 +115,7 @@ Hospital fictício da v1: **Hospital Demo Skopien**. Usado em todos os dados ger
 ### Cenas roteirizadas (eventos com tempo relativo à abertura do app)
 
 **Cena 1 — Deterioração + Alerta de Sinal Vital** (~5 min)
-Paciente na UTI: FC sobe e Nível de Consciência piora de Alerta para Confuso. SpO₂ também cai visualmente no gráfico (não pontua, mas reforça a leitura clínica). Escore EWS sobe de Moderado para Alto. Alerta de Sinal Vital dispara. Insígnia vermelha aparece no card do leito.
+Paciente na UTI: FC sobe e Nível de Consciência piora de Alerta para Confuso. SpO₂ também cai visualmente no gráfico (não pontua, mas reforça a leitura clínica). Escore EWS sobe de Atenção para Risco Elevado. Alerta de Sinal Vital dispara. Insígnia vermelha aparece no card do leito.
 
 **Cena 2 — Medicação Atrasada** (~8 min)
 Paciente na Enfermaria: horário de administração passa sem confirmação. Alerta de Medicação Atrasada dispara com nome do medicamento e horário previsto.

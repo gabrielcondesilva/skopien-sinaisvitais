@@ -1,4 +1,4 @@
-export type StatusClinico = "Baixo" | "Moderado" | "Alto";
+export type StatusClinico = "Estável" | "Atenção" | "Risco Elevado" | "Crítico";
 export type NivelConsciencia = "Alerta" | "Confuso" | "Responde à Dor" | "Inconsciente";
 
 export interface VitalSigns {
@@ -57,9 +57,10 @@ function scoreNC(nc: NivelConsciencia): number {
 }
 
 function statusFromTotal(total: number): StatusClinico {
-  if (total >= 5) return "Alto";
-  if (total >= 3) return "Moderado";
-  return "Baixo";
+  if (total >= 7) return "Crítico";
+  if (total >= 5) return "Risco Elevado";
+  if (total >= 4) return "Atenção";
+  return "Estável";
 }
 
 export function calculateEWS(vitals: VitalSigns): EWSResult {

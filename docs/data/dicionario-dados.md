@@ -145,17 +145,17 @@ Evento clínico ativo ou encerrado.
 ### StatusClinico
 | Valor | EWS | Descrição |
 |---|---|---|
-| `"Estável"` | 0–2 | Sem sinais de deterioração |
-| `"Atenção"` | 3–4 | Monitoramento reforçado |
+| `"Estável"` | 0–3 | Sem sinais de deterioração |
+| `"Atenção"` | 4 | Monitoramento reforçado |
 | `"Risco Elevado"` | 5–6 | Intervenção recomendada |
 | `"Crítico"` | ≥ 7 | Intervenção imediata |
 
-> **Regra de exceção:** qualquer sinal vital com pontuação individual 3 eleva o status mínimo para "Atenção", mesmo que o total seja ≤ 2.
+> Não há regra de exceção por sinal individual — o status depende só da soma total (ver CONTEXT.md § Escore EWS).
 
 ### AlertType
 | Valor | Disparo | Encerramento |
 |---|---|---|
-| `"sinal-vital"` | EWS cruza para Crítico | Auto-cleared quando status normaliza |
+| `"sinal-vital"` | EWS atinge Risco Elevado ou Crítico (score ≥ 5) | Auto-cleared quando status normaliza |
 | `"medicacao"` | Roteirizado (~8 min) | Reconhecimento manual |
 | `"alta"` | Roteirizado (~12 min) | Confirmar Alta ou Manter Internado |
 | `"bomba-infusao"` | Roteirizado | Reconhecimento manual |

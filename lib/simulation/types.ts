@@ -1,5 +1,5 @@
 export type UnitId = "pronto-socorro" | "enfermaria" | "centro-cirurgico" | "uti";
-export type StatusClinico = "Baixo" | "Moderado" | "Alto";
+export type StatusClinico = "Estável" | "Atenção" | "Risco Elevado" | "Crítico";
 export type NivelConsciencia = "Alerta" | "Confuso" | "Responde à Dor" | "Inconsciente";
 export type ManchesterClass = "Vermelho" | "Laranja" | "Amarelo" | "Verde" | "Azul";
 export type Gender = "M" | "F";
@@ -83,7 +83,7 @@ export interface Bed {
 // ─── Alert types ──────────────────────────────────────────────────────────────
 
 export type AlertType =
-  | "sinal-vital"  // EWS → Crítico; badge clears when status normalizes
+  | "sinal-vital"  // EWS atinge Risco Elevado/Crítico (score ≥ 5); badge clears when status normaliza
   | "medicacao"    // scripted delayed medication; badge clears on acknowledge
   | "alta";        // scripted discharge prediction; badge clears on acknowledge, can re-fire
 // Note: hasPump on Internacao is the visual pump indicator — not an alert type

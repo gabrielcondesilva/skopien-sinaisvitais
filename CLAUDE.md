@@ -44,7 +44,7 @@ npm test -- --testPathPattern=ews   # rodar apenas testes do EWSCalculator
 
 **`SimulationEngine`** — store Zustand central. Seed com 48 pacientes (12 PS, 20 Enfermaria, 6 salas CC, 10 UTI). Loop `setInterval` ~5s gerando novos valores brutos. Janela deslizante para cálculo de mediana por Slot Temporal. Pré-popula 15 min de histórico no carregamento. Expõe `useSimulation()`.
 
-**`EWSCalculator`** — função pura. Recebe FR, PAS, FC, TEMP e Nível de Consciência (NC, escala AVPU) e retorna pontuação individual + total + Status Clínico. Tabela MEWS institucional (`docs/MEWS.docx`), escala 0–15. SpO₂ continua nos Sinais Vitais exibidos mas não entra nesse cálculo. Sem regra de exceção — status depende só da soma total. Limiares: 0–2=Baixo, 3–4=Moderado, ≥5=Alto.
+**`EWSCalculator`** — função pura. Recebe FR, PAS, FC, TEMP e Nível de Consciência (NC, escala AVPU) e retorna pontuação individual + total + Status Clínico. Tabela MEWS institucional (`docs/MEWS.docx`), escala 0–15. SpO₂ continua nos Sinais Vitais exibidos mas não entra nesse cálculo. Sem regra de exceção — status depende só da soma total. Limiares: 0–3=Estável, 4=Atenção, 5–6=Risco Elevado, ≥7=Crítico.
 
 **`AlertEngine`** — store Zustand que observa o SimulationEngine. Gerencia ciclo de vida ativo → respondido → histórico. Cada tipo de alerta tem regra de dismissal distinta (ver CONTEXT.md seção Alertas).
 
@@ -53,7 +53,7 @@ npm test -- --testPathPattern=ews   # rodar apenas testes do EWSCalculator
 ## Demo scripted scenes
 
 Quatro eventos com timestamps relativos à abertura do app, disparados pelo SimulationEngine:
-- **~5 min**: Paciente UTI deteriora (FC sobe, NC piora de Alerta para Confuso, SpO₂ cai visualmente, Status Moderado→Alto, alerta de Sinal Vital)
+- **~5 min**: Paciente UTI deteriora (FC sobe, NC piora de Alerta para Confuso, SpO₂ cai visualmente, Status Atenção→Risco Elevado, alerta de Sinal Vital)
 - **~8 min**: Alerta de Medicação Atrasada na Enfermaria
 - **~12 min**: Alerta de Previsão de Alta no Pronto Socorro
 - **~15 min**: Sala Cirúrgica avança Procedimento → RA no Centro Cirúrgico

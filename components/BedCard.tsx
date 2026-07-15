@@ -8,11 +8,41 @@ import { useShallow } from "zustand/react/shallow";
 import type { Alert, Bed, Internacao, SurgicalInternacao } from "@/lib/simulation/types";
 import { StreamlineIcon } from "./ui/StreamlineIcon";
 
-const STATUS_COLOR: Record<string, string> = {
-  "Baixo":    "var(--status-stable)",
-  "Moderado": "var(--status-attention)",
-  "Alto":     "var(--status-critical)",
+export const STATUS_COLOR: Record<string, string> = {
+  "Estável":       "#2F9E44",
+  "Atenção":       "#F59F00",
+  "Risco Elevado": "#F76707",
+  "Crítico":       "#F03E3E",
 };
+
+// Regras institucionais de risco Braden: Muito Alto=Vermelho, Alto=Rosa Avermelhado,
+// Moderado=Laranja, Leve=Verde, Baixo Risco=Verde Claro
+export const BRADEN_COLOR: Record<string, string> = {
+  "Muito Alto":  "#F03E3E",
+  "Alto":        "#F06595",
+  "Moderado":    "#F76707",
+  "Leve":        "#2F9E44",
+  "Baixo Risco": "#8CE99A",
+};
+
+export function ScorePill({ text, color, onClick }: { text: string; color: string; onClick?: () => void }) {
+  const Tag = onClick ? "button" : "span";
+  return (
+    <Tag
+      onClick={onClick}
+      className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold tabular-nums leading-none whitespace-nowrap"
+      style={{
+        color,
+        background: `${color}1F`,
+        border: `1px solid ${color}`,
+        boxShadow: `0 0 6px ${color}66, inset 0 0 6px ${color}14`,
+        cursor: onClick ? "pointer" : undefined,
+      }}
+    >
+      {text}
+    </Tag>
+  );
+}
 
 const ALERT_META: Record<string, { icon: "sinal_vital" | "medicacao" | "predicao_alta"; color: string; label: string }> = {
   "sinal-vital": { icon: "sinal_vital",   color: "var(--status-critical)",  label: "Sinal Vital Crítico" },
@@ -65,7 +95,7 @@ export function BedCard({ bed, internacao }: Props) {
 
     return (
       <div
-        className="rounded-lg p-4 flex flex-col gap-2"
+        className="rounded-xl p-5 flex flex-col gap-2.5"
         style={{
           background: bed.inoperante ? "rgba(255,255,255,0.02)" : "var(--surface)",
           border: `1px solid ${borderColor}`,
@@ -80,20 +110,17 @@ export function BedCard({ bed, internacao }: Props) {
         </div>
         <p className="text-xs leading-tight line-clamp-1 invisible" aria-hidden>–</p>
         <div
-          className="flex items-center justify-between pt-2 mt-auto"
+          className="flex items-center justify-between pt-2.5 mt-auto"
           style={{ borderTop: "1px solid var(--border)" }}
         >
-          <span className="text-xs invisible" aria-hidden>EWS 0 –</span>
-          <span className="text-xs invisible" aria-hidden>Braden 0 –</span>
+          <span className="text-[11px] invisible" aria-hidden>EWS 0 - –</span>
+          <span className="text-[11px] invisible" aria-hidden>Braden 0 - –</span>
         </div>
       </div>
     );
   }
 
-  const statusColor  = STATUS_COLOR[internacao.currentStatus] ?? "var(--muted)";
-  const isCritical   = internacao.currentStatus === "Alto";
-  const hasAlerts    = alerts.length > 0;
-  const showRedPulse = isCritical || hasAlerts;
+  const statusColor = STATUS_COLOR[internacao.currentStatus] ?? "var(--muted)";
 
   return (
     <div
@@ -101,10 +128,11 @@ export function BedCard({ bed, internacao }: Props) {
       tabIndex={0}
       onClick={() => router.push(`/patients/${internacao.id}`)}
       onKeyDown={(e) => e.key === "Enter" && router.push(`/patients/${internacao.id}`)}
-      className={`rounded-lg p-4 flex flex-col gap-2 cursor-pointer select-none hover:bg-white/[0.03] focus-visible:outline-none transition-colors${showRedPulse ? " sk-crit-pulse" : ""}`}
+      className="rounded-xl p-5 flex flex-col gap-2.5 cursor-pointer select-none hover:bg-white/[0.03] focus-visible:outline-none transition-colors"
       style={{
         background: "var(--surface)",
-        border: `1px solid ${showRedPulse ? "rgba(240,62,62,0.7)" : hovered ? "var(--accent)" : `${statusColor}44`}`,
+        border: `1px solid ${hovered ? "var(--accent)" : statusColor}`,
+        boxShadow: `0 0 14px ${statusColor}55, inset 0 0 36px -8px ${statusColor}80`,
       }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
@@ -142,21 +170,13 @@ export function BedCard({ bed, internacao }: Props) {
 
       {/* EWS / Braden footer */}
       <div
-        className="flex items-center justify-between pt-2 mt-auto"
+        className="flex items-center justify-between gap-2 pt-2.5 mt-auto flex-wrap"
         style={{ borderTop: "1px solid var(--border)" }}
       >
-        <span className="text-xs tabular-nums">
-          <span style={{ color: "var(--muted)" }}>EWS</span>{" "}
-          <span style={{ color: statusColor, fontWeight: 600 }}>
-            {internacao.currentEws} {internacao.currentStatus}
-          </span>
-        </span>
+        <ScorePill text={`EWS ${internacao.currentEws} - ${internacao.currentStatus}`} color={statusColor} />
 
         {bed.label === "UTI-01" && (
-          <span className="text-xs tabular-nums">
-            <span style={{ color: "var(--muted)" }}>Braden</span>{" "}
-            <span style={{ color: "var(--status-critical)", fontWeight: 600 }}>10 Alto</span>
-          </span>
+          <ScorePill text="Braden 10 - Alto" color={BRADEN_COLOR["Alto"]} />
         )}
       </div>
     </div>

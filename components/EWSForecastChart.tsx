@@ -15,9 +15,10 @@ function fmtTime(t: number) {
 const FORECAST_WINDOW_MS = 3 * 3_600_000;
 
 function statusColor(total: number): string {
-  if (total >= 5) return "#F03E3E"; // Alto
-  if (total >= 3) return "#F59F00"; // Moderado
-  return "#2F9E44"; // Baixo
+  if (total >= 7) return "#F03E3E"; // Crítico
+  if (total >= 5) return "#F76707"; // Risco Elevado
+  if (total >= 4) return "#F59F00"; // Atenção
+  return "#2F9E44"; // Estável
 }
 
 // Recharts não repassa o datum original ao content de LabelList — usamos o
@@ -41,7 +42,7 @@ function makeEwsLabel(dashed: boolean, isVisible: (index: number) => boolean) {
         y={ny - 9}
         textAnchor="middle"
         fontSize={9}
-        fontWeight={numVal >= 3 ? 600 : 400}
+        fontWeight={numVal >= 4 ? 600 : 400}
         fill={statusColor(numVal)}
         fontStyle={dashed ? "italic" : "normal"}
       >
@@ -61,8 +62,8 @@ export function EWSForecastChart({ internacao, slots }: Props) {
   const currentEws = internacao.currentEws;
   const forecast = internacao.ewsForecast;
 
-  const hasHighForecast = forecast.some((f) => f.ews >= 5);
-  const forecastColor = hasHighForecast ? "#ef4444" : "#3b82f6";
+  const hasHighForecast = forecast.some((f) => f.ews >= 7);
+  const forecastColor = hasHighForecast ? "#F03E3E" : "#3b82f6";
   const n = forecast.length;
 
   // Build unified dataset: history + connector + forecast
@@ -122,9 +123,9 @@ export function EWSForecastChart({ internacao, slots }: Props) {
         {hasHighForecast && (
           <span
             className="ml-auto text-xs px-2 py-0.5 rounded font-medium"
-            style={{ background: "#ef444420", color: "#ef4444" }}
+            style={{ background: "#F03E3E20", color: "#F03E3E" }}
           >
-            ⚠ Previsão Alto
+            ⚠ Previsão Crítica
           </span>
         )}
       </div>
@@ -179,8 +180,8 @@ export function EWSForecastChart({ internacao, slots }: Props) {
           />
 
           {/* EWS threshold lines */}
-          <ReferenceLine y={3} stroke="#F59F00" strokeDasharray="3 3" strokeOpacity={0.4} />
-          <ReferenceLine y={5} stroke="#F03E3E" strokeDasharray="3 3" strokeOpacity={0.5} />
+          <ReferenceLine y={4} stroke="#F59F00" strokeDasharray="3 3" strokeOpacity={0.4} />
+          <ReferenceLine y={7} stroke="#F03E3E" strokeDasharray="3 3" strokeOpacity={0.5} />
 
           {/* "Agora" vertical line */}
           <ReferenceLine
@@ -258,9 +259,10 @@ export function EWSForecastChart({ internacao, slots }: Props) {
           Previsão
         </div>
         <div className="flex items-center gap-4 text-xs">
-          <span style={{ color: "#2F9E44" }}>— Baixo</span>
-          <span style={{ color: "#F59F00" }}>— Moderado ≥3</span>
-          <span style={{ color: "#F03E3E" }}>— Alto ≥5</span>
+          <span style={{ color: "#2F9E44" }}>— Estável</span>
+          <span style={{ color: "#F59F00" }}>— Atenção ≥4</span>
+          <span style={{ color: "#F76707" }}>— Risco Elevado ≥5</span>
+          <span style={{ color: "#F03E3E" }}>— Crítico ≥7</span>
         </div>
       </div>
     </div>

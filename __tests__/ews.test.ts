@@ -8,11 +8,11 @@ function vitals(overrides: Partial<VitalSigns>): VitalSigns {
 
 describe("EWSCalculator (tabela MEWS)", () => {
   describe("valores fisiológicos comuns", () => {
-    it("NORMAL (FR=16→1, PAS=120→0, FC=75→1, TEMP=37.0→2, NC=Alerta→0) soma 4 e status Moderado", () => {
+    it("NORMAL (FR=16→1, PAS=120→0, FC=75→1, TEMP=37.0→2, NC=Alerta→0) soma 4 e status Atenção", () => {
       // FR e TEMP nunca pontuam 0 nesta tabela — mesmo vitais "comuns" não zeram o total
       const result = calculateEWS(NORMAL);
       expect(result.total).toBe(4);
-      expect(result.status).toBe("Moderado");
+      expect(result.status).toBe("Atenção");
     });
   });
 
@@ -77,36 +77,36 @@ describe("EWSCalculator (tabela MEWS)", () => {
     // Base fixa: FR=16(1) + PAS=120(0) + FC=105(0) + TEMP=38.0(1) = 2 — só o NC varia a seguir
     const base = { fr: 16, pas: 120, fc: 105, temp: 38.0 } as const;
 
-    it("escore 2 (NC=Alerta) → Baixo", () => {
+    it("escore 2 (NC=Alerta) → Estável", () => {
       const result = calculateEWS(vitals({ ...base, nc: "Alerta" }));
       expect(result.total).toBe(2);
-      expect(result.status).toBe("Baixo");
+      expect(result.status).toBe("Estável");
     });
 
-    it("escore 3 (NC=Confuso) → Moderado", () => {
+    it("escore 3 (NC=Confuso) → Estável", () => {
       const result = calculateEWS(vitals({ ...base, nc: "Confuso" }));
       expect(result.total).toBe(3);
-      expect(result.status).toBe("Moderado");
+      expect(result.status).toBe("Estável");
     });
 
-    it("escore 4 (NC=Responde à Dor) → Moderado", () => {
+    it("escore 4 (NC=Responde à Dor) → Atenção", () => {
       const result = calculateEWS(vitals({ ...base, nc: "Responde à Dor" }));
       expect(result.total).toBe(4);
-      expect(result.status).toBe("Moderado");
+      expect(result.status).toBe("Atenção");
     });
 
-    it("escore 5 (NC=Inconsciente) → Alto", () => {
+    it("escore 5 (NC=Inconsciente) → Risco Elevado", () => {
       const result = calculateEWS(vitals({ ...base, nc: "Inconsciente" }));
       expect(result.total).toBe(5);
-      expect(result.status).toBe("Alto");
+      expect(result.status).toBe("Risco Elevado");
     });
 
-    it("escore máximo (15) → Alto", () => {
+    it("escore máximo (15) → Crítico", () => {
       const result = calculateEWS({
         fr: 8, spo2: 98, pas: 70, fc: 40, temp: 35.0, nc: "Inconsciente",
       });
       expect(result.total).toBe(15);
-      expect(result.status).toBe("Alto");
+      expect(result.status).toBe("Crítico");
     });
   });
 
