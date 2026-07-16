@@ -1,4 +1,5 @@
 export type UnitId = "pronto-socorro" | "enfermaria" | "centro-cirurgico" | "uti";
+export type UtiTipo = "adulto" | "neonatal" | "pediatrica";
 export type StatusClinico = "Estável" | "Atenção" | "Risco Elevado" | "Crítico";
 export type NivelConsciencia = "Alerta" | "Confuso" | "Responde à Dor" | "Inconsciente";
 export type ManchesterClass = "Vermelho" | "Laranja" | "Amarelo" | "Verde" | "Azul";
@@ -78,6 +79,7 @@ export interface Bed {
   unit: UnitId;
   internacaoId: string | null;
   inoperante?: boolean;
+  utiTipo?: UtiTipo; // só relevante para unit === "uti"
 }
 
 // ─── Alert types ──────────────────────────────────────────────────────────────

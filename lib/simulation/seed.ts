@@ -73,9 +73,10 @@ const MILD_CONCERN: VitalsBaseline  = { fr: 19, spo2: 96, pas: 105, fc: 92, temp
 const ATTENTION: VitalsBaseline     = { fr: 24, spo2: 94, pas: 95,  fc: 125, temp: 38.3, nc: "Alerta" };
 // UTI-01 starts em Atenção — will deteriorate in Cena 1
 const UTI_CENA1: VitalsBaseline     = { fr: 23, spo2: 95, pas: 102, fc: 98, temp: 37.6, nc: "Alerta" };
-const UTI_STABLE: VitalsBaseline    = { fr: 14, spo2: 97, pas: 118, fc: 68, temp: 36.9, nc: "Alerta" };
 // UTI-02 starts already critical — seeds the initial sinal-vital demo alert
 const UTI_CRITICAL: VitalsBaseline  = { fr: 27, spo2: 88, pas: 84, fc: 120, temp: 38.8, nc: "Confuso" };
+// Pronto Socorro concentra os quadros mais graves do hospital — pacientes aguardando vaga
+const CRITICAL_PS: VitalsBaseline   = { fr: 32, spo2: 85, pas: 78, fc: 128, temp: 39.2, nc: "Confuso" };
 
 // ─── Build units ──────────────────────────────────────────────────────────────
 
@@ -109,12 +110,13 @@ export function buildSeed(): {
     beds.push({ ...makeBed(label, unit, null), inoperante: true });
   }
 
-  // ── Pronto Socorro ──────────────────────────────────────────────────────────
+  // ── Pronto Socorro ───────────────────────────────────────────────────────────
+  // PS concentra os quadros mais graves do hospital — pacientes agudos aguardando vaga.
   // PS-01: câmera + alta probabilidade de alta (Cena 3 ~12min)
   addOccupied("PS-01", "pronto-socorro",
     makePatient("Carlos Eduardo Souza", 58, "M", "Dor Torácica Atípica", 6),
-    MILD_CONCERN,
-    { admissionProbability: 72, manchesterClass: "Laranja" }
+    CRITICAL_PS,
+    { admissionProbability: 72, manchesterClass: "Vermelho" }
   );
   addOccupied("PS-02", "pronto-socorro",
     makePatient("Ana Paula Lima", 34, "F", "Crise Hipertensiva", 3),
@@ -122,23 +124,23 @@ export function buildSeed(): {
   );
   addOccupied("PS-03", "pronto-socorro",
     makePatient("Roberto Alves Martins", 72, "M", "Dispneia", 8),
-    MILD_CONCERN, { admissionProbability: 61, manchesterClass: "Laranja" }
+    CRITICAL_PS, { admissionProbability: 61, manchesterClass: "Vermelho" }
   );
   addOccupied("PS-04", "pronto-socorro",
     makePatient("Fernanda Costa Ribeiro", 28, "F", "Cólica Renal", 2),
-    STABLE, { admissionProbability: 22, manchesterClass: "Amarelo" }
+    STABLE, { admissionProbability: 22, manchesterClass: "Verde" }
   );
   addOccupied("PS-05", "pronto-socorro",
     makePatient("José Antônio Silva", 65, "M", "Fraqueza Muscular", 5),
-    STABLE, { admissionProbability: 47, manchesterClass: "Amarelo" }
+    MILD_CONCERN, { admissionProbability: 47, manchesterClass: "Amarelo" }
   );
   addOccupied("PS-06", "pronto-socorro",
     makePatient("Patrícia Oliveira Santos", 45, "F", "Arritmia", 4),
-    MILD_CONCERN, { admissionProbability: 55, manchesterClass: "Laranja" }
+    ATTENTION, { admissionProbability: 55, manchesterClass: "Laranja" }
   );
   addOccupied("PS-07", "pronto-socorro",
     makePatient("Marcos Vinicius Pereira", 52, "M", "Síncope", 3),
-    STABLE, { admissionProbability: 38, manchesterClass: "Amarelo" }
+    MILD_CONCERN, { admissionProbability: 38, manchesterClass: "Amarelo" }
   );
   addOccupied("PS-08", "pronto-socorro",
     makePatient("Luciana Ferreira Gomes", 38, "F", "Cefaleia Intensa", 1),
@@ -146,11 +148,11 @@ export function buildSeed(): {
   );
   addOccupied("PS-09", "pronto-socorro",
     makePatient("Antônio Carlos Barbosa", 81, "M", "Queda com Trauma", 7),
-    STABLE, { admissionProbability: 68, manchesterClass: "Laranja" }
+    ATTENTION, { admissionProbability: 68, manchesterClass: "Laranja" }
   );
   addOccupied("PS-10", "pronto-socorro",
     makePatient("Camila Rodrigues Nunes", 23, "F", "Reação Alérgica", 2),
-    STABLE, { admissionProbability: 33, manchesterClass: "Amarelo" }
+    MILD_CONCERN, { admissionProbability: 33, manchesterClass: "Amarelo" }
   );
   addEmpty("PS-11", "pronto-socorro");
   addInoperante("PS-12", "pronto-socorro");
@@ -197,52 +199,37 @@ export function buildSeed(): {
     makePatient("Fábio Alexandre Teixeira", 36, "M", "Celulite Infecciosa", 24),
     STABLE
   );
-  addOccupied("ENF-11", "enfermaria",
-    makePatient("Rosana Pereira Almeida", 58, "F", "Fibrilação Atrial", 48),
-    STABLE
-  );
-  addOccupied("ENF-12", "enfermaria",
-    makePatient("Hélio Gomes de Carvalho", 67, "M", "Insuficiência Renal Aguda", 54),
-    MILD_CONCERN
-  );
-  addOccupied("ENF-13", "enfermaria",
-    makePatient("Denise Cristina Moura", 42, "F", "Gastroenterite Grave", 18),
-    STABLE
-  );
-  addOccupied("ENF-14", "enfermaria",
-    makePatient("Gilberto Santos Freire", 71, "M", "Infecção Urinária Complicada", 36),
-    STABLE
-  );
-  addOccupied("ENF-15", "enfermaria",
-    makePatient("Adriana Lopes Cavalcanti", 49, "F", "Anemia Grave", 48),
-    MILD_CONCERN
-  );
+  addEmpty("ENF-11", "enfermaria");
+  addInoperante("ENF-12", "enfermaria");
 
   // ── UTI ─────────────────────────────────────────────────────────────────────
+  // UTI é a unidade mais monitorada e estabilizada do hospital — a maioria dos
+  // pacientes já respondeu ao tratamento intensivo, ao contrário do PS.
   // UTI-01: vai deteriorar na Cena 1 (~5min)
   addOccupied("UTI-01", "uti",
     makePatient("Francisco das Chagas Moreira", 76, "M", "Sepse por Pneumonia", 120),
     UTI_CENA1, { hasPump: true, manchesterClass: "Vermelho" }
   );
+  // UTI-02: seeds o alerta de sinal vital crítico (demo)
   addOccupied("UTI-02", "uti",
     makePatient("Beatriz Helena Cardoso", 62, "F", "Choque Séptico", 96),
     UTI_CRITICAL, { hasPump: true }
   );
   addOccupied("UTI-03", "uti",
     makePatient("Manoel Augusto Vieira", 83, "M", "Insuficiência Respiratória", 72),
-    { fr: 20, spo2: 96, pas: 108, fc: 94, temp: 37.8, nc: "Alerta" }, { hasPump: false }
+    STABLE, { hasPump: false }
   );
   addOccupied("UTI-04", "uti",
     makePatient("Teresa Cristina Andrade", 55, "F", "Pós-op Cirurgia Cardíaca", 48),
-    UTI_STABLE, { hasPump: true }
+    STABLE, { hasPump: true }
   );
   addOccupied("UTI-05", "uti",
     makePatient("Raimundo Nonato Pinheiro", 69, "M", "Infarto Agudo do Miocárdio", 60),
-    { fr: 18, spo2: 97, pas: 112, fc: 88, temp: 37.1, nc: "Alerta" }, { hasPump: false }
+    MILD_CONCERN, { hasPump: false }
   );
   addOccupied("UTI-06", "uti",
     makePatient("Zélia Fátima Corrêa", 78, "F", "AVC Hemorrágico", 84),
-    UTI_STABLE, { hasPump: false }
+    STABLE, { hasPump: false }
   );
   addOccupied("UTI-07", "uti",
     makePatient("Benedito Alves Machado", 71, "M", "Insuficiência Hepática", 108),
@@ -250,13 +237,115 @@ export function buildSeed(): {
   );
   addOccupied("UTI-08", "uti",
     makePatient("Conceição Maria Rocha", 64, "F", "Diabetes + IAM", 72),
-    { fr: 17, spo2: 97, pas: 115, fc: 82, temp: 37.0, nc: "Alerta" }, { hasPump: false }
+    STABLE, { hasPump: false }
   );
   addOccupied("UTI-09", "uti",
     makePatient("Armando Luiz Tavares", 58, "M", "Politrauma", 36),
     MILD_CONCERN, { hasPump: true }
   );
-  addInoperante("UTI-10", "uti");
+  addOccupied("UTI-10", "uti",
+    makePatient("Sônia Regina Barros", 66, "F", "Pós-op Neurocirurgia", 54),
+    STABLE, { hasPump: false }
+  );
+  addEmpty("UTI-11", "uti");
+  addInoperante("UTI-12", "uti");
+
+  // ── UTI Neonatal (12 leitos) ────────────────────────────────────────────────
+  addOccupied("UTI-N01", "uti",
+    makePatient("RN de Ana Beatriz Souza", 0, "M", "Prematuridade Extrema (28 semanas)", 12),
+    STABLE, { hasPump: false }
+  );
+  addOccupied("UTI-N02", "uti",
+    makePatient("RN de Camila Torres", 0, "F", "Icterícia Neonatal", 30),
+    STABLE, { hasPump: false }
+  );
+  addOccupied("UTI-N03", "uti",
+    makePatient("RN de Juliana Prado", 0, "M", "Sepse Neonatal Precoce", 20),
+    MILD_CONCERN, { hasPump: true }
+  );
+  addOccupied("UTI-N04", "uti",
+    makePatient("RN de Patrícia Nunes", 0, "F", "Síndrome do Desconforto Respiratório", 48),
+    MILD_CONCERN, { hasPump: true }
+  );
+  addOccupied("UTI-N05", "uti",
+    makePatient("RN de Débora Alves", 0, "M", "Prematuridade (32 semanas)", 60),
+    STABLE, { hasPump: false }
+  );
+  addOccupied("UTI-N06", "uti",
+    makePatient("RN de Larissa Gomes", 0, "F", "Asfixia Perinatal", 10),
+    ATTENTION, { hasPump: true }
+  );
+  addOccupied("UTI-N07", "uti",
+    makePatient("RN de Fernanda Rocha", 0, "M", "Hipoglicemia Neonatal", 24),
+    STABLE, { hasPump: false }
+  );
+  addOccupied("UTI-N08", "uti",
+    makePatient("RN de Vanessa Lima", 0, "F", "Cardiopatia Congênita", 36),
+    MILD_CONCERN, { hasPump: true }
+  );
+  addOccupied("UTI-N09", "uti",
+    makePatient("RN de Simone Castro", 0, "M", "Enterocolite Necrosante", 72),
+    STABLE, { hasPump: false }
+  );
+  addOccupied("UTI-N10", "uti",
+    makePatient("RN de Tatiane Melo", 0, "F", "Prematuridade Extrema (27 semanas)", 96),
+    MILD_CONCERN, { hasPump: false }
+  );
+  addEmpty("UTI-N11", "uti");
+  addInoperante("UTI-N12", "uti");
+
+  // ── UTI Pediátrica (12 leitos) ──────────────────────────────────────────────
+  addOccupied("UTI-P01", "uti",
+    makePatient("Miguel Santos Barbosa", 3, "M", "Bronquiolite Viral Grave", 24),
+    STABLE, { hasPump: false }
+  );
+  addOccupied("UTI-P02", "uti",
+    makePatient("Alice Ferreira Costa", 7, "F", "Cetoacidose Diabética", 18),
+    MILD_CONCERN, { hasPump: false }
+  );
+  addOccupied("UTI-P03", "uti",
+    makePatient("Davi Oliveira Souza", 5, "M", "Convulsão Febril Prolongada", 12),
+    STABLE, { hasPump: false }
+  );
+  addOccupied("UTI-P04", "uti",
+    makePatient("Laura Almeida Rocha", 10, "F", "Pneumonia Grave", 30),
+    MILD_CONCERN, { hasPump: true }
+  );
+  addOccupied("UTI-P05", "uti",
+    makePatient("Heitor Lima Cardoso", 2, "M", "Desidratação Grave", 15),
+    STABLE, { hasPump: false }
+  );
+  addOccupied("UTI-P06", "uti",
+    makePatient("Sophia Martins Dias", 13, "F", "Trauma Cranioencefálico", 6),
+    ATTENTION, { hasPump: true }
+  );
+  addOccupied("UTI-P07", "uti",
+    makePatient("Arthur Pereira Nunes", 8, "M", "Crise Asmática Grave", 20),
+    MILD_CONCERN, { hasPump: true }
+  );
+  addOccupied("UTI-P08", "uti",
+    makePatient("Isabela Rodrigues Melo", 4, "F", "Sepse Meningocócica", 10),
+    STABLE, { hasPump: true }
+  );
+  addOccupied("UTI-P09", "uti",
+    makePatient("Bernardo Castro Teixeira", 14, "M", "Politrauma (Acidente de Trânsito)", 8),
+    STABLE, { hasPump: false }
+  );
+  addOccupied("UTI-P10", "uti",
+    makePatient("Manuela Gomes Prado", 6, "F", "Síndrome Nefrótica", 48),
+    MILD_CONCERN, { hasPump: false }
+  );
+  addEmpty("UTI-P11", "uti");
+  addInoperante("UTI-P12", "uti");
+
+  // Tipos de UTI — 12 leitos por tipo (Adulto/Neonatal/Pediátrica), identificados
+  // pelo prefixo do label (UTI-N.. / UTI-P.. / UTI-..).
+  for (const b of beds) {
+    if (b.unit !== "uti") continue;
+    if (b.label.startsWith("UTI-N")) b.utiTipo = "neonatal";
+    else if (b.label.startsWith("UTI-P")) b.utiTipo = "pediatrica";
+    else b.utiTipo = "adulto";
+  }
 
   // ── Centro Cirúrgico ─────────────────────────────────────────────────────────
   const now = NOW();

@@ -1,6 +1,7 @@
 "use client";
 
 import { use } from "react";
+import { useSearchParams } from "next/navigation";
 import { AuthGuard } from "@/components/AuthGuard";
 import { Sidebar } from "@/components/Sidebar";
 import { TopBar } from "@/components/TopBar";
@@ -9,16 +10,18 @@ import { SurgicalRoomCard } from "@/components/SurgicalRoomCard";
 import { useSimulationStore } from "@/store/simulation";
 import { useSidebarStore } from "@/store/sidebar";
 import { useShallow } from "zustand/react/shallow";
+import type { Bed } from "@/lib/simulation/types";
 
-const UNIT_LABELS: Record<string, string> = {
-  "pronto-socorro":   "Pronto Socorro",
-  "enfermaria":       "Enfermaria",
-  "uti":              "UTI",
-  "centro-cirurgico": "Centro Cirúrgico",
-};
+function useUnitBeds(unit: string): Bed[] {
+  const searchParams = useSearchParams();
+  const utiTipo = searchParams.get("utiTipo");
+  const beds = useSimulationStore(useShallow((s) => s.beds.filter((b) => b.unit === unit)));
+  if (unit === "uti" && utiTipo) return beds.filter((b) => b.utiTipo === utiTipo);
+  return beds;
+}
 
 function UnitStats({ unit }: { unit: string }) {
-  const beds = useSimulationStore(useShallow((s) => s.beds.filter((b) => b.unit === unit)));
+  const beds = useUnitBeds(unit);
   const ativos      = beds.filter((b) => b.internacaoId !== null).length;
   const disponiveis = beds.filter((b) => b.internacaoId === null && !b.inoperante).length;
   const inoperantes = beds.filter((b) => b.inoperante).length;
@@ -27,7 +30,7 @@ function UnitStats({ unit }: { unit: string }) {
     <div className="flex items-center gap-3 mb-6 flex-wrap">
       <Chip value={ativos}      label="Ativos"      dot="var(--status-attention)" />
       <Chip value={disponiveis} label="Disponíveis" dot="var(--status-stable)"    />
-      <Chip value={inoperantes} label="Inoperantes" dot="rgba(239,68,68,0.6)"    />
+      <Chip value={inoperantes} label="Inoperantes" dot="var(--status-critical)" />
     </div>
   );
 }
@@ -43,7 +46,7 @@ function Chip({ value, label, dot }: { value: number; label: string; dot: string
 }
 
 function UnitGrid({ unit }: { unit: string }) {
-  const beds = useSimulationStore(useShallow((s) => s.beds.filter((b) => b.unit === unit)));
+  const beds = useUnitBeds(unit);
   const internacoes = useSimulationStore(useShallow((s) => s.internacoes));
 
   if (unit === "centro-cirurgico") {
@@ -85,7 +88,6 @@ function UnitGrid({ unit }: { unit: string }) {
 
 export default function UnitPage({ params }: { params: Promise<{ unit: string }> }) {
   const { unit } = use(params);
-  const label = UNIT_LABELS[unit] ?? unit;
   const collapsed = useSidebarStore((s) => s.collapsed);
   const fullscreen = useSidebarStore((s) => s.fullscreen);
 
@@ -104,7 +106,6 @@ export default function UnitPage({ params }: { params: Promise<{ unit: string }>
         >
           <TopBar />
           <div className="p-6 flex-1">
-            <h1 className="text-lg font-semibold mb-4">{label}</h1>
             <UnitStats unit={unit} />
             <UnitGrid unit={unit} />
           </div>

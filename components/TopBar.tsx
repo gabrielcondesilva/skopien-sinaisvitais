@@ -1,13 +1,19 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useAuthStore } from "@/store/auth";
 import { useAlertStore } from "@/store/alerts";
 import { useSimulationStore } from "@/store/simulation";
 import { AlertsPanel } from "./AlertsPanel";
 import { Icon } from "./ui/Icon";
-import type { UnitId } from "@/lib/simulation/types";
+import type { UnitId, UtiTipo } from "@/lib/simulation/types";
+import { UNIT_LABELS, UTI_TIPO_LABELS } from "@/lib/units";
+
+const UTI_TIPO_OPTIONS: Array<{ value: UtiTipo | "todos"; label: string }> = [
+  { value: "todos", label: "Todos" },
+  ...(Object.entries(UTI_TIPO_LABELS) as Array<[UtiTipo, string]>).map(([value, label]) => ({ value, label })),
+];
 
 const HOSPITAL_NAME = "Hospital Demo Skopien";
 
@@ -32,6 +38,7 @@ export function TopBar() {
   const profile = useAuthStore((s) => s.profile);
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const active = useAlertStore((s) => s.active);
   const internacoes = useSimulationStore((s) => s.internacoes);
   const [panelOpen, setPanelOpen] = useState(false);
@@ -44,6 +51,22 @@ export function TopBar() {
     if (patientMatch) return internacoes[patientMatch[1]]?.unit ?? null;
     return null;
   }, [pathname, internacoes]);
+
+  // Só nas páginas de unidade (Leitos) o header substitui o nome do hospital
+  // pelo nome da página — libera espaço vertical que antes ia pro <h1> da página.
+  const unitPageMatch = pathname.match(/^\/units\/([^/]+)/);
+  const currentUnit = unitPageMatch ? (unitPageMatch[1] as UnitId) : null;
+  const headerTitle = currentUnit ? (UNIT_LABELS[currentUnit] ?? currentUnit) : HOSPITAL_NAME;
+
+  const utiTipoValue = searchParams.get("utiTipo") ?? "todos";
+
+  function handleUtiTipoChange(value: string) {
+    const params = new URLSearchParams(searchParams.toString());
+    if (value === "todos") params.delete("utiTipo");
+    else params.set("utiTipo", value);
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname);
+  }
 
   const activeCount = unitFilter
     ? active.filter((a) => a.unit === unitFilter).length
@@ -65,9 +88,28 @@ export function TopBar() {
           borderBottom: "1px solid var(--border)",
         }}
       >
-        {/* Left: hospital name + date */}
-        <div className="flex items-center gap-3">
-          <span className="font-semibold text-sm">{HOSPITAL_NAME}</span>
+        {/* Left: hospital name / unit title + date */}
+        <div className="flex items-center gap-4">
+          <span className={currentUnit ? "font-bold text-xl tracking-tight" : "font-semibold text-sm"}>
+            {headerTitle}
+          </span>
+          {currentUnit === "uti" && (
+            <select
+              value={utiTipoValue}
+              onChange={(e) => handleUtiTipoChange(e.target.value)}
+              aria-label="Filtrar por tipo de UTI"
+              className="text-xs rounded-md px-2 py-1 outline-none cursor-pointer"
+              style={{
+                background: "var(--background)",
+                border: "1px solid var(--border)",
+                color: "var(--foreground)",
+              }}
+            >
+              {UTI_TIPO_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          )}
           {dateStr && !isAntonio && (
             <span className="text-xs" style={{ color: "var(--muted)" }}>
               {dateStr}

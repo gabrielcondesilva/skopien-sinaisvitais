@@ -7,6 +7,13 @@ import { useAuthStore } from "@/store/auth";
 import { useShallow } from "zustand/react/shallow";
 import type { Alert, Bed, Internacao, SurgicalInternacao } from "@/lib/simulation/types";
 import { StreamlineIcon } from "./ui/StreamlineIcon";
+import { UTI_TIPO_LABELS } from "@/lib/units";
+
+function bedDisplayLabel(bed: Bed): string {
+  const number = bed.label.match(/(\d+)$/)?.[0] ?? bed.label;
+  const suffix = bed.unit === "uti" && bed.utiTipo ? ` (${UTI_TIPO_LABELS[bed.utiTipo]})` : "";
+  return `Leito ${number}${suffix}`;
+}
 
 export const STATUS_COLOR: Record<string, string> = {
   "Estável":       "#2F9E44",
@@ -97,20 +104,19 @@ export function BedCard({ bed, internacao }: Props) {
   ));
 
   if (!internacao) {
-    const borderColor = bed.inoperante ? "rgba(255,255,255,0.12)" : "var(--status-stable)";
-    const label       = bed.inoperante ? "Leito Inoperante"       : "Leito Disponível";
-    const labelColor  = bed.inoperante ? "rgba(239,68,68,0.6)"    : "var(--foreground)";
+    const label      = bed.inoperante ? "Leito Inoperante" : "Leito Disponível";
+    const labelColor = bed.inoperante ? "var(--status-critical)" : "var(--status-stable)";
 
     return (
       <div
         className="rounded-xl p-5 flex flex-col gap-2.5"
         style={{
-          background: bed.inoperante ? "rgba(255,255,255,0.02)" : "var(--surface)",
-          border: `1px solid ${borderColor}`,
+          background: "var(--surface)",
+          border: "1px solid var(--muted)",
         }}
       >
         <div className="flex items-center justify-between gap-2">
-          <span className="text-xs font-mono" style={{ color: "var(--muted)" }}>{bed.label}</span>
+          <span className="text-xs font-mono" style={{ color: "var(--muted)" }}>{bedDisplayLabel(bed)}</span>
         </div>
         <div>
           <p className="text-sm font-medium leading-snug" style={{ color: labelColor }}>{label}</p>
@@ -147,7 +153,7 @@ export function BedCard({ bed, internacao }: Props) {
     >
       {/* Bed label + badges */}
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs font-mono" style={{ color: "var(--muted)" }}>{bed.label}</span>
+        <span className="text-xs font-mono" style={{ color: "var(--muted)" }}>{bedDisplayLabel(bed)}</span>
         <div className="flex items-center gap-1 flex-wrap justify-end">
           {internacao.hasPump && (
             <span title="Bomba de Infusão ativa" className="inline-flex items-center select-none">
