@@ -131,11 +131,15 @@ function SelBtn({ active, onClick, disabled, children }: {
 
 // ─── Shared controls bar (slot + window) ─────────────────────────────────────
 
-function ControlsBar({ slotMin, setSlotMin, windowMs, setWindowMs }: {
+function ControlsBar({ slotMin, setSlotMin, windowMs, setWindowMs, view, setView, showViewToggle, legend }: {
   slotMin: number;
   setSlotMin: (v: number) => void;
   windowMs: number;
   setWindowMs: (v: number) => void;
+  view: "graficos" | "heatmap";
+  setView: (v: "graficos" | "heatmap") => void;
+  showViewToggle: boolean;
+  legend?: React.ReactNode;
 }) {
   const [slotPickerOpen, setSlotPickerOpen] = useState(false);
   const [windowPickerOpen, setWindowPickerOpen] = useState(false);
@@ -150,6 +154,13 @@ function ControlsBar({ slotMin, setSlotMin, windowMs, setWindowMs }: {
       className="flex items-center gap-5 px-6 py-3 flex-wrap"
       style={{ borderBottom: "1px solid var(--border)" }}
     >
+      {showViewToggle && (
+        <div className="flex items-center gap-1.5">
+          <SelBtn active={view === "graficos"} onClick={() => setView("graficos")}>Gráficos</SelBtn>
+          <SelBtn active={view === "heatmap"}  onClick={() => setView("heatmap")}>Heatmap</SelBtn>
+        </div>
+      )}
+
       <div className="flex items-center gap-1.5">
         <span className="text-xs" style={{ color: "var(--muted)" }}>Slot</span>
         {SLOT_OPTS.map((o) => (
@@ -300,19 +311,21 @@ function ControlsBar({ slotMin, setSlotMin, windowMs, setWindowMs }: {
           )}
         </div>
       </div>
+
+      {legend && <div className="flex items-center ml-auto">{legend}</div>}
     </div>
   );
 }
 
 // ─── Tab: Sinais Vitais ───────────────────────────────────────────────────────
 
-function SinaisVitaisTab({ internacao, slotMin, windowMs }: {
+function SinaisVitaisTab({ internacao, slotMin, windowMs, view, cardsVisible }: {
   internacao: Internacao | SurgicalInternacao;
   slotMin: number;
   windowMs: number;
+  view: "graficos" | "heatmap";
+  cardsVisible: boolean;
 }) {
-  const [view, setView] = useState<"graficos" | "heatmap">("graficos");
-  const [cardsVisible, setCardsVisible] = useState(true);
   const isAntonio = useAuthStore((s) => s.email === "antonio@hospital.com");
   const setNivelConsciencia = useSimulationStore((s) => s.setNivelConsciencia);
 
@@ -330,45 +343,8 @@ function SinaisVitaisTab({ internacao, slotMin, windowMs }: {
     })
   ) as Record<string, { min: number; max: number } | undefined>;
 
-  const legend = (
-    <div className="flex items-center gap-4">
-      {[
-        { color: "#888888", label: "Normal" },
-        { color: "#eab308", label: "Atenção" },
-        { color: "#ef4444", label: "Crítico" },
-      ].map(({ color, label }) => (
-        <span key={label} className="flex items-center gap-1.5 text-xs" style={{ color: "var(--muted)" }}>
-          <span style={{ width: 8, height: 8, borderRadius: "50%", background: color, display: "inline-block" }} />
-          {label}
-        </span>
-      ))}
-      {isAntonio && (
-        <button
-          onClick={() => setCardsVisible((v) => !v)}
-          aria-label={cardsVisible ? "Ocultar cartões" : "Mostrar cartões"}
-          title={cardsVisible ? "Ocultar cartões" : "Mostrar cartões"}
-          className="flex items-center justify-center w-6 h-6 rounded transition-colors hover:bg-white/5"
-          style={{ color: "var(--muted)" }}
-        >
-          <Icon name={cardsVisible ? "eye" : "eye-off"} size={15} color="currentColor" />
-        </button>
-      )}
-    </div>
-  );
-
   return (
     <div className="flex flex-col gap-5">
-      {/* View toggle + legenda */}
-      <div className={`flex items-center gap-1.5 ${isAntonio ? "justify-between" : ""}`}>
-        <div className="flex items-center gap-1.5">
-          <SelBtn active={view === "graficos"} onClick={() => setView("graficos")}>Gráficos</SelBtn>
-          <SelBtn active={view === "heatmap"}  onClick={() => setView("heatmap")}>Heatmap</SelBtn>
-        </div>
-        {isAntonio && legend}
-      </div>
-
-      {!isAntonio && legend}
-
       {/* Vital cards */}
       {(!isAntonio || cardsVisible) && (
         <div className="flex gap-3">
@@ -540,6 +516,8 @@ function PatientContent({ id }: { id: string }) {
   const [tab, setTab]                 = useState<Tab>("sinais-vitais");
   const [slotMin, setSlotMin]         = useState(60);
   const [windowMs, setWindowMs]       = useState(86_400_000);
+  const [view, setView]               = useState<"graficos" | "heatmap">("graficos");
+  const [cardsVisible, setCardsVisible] = useState(true);
   const [camOpen, setCamOpen]         = useState(false);
   const [camFullscreen, setCamFullscreen] = useState(false);
   const [panelOpen, setPanelOpen]     = useState(false);
@@ -598,17 +576,19 @@ function PatientContent({ id }: { id: string }) {
                 ←
               </button>
               <h1 className="text-xl font-semibold">{internacao.patient.name}</h1>
-              <ScorePill text={`EWS ${ews.total} - ${ews.status}`} color={statusColor} size="lg" />
+              <div className="flex items-center gap-3 ml-20">
+                <ScorePill text={`EWS ${ews.total} - ${ews.status}`} color={statusColor} size="lg" />
 
-              {/* Braden — apenas para UTI-01 */}
-              {bed?.label === "UTI-01" && (
-                <ScorePill
-                  text="Braden 10 - Alto"
-                  color={BRADEN_COLOR["Alto"]}
-                  onClick={() => setTab("lesao-pele")}
-                  size="lg"
-                />
-              )}
+                {/* Braden — apenas para UTI-01 */}
+                {bed?.label === "UTI-01" && (
+                  <ScorePill
+                    text="Braden 10 - Alto"
+                    color={BRADEN_COLOR["Alto"]}
+                    onClick={() => setTab("lesao-pele")}
+                    size="lg"
+                  />
+                )}
+              </div>
             </div>
 
             <div className="flex items-center gap-0.5 shrink-0">
@@ -653,7 +633,12 @@ function PatientContent({ id }: { id: string }) {
               {metaItems.map((item, i) => (
                 <span key={i} className="flex items-center gap-1.5">
                   {i > 0 && <span>·</span>}
-                  <span style={i === ADMISSION_REASON_INDEX ? { color: "var(--accent)", fontWeight: 700 } : undefined}>{item}</span>
+                  <span
+                    className={i === ADMISSION_REASON_INDEX ? "text-base" : undefined}
+                    style={i === ADMISSION_REASON_INDEX ? { color: "var(--accent)", fontWeight: 700 } : undefined}
+                  >
+                    {item}
+                  </span>
                 </span>
               ))}
               {internacao.unit !== "pronto-socorro" && (
@@ -897,21 +882,49 @@ function PatientContent({ id }: { id: string }) {
         })}
       </div>
 
-      {/* ── Shared controls (slot + window) ── */}
+      {/* ── Shared controls (view toggle + slot + window + legenda) ── */}
       {tab !== "lesao-pele" && tab !== "medicamento" && (
         <ControlsBar
           slotMin={slotMin}
           setSlotMin={setSlotMin}
           windowMs={windowMs}
           setWindowMs={setWindowMs}
+          view={view}
+          setView={setView}
+          showViewToggle={tab === "sinais-vitais"}
+          legend={tab === "sinais-vitais" ? (
+            <div className="flex items-center gap-4">
+              {[
+                { color: "#888888", label: "Normal" },
+                { color: "#eab308", label: "Atenção" },
+                { color: "#ef4444", label: "Crítico" },
+              ].map(({ color, label }) => (
+                <span key={label} className="flex items-center gap-1.5 text-xs" style={{ color: "var(--muted)" }}>
+                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: color, display: "inline-block" }} />
+                  {label}
+                </span>
+              ))}
+              {isAntonio && (
+                <button
+                  onClick={() => setCardsVisible((v) => !v)}
+                  aria-label={cardsVisible ? "Ocultar cartões" : "Mostrar cartões"}
+                  title={cardsVisible ? "Ocultar cartões" : "Mostrar cartões"}
+                  className="flex items-center justify-center w-6 h-6 rounded transition-colors hover:bg-white/5"
+                  style={{ color: "var(--muted)" }}
+                >
+                  <Icon name={cardsVisible ? "eye" : "eye-off"} size={15} color="currentColor" />
+                </button>
+              )}
+            </div>
+          ) : undefined}
         />
       )}
 
       {/* ── Tab content + painel de Exames/Prontuário (contexto lado a lado) ── */}
-      <div className="flex-1 flex items-start gap-4 p-6 min-w-0">
+      <div className={`flex-1 flex items-start gap-4 px-6 pb-6 min-w-0 ${tab === "sinais-vitais" ? "pt-2" : "pt-6"}`}>
         <div className="flex-1 min-w-0">
           {tab === "sinais-vitais" && (
-            <SinaisVitaisTab internacao={internacao} slotMin={slotMin} windowMs={windowMs} />
+            <SinaisVitaisTab internacao={internacao} slotMin={slotMin} windowMs={windowMs} view={view} cardsVisible={cardsVisible} />
           )}
           {tab === "ews" && (
             <EWSTab internacao={internacao} slotMin={slotMin} />
