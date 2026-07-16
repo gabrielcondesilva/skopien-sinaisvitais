@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
 
 export type UserProfile = "assistencial" | "gestor" | "executivo" | "paineis";
 
@@ -20,20 +19,18 @@ const PROFILE_MAP: Record<string, UserProfile> = {
 
 const PASSWORD = "skopien123";
 
-export const useAuthStore = create<AuthState>()(
-  persist(
-    (set) => ({
-      profile: null,
-      email: null,
-      login: (email, password) => {
-        const normalizedEmail = email.toLowerCase();
-        const profile = PROFILE_MAP[normalizedEmail];
-        if (!profile || password !== PASSWORD) return false;
-        set({ profile, email: normalizedEmail });
-        return true;
-      },
-      logout: () => set({ profile: null, email: null }),
-    }),
-    { name: "skopien-auth" }
-  )
-);
+// Sem persist propositalmente: a sessão vive só em memória, então recarregar
+// a página ou abrir o link de novo sempre volta para o login — nada de sessão
+// "fantasma" de uma demonstração anterior.
+export const useAuthStore = create<AuthState>()((set) => ({
+  profile: null,
+  email: null,
+  login: (email, password) => {
+    const normalizedEmail = email.toLowerCase();
+    const profile = PROFILE_MAP[normalizedEmail];
+    if (!profile || password !== PASSWORD) return false;
+    set({ profile, email: normalizedEmail });
+    return true;
+  },
+  logout: () => set({ profile: null, email: null }),
+}));
