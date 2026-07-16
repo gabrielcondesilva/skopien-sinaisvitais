@@ -80,12 +80,11 @@ function makeLabel(vitalKey: string, vitalColor: string) {
 }
 
 // ─── Domain dinâmico ─────────────────────────────────────────────────────────
-// Janela no eixo Y centralizada nos dados, com folga de meio step acima e
-// abaixo — os valores não devem grudar no topo/fundo do gráfico. A janela só
-// cresce além do padrão quando os dados não cabem nela (ex.: evento de
-// deterioração roteirizado), e só desliza quando um valor alcança a borda.
+// Janela no eixo Y ajustada aos dados: folga de meio step acima do máximo e
+// abaixo do mínimo — não a janela inteira arredondada em múltiplos de step,
+// que deixava os pontos "encostados" numa borda distante do valor real.
 
-const VITALS_CFG = [
+export const VITALS_CFG = [
   { key: "fr"   as const, label: "FR",   unit: "rpm",  color: "#3b82f6", absMin: 4,  absMax: 60,  step: 2   },
   { key: "spo2" as const, label: "SpO₂", unit: "%",    color: "#a78bfa", absMin: 70, absMax: 100, step: 1   },
   { key: "pas"  as const, label: "PAS",  unit: "mmHg", color: "#fb923c", absMin: 40, absMax: 250, step: 5   },
@@ -93,7 +92,7 @@ const VITALS_CFG = [
   { key: "temp" as const, label: "TEMP", unit: "°C",   color: "#facc15", absMin: 33, absMax: 43,  step: 0.5 },
 ];
 
-const AXIS_TICK_COUNT = 2;
+export type VitalChartConfig = (typeof VITALS_CFG)[number];
 
 function round2(v: number): number {
   return Math.round(v * 100) / 100;
@@ -106,41 +105,22 @@ function computeDomain(
   absMax: number,
   step: number,
 ): { domain: [number, number]; ticks: number[] } {
-  const minSpan = step * (AXIS_TICK_COUNT - 1);
+  const pad = step / 2;
   const vals = slots
     .map((s) => s[key] as number | undefined)
     .filter((v): v is number => v != null && !isNaN(v));
 
-  let base: number;
-  let span: number;
+  const dataMin = vals.length ? Math.min(...vals) : absMin;
+  const dataMax = vals.length ? Math.max(...vals) : absMin;
 
-  if (vals.length === 0) {
-    base = absMin;
-    span = minSpan;
-  } else {
-    const dataMin = Math.min(...vals);
-    const dataMax = Math.max(...vals);
-    // folga de meio step de cada lado, arredondada pra cima em múltiplos de step
-    const neededSpan = Math.ceil((dataMax - dataMin + step) / step) * step;
-    span = Math.max(minSpan, neededSpan);
+  let base = dataMin - pad;
+  let top  = dataMax + pad;
 
-    const mid = (dataMin + dataMax) / 2;
-    base = Math.round((mid - span / 2) / step) * step;
+  if (base < absMin) base = absMin;
+  if (top  > absMax) top  = absMax;
+  if (top <= base) top = base + pad * 2;
 
-    // garante que os dados fiquem dentro da janela mesmo após o arredondamento
-    while (dataMin < base + step * 0.4) base -= step;
-    while (dataMax > base + span - step * 0.4) base += step;
-  }
-
-  let top = base + span;
-  if (base < absMin) { base = absMin; top = Math.min(absMax, base + span); }
-  if (top  > absMax) { top  = absMax; base = Math.max(absMin, top - span); }
-
-  const ticks: number[] = [];
-  const tickStep = (top - base) / (AXIS_TICK_COUNT - 1);
-  for (let i = 0; i < AXIS_TICK_COUNT; i++) ticks.push(round2(base + tickStep * i));
-
-  return { domain: [round2(base), round2(top)], ticks };
+  return { domain: [round2(base), round2(top)], ticks: [round2(base), round2(top)] };
 }
 
 function fmtTime(t: number) {
@@ -149,97 +129,111 @@ function fmtTime(t: number) {
 
 // ─── Chart ───────────────────────────────────────────────────────────────────
 
-interface Props { slots: SlotReading[]; syncId?: string }
+interface CardProps {
+  vital: VitalChartConfig;
+  slots: SlotReading[];
+  syncId?: string;
+  compact?: boolean;
+  headerExtra?: React.ReactNode;
+}
 
-export function VitalsChart({ slots, syncId }: Props) {
+export function VitalChartCard({ vital: v, slots, syncId, compact = false, headerExtra }: CardProps) {
+  const chartHeight = compact ? 85 : 180;
+  const { domain, ticks } = computeDomain(slots, v.key, v.absMin, v.absMax, v.step);
+  const LabelComp = makeLabel(v.key, v.color);
+
+  return (
+    <div
+      className={compact ? "rounded-lg p-2 flex flex-col" : "rounded-lg p-4 flex flex-col"}
+      style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
+    >
+      <div className={`flex items-center justify-between gap-2 ${compact ? "mb-0.5" : "mb-3"}`}>
+        <p className={compact ? "text-[11px] font-medium" : "text-sm font-medium"} style={{ color: "var(--muted)" }}>
+          {v.label}&nbsp;<span style={{ opacity: 0.6, fontSize: 11 }}>({v.unit})</span>
+        </p>
+        {headerExtra}
+      </div>
+      <ResponsiveContainer width="100%" height={chartHeight}>
+        <AreaChart data={slots} syncId={syncId} margin={{ top: 18, right: 8, left: 0, bottom: 0 }}>
+          <defs>
+            <linearGradient id={`g-${v.key}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="10%" stopColor={v.color} stopOpacity={0.35} />
+              <stop offset="95%" stopColor={v.color} stopOpacity={0.02} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid stroke="rgba(255,255,255,0.04)" vertical={false} />
+          <XAxis
+            dataKey="t"
+            tickFormatter={fmtTime}
+            tick={{ fontSize: 10, fill: "var(--muted)" }}
+            tickLine={false}
+            axisLine={false}
+            interval="preserveStartEnd"
+            padding={{ left: 20, right: 20 }}
+          />
+          <YAxis
+            domain={domain}
+            ticks={ticks}
+            tick={{ fontSize: 10, fill: "var(--muted)" }}
+            tickLine={false}
+            axisLine={false}
+            width={40}
+          />
+          <Tooltip
+            isAnimationActive={false}
+            content={({ active, payload, label }) => {
+              if (!active || !payload?.[0]) return null;
+              return (
+                <div
+                  className="text-xs px-2 py-1 rounded"
+                  style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
+                >
+                  <span style={{ color: "var(--muted)" }}>{fmtTime(label as number)}</span>
+                  <span className="ml-2 font-semibold" style={{ color: v.color }}>
+                    {(payload[0].value as number).toFixed(1)} {v.unit}
+                  </span>
+                </div>
+              );
+            }}
+          />
+          <Area
+            type="monotone"
+            dataKey={v.key}
+            stroke={v.color}
+            strokeWidth={1.5}
+            fill={`url(#g-${v.key})`}
+            isAnimationActive={false}
+            dot={(props) => (
+              <VitalDot
+                key={`dot-${props.index}`}
+                cx={props.cx}
+                cy={props.cy}
+                value={props.value}
+                vitalKey={v.key}
+                vitalColor={v.color}
+              />
+            )}
+            activeDot={{ r: 4, fill: v.color }}
+          >
+            <LabelList content={LabelComp} />
+          </Area>
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+interface Props { slots: SlotReading[]; syncId?: string; compact?: boolean }
+
+export function VitalsChart({ slots, syncId, compact = false }: Props) {
   if (slots.length === 0) {
     return <p className="text-sm py-6 text-center" style={{ color: "var(--muted)" }}>Sem dados no intervalo</p>;
   }
 
-  return (
-    <div className="flex flex-col gap-3">
-      {VITALS_CFG.map((v) => {
-        const { domain, ticks } = computeDomain(slots, v.key, v.absMin, v.absMax, v.step);
-        const LabelComp = makeLabel(v.key, v.color);
+  const cards = VITALS_CFG.map((v) => (
+    <VitalChartCard key={v.key} vital={v} slots={slots} syncId={syncId} compact={compact} />
+  ));
 
-        return (
-          <div
-            key={v.key}
-            className="rounded-lg p-4 flex flex-col"
-            style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
-          >
-            <p className="text-sm font-medium mb-3" style={{ color: "var(--muted)" }}>
-              {v.label}&nbsp;<span style={{ opacity: 0.6, fontSize: 11 }}>({v.unit})</span>
-            </p>
-            <ResponsiveContainer width="100%" height={180}>
-              <AreaChart data={slots} syncId={syncId} margin={{ top: 18, right: 8, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id={`g-${v.key}`} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="10%" stopColor={v.color} stopOpacity={0.35} />
-                    <stop offset="95%" stopColor={v.color} stopOpacity={0.02} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid stroke="rgba(255,255,255,0.04)" vertical={false} />
-                <XAxis
-                  dataKey="t"
-                  tickFormatter={fmtTime}
-                  tick={{ fontSize: 10, fill: "var(--muted)" }}
-                  tickLine={false}
-                  axisLine={false}
-                  interval="preserveStartEnd"
-                  padding={{ left: 20, right: 20 }}
-                />
-                <YAxis
-                  domain={domain}
-                  ticks={ticks}
-                  tick={{ fontSize: 10, fill: "var(--muted)" }}
-                  tickLine={false}
-                  axisLine={false}
-                  width={40}
-                />
-                <Tooltip
-                  isAnimationActive={false}
-                  content={({ active, payload, label }) => {
-                    if (!active || !payload?.[0]) return null;
-                    return (
-                      <div
-                        className="text-xs px-2 py-1 rounded"
-                        style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
-                      >
-                        <span style={{ color: "var(--muted)" }}>{fmtTime(label as number)}</span>
-                        <span className="ml-2 font-semibold" style={{ color: v.color }}>
-                          {(payload[0].value as number).toFixed(1)} {v.unit}
-                        </span>
-                      </div>
-                    );
-                  }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey={v.key}
-                  stroke={v.color}
-                  strokeWidth={1.5}
-                  fill={`url(#g-${v.key})`}
-                  isAnimationActive={false}
-                  dot={(props) => (
-                    <VitalDot
-                      key={`dot-${props.index}`}
-                      cx={props.cx}
-                      cy={props.cy}
-                      value={props.value}
-                      vitalKey={v.key}
-                      vitalColor={v.color}
-                    />
-                  )}
-                  activeDot={{ r: 4, fill: v.color }}
-                >
-                  <LabelList content={LabelComp} />
-                </Area>
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        );
-      })}
-    </div>
-  );
+  if (compact) return <>{cards}</>;
+  return <div className="flex flex-col gap-3">{cards}</div>;
 }

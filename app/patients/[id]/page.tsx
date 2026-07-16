@@ -8,6 +8,7 @@ import { TopBar } from "@/components/TopBar";
 import { VitalCard } from "@/components/VitalCard";
 import { VitalsChart } from "@/components/VitalsChart";
 import { VitalsHeatmap } from "@/components/VitalsHeatmap";
+import { ReorderableVitalsCharts } from "@/components/ReorderableVitalsCharts";
 import { EWSForecastChart } from "@/components/EWSForecastChart";
 import { EWSScoreChart } from "@/components/EWSScoreChart";
 import { CameraPlayer } from "@/components/CameraPlayer";
@@ -343,11 +344,14 @@ function SinaisVitaisTab({ internacao, slotMin, windowMs, view, cardsVisible }: 
     })
   ) as Record<string, { min: number; max: number } | undefined>;
 
+  const isEnfermariaCompact = isAntonio && internacao.unit === "enfermaria";
+  const isReorderable = internacao.unit === "pronto-socorro" || internacao.unit === "uti";
+
   return (
-    <div className="flex flex-col gap-5">
+    <div className={isEnfermariaCompact ? "flex flex-col gap-2" : "flex flex-col gap-5"}>
       {/* Vital cards */}
       {(!isAntonio || cardsVisible) && (
-        <div className="flex gap-3">
+        <div className={isEnfermariaCompact ? "flex gap-2" : "flex gap-3"}>
           {VITALS.map((v) => (
             <VitalCard
               key={v.key}
@@ -359,17 +363,31 @@ function SinaisVitaisTab({ internacao, slotMin, windowMs, view, cardsVisible }: 
               max={minMax[v.key]?.max}
               editOptions={v.key === "nc" ? NC_OPTIONS : undefined}
               onEdit={v.key === "nc" ? (nc) => setNivelConsciencia(internacao.id, nc as NivelConsciencia) : undefined}
+              compact={isEnfermariaCompact}
             />
           ))}
         </div>
       )}
 
-      {/* Escore EWS — mostra por que o escore está no valor atual */}
-      <EWSScoreChart slots={slots} syncId={`vitals-${internacao.id}`} />
+      {/* Enfermaria (Antonio): EWS primeiro (mais importante) + 5 gráficos de vitais, 2x3, sem scroll */}
+      {isEnfermariaCompact && view === "graficos" ? (
+        <div className="grid grid-cols-2 gap-2">
+          <EWSScoreChart slots={slots} syncId={`vitals-${internacao.id}`} compact collapsible={false} highlight />
+          <VitalsChart slots={slots} syncId={`vitals-${internacao.id}`} compact />
+        </div>
+      ) : isReorderable && view === "graficos" ? (
+        /* Pronto Socorro / UTI: gráficos podem ser arrastados e reordenados */
+        <ReorderableVitalsCharts slots={slots} syncId={`vitals-${internacao.id}`} />
+      ) : (
+        <>
+          {/* Escore EWS — mostra por que o escore está no valor atual */}
+          <EWSScoreChart slots={slots} syncId={`vitals-${internacao.id}`} />
 
-      {view === "graficos"
-        ? <VitalsChart slots={slots} syncId={`vitals-${internacao.id}`} />
-        : <VitalsHeatmap slots={slots} />}
+          {view === "graficos"
+            ? <VitalsChart slots={slots} syncId={`vitals-${internacao.id}`} />
+            : <VitalsHeatmap slots={slots} />}
+        </>
+      )}
     </div>
   );
 }
@@ -513,22 +531,25 @@ const TAB_LABELS: Record<Tab, string> = {
 function PatientContent({ id }: { id: string }) {
   const router = useRouter();
 
-  const [tab, setTab]                 = useState<Tab>("sinais-vitais");
-  const [slotMin, setSlotMin]         = useState(60);
-  const [windowMs, setWindowMs]       = useState(86_400_000);
-  const [view, setView]               = useState<"graficos" | "heatmap">("graficos");
-  const [cardsVisible, setCardsVisible] = useState(true);
-  const [camOpen, setCamOpen]         = useState(false);
-  const [camFullscreen, setCamFullscreen] = useState(false);
-  const [panelOpen, setPanelOpen]     = useState(false);
-  const [recordPanel, setRecordPanel] = useState<null | "exames" | "prontuario">(null);
-
   const isAntonio = useAuthStore((s) => s.email === "antonio@hospital.com");
   const logout    = useAuthStore((s) => s.logout);
   const active    = useAlertStore((s) => s.active);
 
   const internacao = useSimulationStore((s) => s.internacoes[id] ?? null);
   const bed = useSimulationStore((s) => s.beds.find((b) => b.internacaoId === id) ?? null);
+
+  // Enfermaria (Antonio): Janela de 24h fica muito embolada nos gráficos compactos — default 12h
+  const isEnfermariaCompact = isAntonio && internacao?.unit === "enfermaria";
+
+  const [tab, setTab]                 = useState<Tab>("sinais-vitais");
+  const [slotMin, setSlotMin]         = useState(60);
+  const [windowMs, setWindowMs]       = useState(() => isEnfermariaCompact ? 43_200_000 : 86_400_000);
+  const [view, setView]               = useState<"graficos" | "heatmap">("graficos");
+  const [cardsVisible, setCardsVisible] = useState(true);
+  const [camOpen, setCamOpen]         = useState(false);
+  const [camFullscreen, setCamFullscreen] = useState(false);
+  const [panelOpen, setPanelOpen]     = useState(false);
+  const [recordPanel, setRecordPanel] = useState<null | "exames" | "prontuario">(null);
 
   if (!internacao) {
     return (

@@ -13,9 +13,10 @@ interface Props {
   max?: number;
   editOptions?: readonly string[];
   onEdit?: (value: string) => void;
+  compact?: boolean;
 }
 
-export function VitalCard({ label, unit, value, score, min, max, editOptions, onEdit }: Props) {
+export function VitalCard({ label, unit, value, score, min, max, editOptions, onEdit, compact = false }: Props) {
   const color = VITAL_SEVERITY_COLOR[Math.min(score, 2)] ?? VITAL_SEVERITY_COLOR[0];
   const editable = !!editOptions && !!onEdit;
   const [open, setOpen] = useState(false);
@@ -33,36 +34,40 @@ export function VitalCard({ label, unit, value, score, min, max, editOptions, on
   return (
     <div
       ref={rootRef}
-      className="relative rounded-lg p-3 flex flex-col gap-1 flex-1 min-w-0"
+      className={compact
+        ? "relative rounded-lg p-1.5 flex flex-col gap-0 flex-1 min-w-0"
+        : "relative rounded-lg p-3 flex flex-col gap-1 flex-1 min-w-0"}
       style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
     >
       <div className="flex items-center justify-between gap-1">
-        <span className="text-xs" style={{ color: "var(--muted)" }}>{label}</span>
+        <span className={compact ? "text-[10px]" : "text-xs"} style={{ color: "var(--muted)" }}>{label}</span>
         {editable && (
           <button
             type="button"
             onClick={() => setOpen((v) => !v)}
             aria-label={`Editar ${label}`}
             title={`Editar ${label}`}
-            className="flex items-center justify-center w-5 h-5 -mr-1 rounded transition-colors hover:bg-white/10"
+            className={compact
+              ? "flex items-center justify-center w-4 h-4 -mr-1 rounded transition-colors hover:bg-white/10"
+              : "flex items-center justify-center w-5 h-5 -mr-1 rounded transition-colors hover:bg-white/10"}
             style={{ color: "var(--muted)" }}
           >
-            <Icon name="pencil" size={12} color="currentColor" />
+            <Icon name="pencil" size={compact ? 10 : 12} color="currentColor" />
           </button>
         )}
       </div>
       <div className="flex items-baseline gap-1">
-        <span className="text-xl font-bold tabular-nums leading-none" style={{ color }}>
+        <span className={compact ? "text-sm font-bold tabular-nums leading-none" : "text-xl font-bold tabular-nums leading-none"} style={{ color }}>
           {value}
         </span>
-        <span className="text-xs" style={{ color: "var(--muted)" }}>{unit}</span>
+        <span className={compact ? "text-[10px]" : "text-xs"} style={{ color: "var(--muted)" }}>{unit}</span>
       </div>
       {min !== undefined && max !== undefined && (
-        <div className="flex gap-2 mt-1 pt-1" style={{ borderTop: "1px solid var(--border)" }}>
-          <span className="text-[10px]" style={{ color: "var(--muted)" }}>
+        <div className={compact ? "flex gap-1.5 mt-0.5 pt-0" : "flex gap-2 mt-1 pt-1"} style={{ borderTop: "1px solid var(--border)" }}>
+          <span className={compact ? "text-[9px]" : "text-[10px]"} style={{ color: "var(--muted)" }}>
             Mín&nbsp;<span className="font-semibold tabular-nums" style={{ color: "var(--sk-text-secondary)" }}>{min}</span>
           </span>
-          <span className="text-[10px]" style={{ color: "var(--muted)" }}>
+          <span className={compact ? "text-[9px]" : "text-[10px]"} style={{ color: "var(--muted)" }}>
             Máx&nbsp;<span className="font-semibold tabular-nums" style={{ color: "var(--sk-text-secondary)" }}>{max}</span>
           </span>
         </div>

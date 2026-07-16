@@ -85,33 +85,46 @@ function makeScoreLabel() {
 interface Props {
   slots: SlotReading[];
   syncId?: string;
+  compact?: boolean;
+  collapsible?: boolean;
+  highlight?: boolean;
+  headerExtra?: React.ReactNode;
 }
 
-export function EWSScoreChart({ slots, syncId }: Props) {
+export function EWSScoreChart({ slots, syncId, compact = false, collapsible = true, highlight = false, headerExtra }: Props) {
   const [collapsed, setCollapsed] = useState(false);
   const ScoreLabel = makeScoreLabel();
   const [domainMin, domainMax] = computeEwsDomain(slots);
   const ticks = computeEwsTicks(domainMax);
+  const chartHeight = compact ? 85 : 180;
+  const isCollapsed = collapsible && collapsed;
 
   return (
     <div
-      className="rounded-lg p-4"
-      style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
+      className={compact ? "rounded-lg p-2" : "rounded-lg p-4"}
+      style={{ background: "var(--surface)", border: `1px solid ${highlight ? "var(--accent)" : "var(--border)"}` }}
     >
-      <button
-        onClick={() => setCollapsed((c) => !c)}
-        aria-expanded={!collapsed}
-        className="flex items-center gap-2 w-full text-left"
-        style={{ cursor: "pointer" }}
-      >
-        <Icon name={collapsed ? "chevron-right" : "chevron-down"} size={14} color="var(--muted)" />
-        <p className="text-sm font-medium">Early Warning Score</p>
-      </button>
+      <div className="flex items-center justify-between gap-2">
+      {collapsible ? (
+        <button
+          onClick={() => setCollapsed((c) => !c)}
+          aria-expanded={!collapsed}
+          className="flex items-center gap-2 text-left"
+          style={{ cursor: "pointer" }}
+        >
+          <Icon name={collapsed ? "chevron-right" : "chevron-down"} size={compact ? 12 : 14} color="var(--muted)" />
+          <p className={compact ? "text-[11px] font-medium" : "text-sm font-medium"}>Early Warning Score</p>
+        </button>
+      ) : (
+        <p className={compact ? "text-[11px] font-medium" : "text-sm font-medium"}>Early Warning Score</p>
+      )}
+      {headerExtra}
+      </div>
 
-      {!collapsed && (
+      {!isCollapsed && (
       <>
-      <div className="mt-4">
-      <ResponsiveContainer width="100%" height={180}>
+      <div className={compact ? "mt-1" : "mt-4"}>
+      <ResponsiveContainer width="100%" height={chartHeight}>
         <ComposedChart data={slots} syncId={syncId} margin={{ top: 18, right: 20, left: 0, bottom: 0 }}>
           <CartesianGrid stroke="rgba(255,255,255,0.04)" vertical={false} />
 
@@ -188,11 +201,14 @@ export function EWSScoreChart({ slots, syncId }: Props) {
         </ComposedChart>
       </ResponsiveContainer>
 
-      <div className="flex items-center justify-center gap-4 mt-3 flex-wrap" style={{ color: "var(--muted)" }}>
-        <span className="text-xs" style={{ color: "#2F9E44" }}>— Estável</span>
-        <span className="text-xs" style={{ color: "#F59F00" }}>— Atenção ≥4</span>
-        <span className="text-xs" style={{ color: "#F76707" }}>— Risco Elevado ≥5</span>
-        <span className="text-xs" style={{ color: "#F03E3E" }}>— Crítico ≥7</span>
+      <div
+        className={`flex items-center justify-center flex-wrap ${compact ? "gap-2 mt-1.5" : "gap-4 mt-3"}`}
+        style={{ color: "var(--muted)" }}
+      >
+        <span className={compact ? "text-[10px]" : "text-xs"} style={{ color: "#2F9E44" }}>— Estável</span>
+        <span className={compact ? "text-[10px]" : "text-xs"} style={{ color: "#F59F00" }}>— Atenção ≥4</span>
+        <span className={compact ? "text-[10px]" : "text-xs"} style={{ color: "#F76707" }}>— Risco Elevado ≥5</span>
+        <span className={compact ? "text-[10px]" : "text-xs"} style={{ color: "#F03E3E" }}>— Crítico ≥7</span>
       </div>
       </div>
       </>
