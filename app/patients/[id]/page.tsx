@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useState, useEffect, useLayoutEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { AuthGuard } from "@/components/AuthGuard";
 import { Sidebar } from "@/components/Sidebar";
@@ -320,6 +320,43 @@ function ControlsBar({ slotMin, setSlotMin, windowMs, setWindowMs, view, setView
 
 // ─── Tab: Sinais Vitais ───────────────────────────────────────────────────────
 
+// Enfermaria (Antonio): em vez de uma altura fixa pequena, os 6 gráficos (2x3)
+// preenchem o espaço vertical realmente disponível na tela do usuário — numa
+// notebook maior isso significa gráficos maiores, não sobra em branco embaixo.
+const ENFERMARIA_GRID_ROWS = 3;
+const ENFERMARIA_GRID_ROW_GAP = 8; // gap-2
+const ENFERMARIA_CARD_CHROME = 34; // padding + linha de título de cada card, fora do chart em si
+const ENFERMARIA_CHART_MIN_HEIGHT = 85;
+const ENFERMARIA_CHART_MAX_HEIGHT = 220;
+
+function useEnfermariaChartHeight(enabled: boolean) {
+  const gridRef = useRef<HTMLDivElement>(null);
+  const [chartHeight, setChartHeight] = useState(ENFERMARIA_CHART_MIN_HEIGHT);
+
+  useLayoutEffect(() => {
+    if (!enabled) return;
+
+    function measure() {
+      const el = gridRef.current;
+      if (!el) return;
+      const top = el.getBoundingClientRect().top;
+      const available = window.innerHeight - top - 8; // pequena folga além do pb-6 do container pai
+      const perRow = (available - ENFERMARIA_GRID_ROW_GAP * (ENFERMARIA_GRID_ROWS - 1)) / ENFERMARIA_GRID_ROWS;
+      const next = Math.min(
+        ENFERMARIA_CHART_MAX_HEIGHT,
+        Math.max(ENFERMARIA_CHART_MIN_HEIGHT, Math.round(perRow - ENFERMARIA_CARD_CHROME))
+      );
+      setChartHeight(next);
+    }
+
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [enabled]);
+
+  return { gridRef, chartHeight };
+}
+
 function SinaisVitaisTab({ internacao, slotMin, windowMs, view, cardsVisible }: {
   internacao: Internacao | SurgicalInternacao;
   slotMin: number;
@@ -346,6 +383,7 @@ function SinaisVitaisTab({ internacao, slotMin, windowMs, view, cardsVisible }: 
 
   const isEnfermariaCompact = isAntonio && internacao.unit === "enfermaria";
   const isReorderable = internacao.unit === "pronto-socorro" || internacao.unit === "uti";
+  const { gridRef, chartHeight } = useEnfermariaChartHeight(isEnfermariaCompact && view === "graficos");
 
   return (
     <div className={isEnfermariaCompact ? "flex flex-col gap-2" : "flex flex-col gap-5"}>
@@ -371,9 +409,9 @@ function SinaisVitaisTab({ internacao, slotMin, windowMs, view, cardsVisible }: 
 
       {/* Enfermaria (Antonio): EWS primeiro (mais importante) + 5 gráficos de vitais, 2x3, sem scroll */}
       {isEnfermariaCompact && view === "graficos" ? (
-        <div className="grid grid-cols-2 gap-2">
-          <EWSScoreChart slots={slots} syncId={`vitals-${internacao.id}`} compact collapsible={false} highlight />
-          <VitalsChart slots={slots} syncId={`vitals-${internacao.id}`} compact />
+        <div ref={gridRef} className="grid grid-cols-2 gap-2">
+          <EWSScoreChart slots={slots} syncId={`vitals-${internacao.id}`} compact collapsible={false} highlight chartHeight={chartHeight} />
+          <VitalsChart slots={slots} syncId={`vitals-${internacao.id}`} compact chartHeight={chartHeight} />
         </div>
       ) : isReorderable && view === "graficos" ? (
         /* Pronto Socorro / UTI: gráficos podem ser arrastados e reordenados */

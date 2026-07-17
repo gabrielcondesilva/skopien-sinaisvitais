@@ -135,10 +135,11 @@ interface CardProps {
   syncId?: string;
   compact?: boolean;
   headerExtra?: React.ReactNode;
+  chartHeight?: number;
 }
 
-export function VitalChartCard({ vital: v, slots, syncId, compact = false, headerExtra }: CardProps) {
-  const chartHeight = compact ? 85 : 180;
+export function VitalChartCard({ vital: v, slots, syncId, compact = false, headerExtra, chartHeight: chartHeightProp }: CardProps) {
+  const chartHeight = chartHeightProp ?? (compact ? 85 : 180);
   const { domain, ticks } = computeDomain(slots, v.key, v.absMin, v.absMax, v.step);
   const LabelComp = makeLabel(v.key, v.color);
 
@@ -223,15 +224,15 @@ export function VitalChartCard({ vital: v, slots, syncId, compact = false, heade
   );
 }
 
-interface Props { slots: SlotReading[]; syncId?: string; compact?: boolean }
+interface Props { slots: SlotReading[]; syncId?: string; compact?: boolean; chartHeight?: number }
 
-export function VitalsChart({ slots, syncId, compact = false }: Props) {
+export function VitalsChart({ slots, syncId, compact = false, chartHeight }: Props) {
   if (slots.length === 0) {
     return <p className="text-sm py-6 text-center" style={{ color: "var(--muted)" }}>Sem dados no intervalo</p>;
   }
 
   const cards = VITALS_CFG.map((v) => (
-    <VitalChartCard key={v.key} vital={v} slots={slots} syncId={syncId} compact={compact} />
+    <VitalChartCard key={v.key} vital={v} slots={slots} syncId={syncId} compact={compact} chartHeight={chartHeight} />
   ));
 
   if (compact) return <>{cards}</>;

@@ -89,14 +89,15 @@ interface Props {
   collapsible?: boolean;
   highlight?: boolean;
   headerExtra?: React.ReactNode;
+  chartHeight?: number;
 }
 
-export function EWSScoreChart({ slots, syncId, compact = false, collapsible = true, highlight = false, headerExtra }: Props) {
+export function EWSScoreChart({ slots, syncId, compact = false, collapsible = true, highlight = false, headerExtra, chartHeight: chartHeightProp }: Props) {
   const [collapsed, setCollapsed] = useState(false);
   const ScoreLabel = makeScoreLabel();
   const [domainMin, domainMax] = computeEwsDomain(slots);
   const ticks = computeEwsTicks(domainMax);
-  const chartHeight = compact ? 85 : 180;
+  const chartHeight = chartHeightProp ?? (compact ? 85 : 180);
   const isCollapsed = collapsible && collapsed;
 
   return (
@@ -201,15 +202,14 @@ export function EWSScoreChart({ slots, syncId, compact = false, collapsible = tr
         </ComposedChart>
       </ResponsiveContainer>
 
-      <div
-        className={`flex items-center justify-center flex-wrap ${compact ? "gap-2 mt-1.5" : "gap-4 mt-3"}`}
-        style={{ color: "var(--muted)" }}
-      >
-        <span className={compact ? "text-[10px]" : "text-xs"} style={{ color: "#2F9E44" }}>— Estável</span>
-        <span className={compact ? "text-[10px]" : "text-xs"} style={{ color: "#F59F00" }}>— Atenção ≥4</span>
-        <span className={compact ? "text-[10px]" : "text-xs"} style={{ color: "#F76707" }}>— Risco Elevado ≥5</span>
-        <span className={compact ? "text-[10px]" : "text-xs"} style={{ color: "#F03E3E" }}>— Crítico ≥7</span>
-      </div>
+      {!compact && (
+        <div className="flex items-center justify-center flex-wrap gap-4 mt-3" style={{ color: "var(--muted)" }}>
+          <span className="text-xs" style={{ color: "#2F9E44" }}>— Estável</span>
+          <span className="text-xs" style={{ color: "#F59F00" }}>— Atenção ≥4</span>
+          <span className="text-xs" style={{ color: "#F76707" }}>— Risco Elevado ≥5</span>
+          <span className="text-xs" style={{ color: "#F03E3E" }}>— Crítico ≥7</span>
+        </div>
+      )}
       </div>
       </>
       )}
