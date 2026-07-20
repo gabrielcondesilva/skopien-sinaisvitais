@@ -114,10 +114,10 @@ export function EWSScoreChart({ slots, syncId, compact = false, collapsible = tr
           style={{ cursor: "pointer" }}
         >
           <Icon name={collapsed ? "chevron-right" : "chevron-down"} size={compact ? 12 : 14} color="var(--muted)" />
-          <p className={compact ? "text-[11px] font-medium" : "text-sm font-medium"}>Early Warning Score</p>
+          <p className={compact ? "text-xs font-semibold" : "text-base font-semibold"}>Early Warning Score</p>
         </button>
       ) : (
-        <p className={compact ? "text-[11px] font-medium" : "text-sm font-medium"}>Early Warning Score</p>
+        <p className={compact ? "text-xs font-semibold" : "text-base font-semibold"}>Early Warning Score</p>
       )}
       {headerExtra}
       </div>

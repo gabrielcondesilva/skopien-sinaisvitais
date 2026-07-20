@@ -6,11 +6,9 @@ import { AuthGuard } from "@/components/AuthGuard";
 import { Sidebar } from "@/components/Sidebar";
 import { TopBar } from "@/components/TopBar";
 import { VitalCard } from "@/components/VitalCard";
-import { VitalsChart } from "@/components/VitalsChart";
 import { VitalsHeatmap } from "@/components/VitalsHeatmap";
 import { ReorderableVitalsCharts } from "@/components/ReorderableVitalsCharts";
 import { EWSForecastChart } from "@/components/EWSForecastChart";
-import { EWSScoreChart } from "@/components/EWSScoreChart";
 import { CameraPlayer } from "@/components/CameraPlayer";
 import { FloatingCameraWindow } from "@/components/FloatingCameraWindow";
 import { SkinLesionTab, LESION_COUNT } from "@/components/SkinLesionTab";
@@ -152,7 +150,7 @@ function ControlsBar({ slotMin, setSlotMin, windowMs, setWindowMs, view, setView
 
   return (
     <div
-      className="flex items-center gap-5 px-6 py-3 flex-wrap"
+      className="flex items-center gap-8 px-6 py-3 flex-wrap"
       style={{ borderBottom: "1px solid var(--border)" }}
     >
       {showViewToggle && (
@@ -162,8 +160,11 @@ function ControlsBar({ slotMin, setSlotMin, windowMs, setWindowMs, view, setView
         </div>
       )}
 
-      <div className="flex items-center gap-1.5">
-        <span className="text-xs" style={{ color: "var(--muted)" }}>Slot</span>
+      <div
+        className="flex items-center gap-1.5"
+        style={showViewToggle ? { paddingLeft: 28, borderLeft: "1px solid var(--border)" } : undefined}
+      >
+        <span className="text-xs font-semibold" style={{ color: "var(--foreground)" }}>Slot</span>
         {SLOT_OPTS.map((o) => (
           <SelBtn key={o.min} active={slotMin === o.min} onClick={() => setSlotMin(o.min)}>
             {o.label}
@@ -238,8 +239,11 @@ function ControlsBar({ slotMin, setSlotMin, windowMs, setWindowMs, view, setView
         </div>
       </div>
 
-      <div className="flex items-center gap-1.5">
-        <span className="text-xs" style={{ color: "var(--muted)" }}>Janela</span>
+      <div
+        className="flex items-center gap-1.5"
+        style={{ paddingLeft: 28, borderLeft: "1px solid var(--border)" }}
+      >
+        <span className="text-xs font-semibold" style={{ color: "var(--foreground)" }}>Janela</span>
         {WINDOW_OPTS.map((o) => (
           <SelBtn key={o.ms} active={windowMs === o.ms} onClick={() => setWindowMs(o.ms)}>
             {o.label}
@@ -357,12 +361,13 @@ function useEnfermariaChartHeight(enabled: boolean) {
   return { gridRef, chartHeight };
 }
 
-function SinaisVitaisTab({ internacao, slotMin, windowMs, view, cardsVisible }: {
+function SinaisVitaisTab({ internacao, slotMin, windowMs, view, cardsVisible, chartLayout }: {
   internacao: Internacao | SurgicalInternacao;
   slotMin: number;
   windowMs: number;
   view: "graficos" | "heatmap";
   cardsVisible: boolean;
+  chartLayout: "linha" | "matriz";
 }) {
   const isAntonio = useAuthStore((s) => s.email === "antonio@hospital.com");
   const setNivelConsciencia = useSimulationStore((s) => s.setNivelConsciencia);
@@ -381,15 +386,14 @@ function SinaisVitaisTab({ internacao, slotMin, windowMs, view, cardsVisible }: 
     })
   ) as Record<string, { min: number; max: number } | undefined>;
 
-  const isEnfermariaCompact = isAntonio && internacao.unit === "enfermaria";
-  const isReorderable = internacao.unit === "pronto-socorro" || internacao.unit === "uti";
-  const { gridRef, chartHeight } = useEnfermariaChartHeight(isEnfermariaCompact && view === "graficos");
+  const isMatrix = chartLayout === "matriz";
+  const { gridRef, chartHeight } = useEnfermariaChartHeight(isMatrix && view === "graficos");
 
   return (
-    <div className={isEnfermariaCompact ? "flex flex-col gap-2" : "flex flex-col gap-5"}>
+    <div className={isMatrix ? "flex flex-col gap-2" : "flex flex-col gap-5"}>
       {/* Vital cards */}
       {(!isAntonio || cardsVisible) && (
-        <div className={isEnfermariaCompact ? "flex gap-2" : "flex gap-3"}>
+        <div className={isMatrix ? "flex gap-2" : "flex gap-3"}>
           {VITALS.map((v) => (
             <VitalCard
               key={v.key}
@@ -401,30 +405,26 @@ function SinaisVitaisTab({ internacao, slotMin, windowMs, view, cardsVisible }: 
               max={minMax[v.key]?.max}
               editOptions={v.key === "nc" ? NC_OPTIONS : undefined}
               onEdit={v.key === "nc" ? (nc) => setNivelConsciencia(internacao.id, nc as NivelConsciencia) : undefined}
-              compact={isEnfermariaCompact}
+              compact={isMatrix}
             />
           ))}
         </div>
       )}
 
-      {/* Enfermaria (Antonio): EWS primeiro (mais importante) + 5 gráficos de vitais, 2x3, sem scroll */}
-      {isEnfermariaCompact && view === "graficos" ? (
-        <div ref={gridRef} className="grid grid-cols-2 gap-2">
-          <EWSScoreChart slots={slots} syncId={`vitals-${internacao.id}`} compact collapsible={false} highlight chartHeight={chartHeight} />
-          <VitalsChart slots={slots} syncId={`vitals-${internacao.id}`} compact chartHeight={chartHeight} />
+      {/* Linha: gráficos empilhados, largura total. Matriz: grid 2x3 ajustado à página.
+          Nos dois casos os gráficos podem ser arrastados e reordenados. */}
+      {view === "graficos" ? (
+        <div ref={isMatrix ? gridRef : undefined}>
+          <ReorderableVitalsCharts
+            slots={slots}
+            syncId={`vitals-${internacao.id}`}
+            layout={chartLayout}
+            compact={isMatrix}
+            chartHeight={isMatrix ? chartHeight : undefined}
+          />
         </div>
-      ) : isReorderable && view === "graficos" ? (
-        /* Pronto Socorro / UTI: gráficos podem ser arrastados e reordenados */
-        <ReorderableVitalsCharts slots={slots} syncId={`vitals-${internacao.id}`} />
       ) : (
-        <>
-          {/* Escore EWS — mostra por que o escore está no valor atual */}
-          <EWSScoreChart slots={slots} syncId={`vitals-${internacao.id}`} />
-
-          {view === "graficos"
-            ? <VitalsChart slots={slots} syncId={`vitals-${internacao.id}`} />
-            : <VitalsHeatmap slots={slots} />}
-        </>
+        <VitalsHeatmap slots={slots} />
       )}
     </div>
   );
@@ -583,6 +583,7 @@ function PatientContent({ id }: { id: string }) {
   const [slotMin, setSlotMin]         = useState(60);
   const [windowMs, setWindowMs]       = useState(() => isEnfermariaCompact ? 43_200_000 : 86_400_000);
   const [view, setView]               = useState<"graficos" | "heatmap">("graficos");
+  const [chartLayout, setChartLayout] = useState<"linha" | "matriz">(() => isEnfermariaCompact ? "matriz" : "linha");
   const [cardsVisible, setCardsVisible] = useState(true);
   const [camOpen, setCamOpen]         = useState(false);
   const [camFullscreen, setCamFullscreen] = useState(false);
@@ -901,7 +902,7 @@ function PatientContent({ id }: { id: string }) {
       )}
 
       {/* ── Tab nav ── */}
-      <div className="flex px-6" style={{ borderBottom: "1px solid var(--border)" }}>
+      <div className="flex items-center px-6" style={{ borderBottom: "1px solid var(--border)" }}>
         {(Object.keys(TAB_LABELS) as Tab[])
           .filter((t) => t !== "internacao" || internacao.unit === "pronto-socorro")
           .map((t) => {
@@ -939,6 +940,35 @@ function PatientContent({ id }: { id: string }) {
             </button>
           );
         })}
+
+        {isAntonio && tab === "sinais-vitais" && view === "graficos" && (
+          <div className="flex items-center gap-0.5 rounded-lg p-0.5 ml-auto" style={{ background: "rgba(255,255,255,0.06)" }}>
+            <button
+              onClick={() => setChartLayout("linha")}
+              aria-label="Ver gráficos em linha"
+              title="Linha — um gráfico abaixo do outro"
+              className="flex items-center justify-center w-6 h-6 rounded transition-colors"
+              style={{
+                background: chartLayout === "linha" ? "var(--accent)" : "transparent",
+                color: chartLayout === "linha" ? "#fff" : "var(--muted)",
+              }}
+            >
+              <Icon name="list" size={14} color="currentColor" />
+            </button>
+            <button
+              onClick={() => setChartLayout("matriz")}
+              aria-label="Ver gráficos em matriz"
+              title="Matriz — gráficos em grade, ajustados à tela"
+              className="flex items-center justify-center w-6 h-6 rounded transition-colors"
+              style={{
+                background: chartLayout === "matriz" ? "var(--accent)" : "transparent",
+                color: chartLayout === "matriz" ? "#fff" : "var(--muted)",
+              }}
+            >
+              <Icon name="layout-grid" size={14} color="currentColor" />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ── Shared controls (view toggle + slot + window + legenda) ── */}
@@ -983,7 +1013,7 @@ function PatientContent({ id }: { id: string }) {
       <div className={`flex-1 flex items-start gap-4 px-6 pb-6 min-w-0 ${tab === "sinais-vitais" ? "pt-2" : "pt-6"}`}>
         <div className="flex-1 min-w-0">
           {tab === "sinais-vitais" && (
-            <SinaisVitaisTab internacao={internacao} slotMin={slotMin} windowMs={windowMs} view={view} cardsVisible={cardsVisible} />
+            <SinaisVitaisTab internacao={internacao} slotMin={slotMin} windowMs={windowMs} view={view} cardsVisible={cardsVisible} chartLayout={chartLayout} />
           )}
           {tab === "ews" && (
             <EWSTab internacao={internacao} slotMin={slotMin} />

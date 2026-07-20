@@ -149,8 +149,8 @@ export function VitalChartCard({ vital: v, slots, syncId, compact = false, heade
       style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
     >
       <div className={`flex items-center justify-between gap-2 ${compact ? "mb-0.5" : "mb-3"}`}>
-        <p className={compact ? "text-[11px] font-medium" : "text-sm font-medium"} style={{ color: "var(--muted)" }}>
-          {v.label}&nbsp;<span style={{ opacity: 0.6, fontSize: 11 }}>({v.unit})</span>
+        <p className={compact ? "text-xs font-semibold" : "text-base font-semibold"} style={{ color: "var(--muted)" }}>
+          {v.label}&nbsp;<span style={{ opacity: 0.6, fontSize: compact ? 11 : 12 }}>({v.unit})</span>
         </p>
         {headerExtra}
       </div>

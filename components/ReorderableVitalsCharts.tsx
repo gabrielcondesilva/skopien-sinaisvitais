@@ -30,12 +30,15 @@ function DragHandle() {
 interface Props {
   slots: SlotReading[];
   syncId?: string;
+  layout?: "linha" | "matriz";
+  compact?: boolean;
+  chartHeight?: number;
 }
 
-// Permite arrastar e reordenar os gráficos de Sinais Vitais (EWS + 5 vitais) —
-// só faz sentido no Pronto Socorro e na UTI, onde cada gráfico ocupa a largura
-// toda; na Enfermaria (Antonio) o layout já é fixo em grid 2x3.
-export function ReorderableVitalsCharts({ slots, syncId }: Props) {
+// Permite arrastar e reordenar os gráficos de Sinais Vitais (EWS + 5 vitais),
+// tanto em Linha (empilhados, largura total) quanto em Matriz (grid 2 colunas,
+// ajustado à página) — o arrasto funciona igual nos dois layouts.
+export function ReorderableVitalsCharts({ slots, syncId, layout = "linha", compact = false, chartHeight }: Props) {
   const [order, setOrder] = useState<ChartId[]>(DEFAULT_ORDER);
   const [draggedId, setDraggedId] = useState<ChartId | null>(null);
   const [dragOverId, setDragOverId] = useState<ChartId | null>(null);
@@ -56,7 +59,7 @@ export function ReorderableVitalsCharts({ slots, syncId }: Props) {
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className={layout === "matriz" ? "grid grid-cols-2 gap-2" : "flex flex-col gap-3"}>
       {order.map((id) => {
         const isDragging = draggedId === id;
         const isDragOver = dragOverId === id && draggedId !== null && draggedId !== id;
@@ -80,9 +83,24 @@ export function ReorderableVitalsCharts({ slots, syncId }: Props) {
             }}
           >
             {id === "ews" ? (
-              <EWSScoreChart slots={slots} syncId={syncId} headerExtra={<DragHandle />} />
+              <EWSScoreChart
+                slots={slots}
+                syncId={syncId}
+                headerExtra={<DragHandle />}
+                compact={compact}
+                collapsible={!compact}
+                highlight={compact}
+                chartHeight={chartHeight}
+              />
             ) : (
-              <VitalChartCard vital={VITAL_BY_KEY[id]} slots={slots} syncId={syncId} headerExtra={<DragHandle />} />
+              <VitalChartCard
+                vital={VITAL_BY_KEY[id]}
+                slots={slots}
+                syncId={syncId}
+                headerExtra={<DragHandle />}
+                compact={compact}
+                chartHeight={chartHeight}
+              />
             )}
           </div>
         );

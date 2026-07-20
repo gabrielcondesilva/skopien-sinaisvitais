@@ -40,7 +40,7 @@ export function VitalCard({ label, unit, value, score, min, max, editOptions, on
       style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
     >
       <div className="flex items-center justify-between gap-1">
-        <span className={compact ? "text-[10px]" : "text-xs"} style={{ color: "var(--muted)" }}>{label}</span>
+        <span className={compact ? "text-[11px]" : "text-sm"} style={{ color: "var(--muted)" }}>{label}</span>
         {editable && (
           <button
             type="button"
@@ -57,17 +57,17 @@ export function VitalCard({ label, unit, value, score, min, max, editOptions, on
         )}
       </div>
       <div className="flex items-baseline gap-1">
-        <span className={compact ? "text-sm font-bold tabular-nums leading-none" : "text-xl font-bold tabular-nums leading-none"} style={{ color }}>
+        <span className={compact ? "text-base font-bold tabular-nums leading-none" : "text-2xl font-bold tabular-nums leading-none"} style={{ color }}>
           {value}
         </span>
-        <span className={compact ? "text-[10px]" : "text-xs"} style={{ color: "var(--muted)" }}>{unit}</span>
+        <span className={compact ? "text-[11px]" : "text-sm"} style={{ color: "var(--muted)" }}>{unit}</span>
       </div>
       {min !== undefined && max !== undefined && (
         <div className={compact ? "flex gap-1.5 mt-0.5 pt-0" : "flex gap-2 mt-1 pt-1"} style={{ borderTop: "1px solid var(--border)" }}>
-          <span className={compact ? "text-[9px]" : "text-[10px]"} style={{ color: "var(--muted)" }}>
+          <span className={compact ? "text-[10px]" : "text-[11px]"} style={{ color: "var(--muted)" }}>
             Mín&nbsp;<span className="font-semibold tabular-nums" style={{ color: "var(--sk-text-secondary)" }}>{min}</span>
           </span>
-          <span className={compact ? "text-[9px]" : "text-[10px]"} style={{ color: "var(--muted)" }}>
+          <span className={compact ? "text-[10px]" : "text-[11px]"} style={{ color: "var(--muted)" }}>
             Máx&nbsp;<span className="font-semibold tabular-nums" style={{ color: "var(--sk-text-secondary)" }}>{max}</span>
           </span>
         </div>
