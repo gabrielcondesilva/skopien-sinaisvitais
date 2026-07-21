@@ -59,6 +59,12 @@ function formatAdmissionDate(ts: number): string {
   return new Date(ts).toISOString().split("T")[0];
 }
 
+// Default de Slot/Janela por modo de exibição dos gráficos (Antonio) — janela igual, só o slot muda
+const CHART_LAYOUT_DEFAULTS = {
+  linha:  { slotMin: 15, windowMs: 21_600_000 }, // 6h
+  matriz: { slotMin: 30, windowMs: 21_600_000 }, // 6h
+} as const;
+
 const SLOT_OPTS = [
   { label: "5min", min: 5 },
   { label: "15min", min: 15 },
@@ -399,7 +405,7 @@ function SinaisVitaisTab({ internacao, slotMin, windowMs, view, cardsVisible, ch
   const { gridRef, chartHeight } = useEnfermariaChartHeight(isMatrix && view === "graficos");
 
   return (
-    <div className={isMatrix ? "flex flex-col gap-2" : "flex flex-col gap-5"}>
+    <div className="flex flex-col gap-2">
       {/* Vital cards */}
       {(!isAntonio || cardsVisible) && (
         <div className={isMatrix ? "flex gap-2" : "flex gap-3"}>
@@ -414,7 +420,6 @@ function SinaisVitaisTab({ internacao, slotMin, windowMs, view, cardsVisible, ch
               max={minMax[v.key]?.max}
               editOptions={v.key === "nc" ? NC_OPTIONS : undefined}
               onEdit={v.key === "nc" ? (nc) => setNivelConsciencia(internacao.id, nc as NivelConsciencia) : undefined}
-              compact={isMatrix}
             />
           ))}
         </div>
@@ -585,12 +590,12 @@ function PatientContent({ id }: { id: string }) {
   const internacao = useSimulationStore((s) => s.internacoes[id] ?? null);
   const bed = useSimulationStore((s) => s.beds.find((b) => b.internacaoId === id) ?? null);
 
-  // Enfermaria (Antonio): Janela de 24h fica muito embolada nos gráficos compactos — default 12h
+  // Enfermaria (Antonio): abre direto no layout Matriz (grade compacta) — ver CHART_LAYOUT_DEFAULTS
   const isEnfermariaCompact = isAntonio && internacao?.unit === "enfermaria";
 
   const [tab, setTab]                 = useState<Tab>("sinais-vitais");
-  const [slotMin, setSlotMin]         = useState(60);
-  const [windowMs, setWindowMs]       = useState(() => isEnfermariaCompact ? 43_200_000 : 86_400_000);
+  const [slotMin, setSlotMin]         = useState<number>(() => CHART_LAYOUT_DEFAULTS[isEnfermariaCompact ? "matriz" : "linha"].slotMin);
+  const [windowMs, setWindowMs]       = useState<number>(() => CHART_LAYOUT_DEFAULTS[isEnfermariaCompact ? "matriz" : "linha"].windowMs);
   const [view, setView]               = useState<"graficos" | "heatmap">("graficos");
   const [chartLayout, setChartLayout] = useState<"linha" | "matriz">(() => isEnfermariaCompact ? "matriz" : "linha");
   const [cardsVisible, setCardsVisible] = useState(true);
@@ -966,7 +971,11 @@ function PatientContent({ id }: { id: string }) {
         {isAntonio && tab === "sinais-vitais" && view === "graficos" && (
           <div className="flex items-center gap-0.5 rounded-lg p-0.5 ml-auto" style={{ background: "rgba(255,255,255,0.06)" }}>
             <button
-              onClick={() => setChartLayout("linha")}
+              onClick={() => {
+                setChartLayout("linha");
+                setSlotMin(CHART_LAYOUT_DEFAULTS.linha.slotMin);
+                setWindowMs(CHART_LAYOUT_DEFAULTS.linha.windowMs);
+              }}
               aria-label="Ver gráficos em linha"
               title="Linha — um gráfico abaixo do outro"
               className="flex items-center justify-center w-6 h-6 rounded transition-colors"
@@ -978,7 +987,11 @@ function PatientContent({ id }: { id: string }) {
               <Icon name="list" size={14} color="currentColor" />
             </button>
             <button
-              onClick={() => setChartLayout("matriz")}
+              onClick={() => {
+                setChartLayout("matriz");
+                setSlotMin(CHART_LAYOUT_DEFAULTS.matriz.slotMin);
+                setWindowMs(CHART_LAYOUT_DEFAULTS.matriz.windowMs);
+              }}
               aria-label="Ver gráficos em matriz"
               title="Matriz — gráficos em grade, ajustados à tela"
               className="flex items-center justify-center w-6 h-6 rounded transition-colors"
