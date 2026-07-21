@@ -632,7 +632,7 @@ function PatientContent({ id }: { id: string }) {
   const bedUnitText = bedUnitLabel(bed, internacao.unit);
 
   return (
-    <div className="flex flex-col min-h-0" style={{ background: "var(--background)" }}>
+    <div className="flex-1 flex flex-col min-h-0" style={{ background: "var(--background)" }}>
 
       {isAntonio ? (
         /* ── Antonio: header compacto (sem TopBar) — ganha espaço vertical de tela ── */
@@ -1031,8 +1031,9 @@ function PatientContent({ id }: { id: string }) {
         />
       )}
 
-      {/* ── Tab content + painel de Exames/Prontuário (contexto lado a lado) ── */}
-      <div className={`flex-1 flex items-start gap-4 px-6 pb-6 min-w-0 ${tab === "sinais-vitais" ? "pt-2" : "pt-6"}`}>
+      {/* ── Tab content + painel de Exames/Prontuário (contexto lado a lado) ──
+          Único trecho que rola: cabeçalho, abas e filtros ficam congelados acima. */}
+      <div className={`flex-1 min-h-0 overflow-y-auto flex items-start gap-4 px-6 pb-6 min-w-0 ${tab === "sinais-vitais" ? "pt-2" : "pt-6"}`}>
         <div className="flex-1 min-w-0">
           {tab === "sinais-vitais" && (
             <SinaisVitaisTab internacao={internacao} slotMin={slotMin} windowMs={windowMs} view={view} cardsVisible={cardsVisible} chartLayout={chartLayout} />
@@ -1083,11 +1084,11 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
       <div className="flex min-h-screen">
         <Sidebar />
         <main
-          className="flex-1 overflow-y-auto flex flex-col"
+          className="flex-1 flex flex-col overflow-hidden"
           style={{
             marginLeft: fullscreen ? 0 : collapsed ? 56 : 224,
             transition: "margin-left 200ms ease",
-            minHeight: "100vh",
+            height: "100vh",
           }}
         >
           {!isAntonio && <TopBar />}
