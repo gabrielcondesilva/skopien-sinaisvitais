@@ -56,7 +56,7 @@ export const useSimulationStore = create<SimulationState>()((set, get) => ({
         const trimmed = internacao.rawHistory.filter((r) => r.t >= cutoff);
         trimmed.push(next);
 
-        // Card/badge EWS reflete a mediana do Slot Temporal, nunca a leitura bruta
+        // Card/badge EWS reflete a última leitura válida do Slot Temporal, nunca o valor instantâneo
         const cardCurrent = currentSlotValues(trimmed, CARD_SLOT_MINUTES, now);
         const ews = calculateEWS(cardCurrent);
         updated[id] = {

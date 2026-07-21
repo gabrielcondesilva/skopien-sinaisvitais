@@ -31,11 +31,11 @@ Equipamento utilizado por alguns pacientes, indicado por insígnia visual no car
 _Evitar_: Bomba, infusão contínua
 
 **Sinal Vital**:
-Medição fisiológica coletada pelo equipamento SKOPIEN em alta frequência (aproximadamente a cada segundo). Pertence a uma Internação. Os cinco sinais monitorados são: Frequência Respiratória (FR), Saturação de O₂ (SpO₂), Pressão Arterial Sistólica (PAS), Frequência Cardíaca (FC) e Temperatura (TEMP). SpO₂ continua sendo medido e exibido nos gráficos, mas não compõe o Escore EWS (ver Escore EWS).
+Medição fisiológica coletada pelo equipamento SKOPIEN uma vez por minuto. Pertence a uma Internação. Os cinco sinais monitorados são: Frequência Respiratória (FR), Saturação de O₂ (SpO₂), Pressão Arterial Sistólica (PAS), Frequência Cardíaca (FC) e Temperatura (TEMP). SpO₂ continua sendo medido e exibido nos gráficos, mas não compõe o Escore EWS (ver Escore EWS).
 _Evitar_: Medição, dado clínico, parâmetro
 
 **Nível de Consciência (NC)**:
-Avaliação categórica da consciência do paciente pela escala AVPU (Alerta, Confuso, Responde à Dor, Inconsciente), usada como o 5º parâmetro do Escore EWS no lugar de SpO₂. Diferente dos Sinais Vitais, não é uma leitura contínua de sensor — é uma avaliação pontual da enfermagem, por isso não passa pelo pipeline de mediana do Slot Temporal: o valor exibido é sempre o estado atual, não uma agregação.
+Avaliação categórica da consciência do paciente pela escala AVPU (Alerta, Confuso, Responde à Dor, Inconsciente), usada como o 5º parâmetro do Escore EWS no lugar de SpO₂. Diferente dos Sinais Vitais, não é uma leitura contínua de sensor — é uma avaliação pontual da enfermagem, por isso não passa pelo pipeline de agregação do Slot Temporal: o valor exibido é sempre o estado atual, não uma agregação.
 _Evitar_: Glasgow, escala de coma (é AVPU, uma escala distinta e mais simples)
 
 **Escore EWS**:
@@ -53,8 +53,8 @@ Sequência de etapas de uma cirurgia no Centro Cirúrgico: Admissão → Procedi
 _Evitar_: Pipeline cirúrgico, jornada cirúrgica
 
 **Slot Temporal**:
-Intervalo de tempo usado para agregar Sinais Vitais pela mediana. Padrão: 15 minutos. Cada ponto/barra no gráfico representa a mediana dos valores coletados naquele intervalo. Ex: slot 15 min + janela 3h = 12 pontos no gráfico. O ponto mais recente é o slot em andamento (mediana parcial). O valor exibido no card do Leito é sempre a mediana do slot atual — nunca o valor bruto instantâneo.
-_Evitar_: Janela, período, intervalo de agregação
+Intervalo de tempo usado para agregar Sinais Vitais pela última leitura válida. Padrão: 15 minutos (equipamento coleta 1 leitura/minuto, logo um slot de 15 min contém até 15 leituras). Cada ponto/barra no gráfico representa a leitura mais recente daquele intervalo — não média nem mediana, conceitos que não fazem sentido clínico para sinal vital. Se a leitura mais recente do slot vier vazia ou zerada (falha do equipamento), usa-se a leitura válida anterior dentro do mesmo slot. Ex: slot 15 min + janela 3h = 12 pontos no gráfico. O ponto mais recente é o slot em andamento (valor parcial, com as leituras já coletadas até o momento). O valor exibido no card do Leito é sempre a última leitura válida do slot atual — nunca um valor instantâneo fora desse pipeline.
+_Evitar_: Janela, período, intervalo de agregação, média, mediana
 
 **Heatmap de Sinais Vitais**:
 Visualização alternativa à série temporal na aba de Sinais Vitais. Grade com tempo no eixo X (slots) e os 5 parâmetros do Escore EWS no eixo Y (FR, PAS, FC, TEMP, NC — SpO₂ fica de fora por não pontuar). Cada célula é colorida pela pontuação individual daquele parâmetro naquele slot (verde=0, amarelo=1, laranja=2, vermelho=3). Permite identificar visualmente quando e qual parâmetro começou a deteriorar.
@@ -142,8 +142,8 @@ Tema base: dark mode global. Referência visual: Vercel dashboard — fundo quas
 > Dev: "O leito está vazio, vou esconder o card."
 > Domínio: "Não — exibe o card com status 'Leito Disponível'. O leito existe independente de haver paciente."
 
-> Dev: "Vou calcular o EWS usando o último valor de cada sinal vital."
-> Domínio: "Não — use a mediana do Slot Temporal selecionado, não o valor instantâneo."
+> Dev: "Vou calcular o EWS usando a mediana dos sinais vitais do Slot Temporal, pra suavizar ruído de leitura."
+> Domínio: "Não — mediana não é um conceito clínico. Use sempre a última leitura válida do slot. Se ela vier vazia ou zerada, use a leitura válida anterior dentro do mesmo slot, nunca uma agregação estatística." (decisão revisada após validação com equipe médica do hospital; a versão anterior deste documento recomendava mediana)
 
-> Dev: "Vou aplicar mediana no Nível de Consciência também, igual aos outros parâmetros do Escore."
-> Domínio: "Não — NC não é medido por sensor, é avaliado pela enfermagem de tempo em tempo. Não faz sentido tirar mediana de uma sequência de 'Alerta'. Use o estado atual."
+> Dev: "Vou aplicar a mesma regra de 'última leitura válida' no Nível de Consciência também, igual aos outros parâmetros do Escore."
+> Domínio: "Não — NC não é medido por sensor, é avaliado pela enfermagem de tempo em tempo. Sempre foi o estado atual, e continua sendo — a mudança de regra dos demais sinais vitais não afeta o NC."

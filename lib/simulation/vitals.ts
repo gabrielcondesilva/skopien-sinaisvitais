@@ -27,13 +27,16 @@ function round(v: number, decimals = 1) {
   return Math.round(v * f) / f;
 }
 
+// Cadência de coleta do equipamento: 1 leitura por minuto.
+const READING_INTERVAL_MS = 60_000;
+
 export function nextReading(
   prev: RawReading,
   baseline: VitalsBaseline,
   drift?: Partial<VitalsBaseline>
 ): RawReading {
   const keys = ["fr", "spo2", "pas", "fc", "temp"] as const;
-  const next: Partial<RawReading> = { t: prev.t + 5000 };
+  const next: Partial<RawReading> = { t: prev.t + READING_INTERVAL_MS };
 
   for (const k of keys) {
     // Pull toward baseline (mean reversion) then add drift if scripted
@@ -68,7 +71,7 @@ export function buildHistory(
   history.push(initial);
 
   let prev = initial;
-  while (prev.t + 5000 <= untilMs) {
+  while (prev.t + READING_INTERVAL_MS <= untilMs) {
     prev = nextReading(prev, baseline);
     history.push(prev);
   }
@@ -76,13 +79,23 @@ export function buildHistory(
   return history;
 }
 
-function median(values: number[]): number {
-  if (values.length === 0) return 0;
-  const sorted = [...values].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 === 0
-    ? (sorted[mid - 1] + sorted[mid]) / 2
-    : sorted[mid];
+type VitalKey = "fr" | "spo2" | "pas" | "fc" | "temp";
+
+// 0/null/undefined/NaN indicam leitura ausente ou falha do equipamento.
+function isValidReading(v: number): boolean {
+  return !!v;
+}
+
+// Não existe "média" nem "mediana" de sinal vital na prática clínica: o valor exibido é
+// sempre a leitura mais recente. Se ela vier vazia/zerada (falha do equipamento), cai
+// para a leitura válida anterior dentro do mesmo slot. Leituras simuladas nunca são
+// inválidas (ver BOUNDS), então esse fallback só entra em jogo com dados reais.
+function lastValidInSlot(readings: RawReading[], key: VitalKey): number {
+  for (let i = readings.length - 1; i >= 0; i--) {
+    const v = readings[i][key];
+    if (isValidReading(v)) return v;
+  }
+  return readings[readings.length - 1][key];
 }
 
 export function computeSlots(
@@ -106,12 +119,12 @@ export function computeSlots(
   return Array.from(buckets.entries())
     .sort(([a], [b]) => a - b)
     .map(([slotStart, readings]) => {
-      const fr   = round(median(readings.map((r) => r.fr)));
-      const spo2 = round(median(readings.map((r) => r.spo2)));
-      const pas  = round(median(readings.map((r) => r.pas)));
-      const fc   = round(median(readings.map((r) => r.fc)));
-      const temp = round(median(readings.map((r) => r.temp)), 1);
-      // NC é estado categórico pontual — usa o valor mais recente do slot, não mediana
+      const fr   = round(lastValidInSlot(readings, "fr"));
+      const spo2 = round(lastValidInSlot(readings, "spo2"));
+      const pas  = round(lastValidInSlot(readings, "pas"));
+      const fc   = round(lastValidInSlot(readings, "fc"));
+      const temp = round(lastValidInSlot(readings, "temp"), 1);
+      // NC é estado categórico pontual — usa o valor mais recente do slot, igual aos demais
       const nc   = readings[readings.length - 1].nc;
       const ews  = calculateEWS({ fr, spo2, pas, fc, temp, nc });
       return {
@@ -139,11 +152,11 @@ export function currentSlotValues(
 
   return {
     t: now,
-    fr:   round(median(inSlot.map((r) => r.fr))),
-    spo2: round(median(inSlot.map((r) => r.spo2))),
-    pas:  round(median(inSlot.map((r) => r.pas))),
-    fc:   round(median(inSlot.map((r) => r.fc))),
-    temp: round(median(inSlot.map((r) => r.temp)), 1),
+    fr:   round(lastValidInSlot(inSlot, "fr")),
+    spo2: round(lastValidInSlot(inSlot, "spo2")),
+    pas:  round(lastValidInSlot(inSlot, "pas")),
+    fc:   round(lastValidInSlot(inSlot, "fc")),
+    temp: round(lastValidInSlot(inSlot, "temp"), 1),
     nc:   inSlot[inSlot.length - 1].nc,
   };
 }

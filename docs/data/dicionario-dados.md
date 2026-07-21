@@ -88,7 +88,7 @@ Representa um leito físico. Existe independentemente de haver internação ativ
 
 ### RawReading
 
-Leitura bruta de um instante de tempo. Gerada a cada tick (~5 s).
+Leitura bruta de um instante de tempo. Gerada a cada tick (1 leitura/minuto, cadência do equipamento).
 
 | Campo | Tipo | Descrição |
 |---|---|---|
@@ -104,14 +104,14 @@ Leitura bruta de um instante de tempo. Gerada a cada tick (~5 s).
 
 ### SlotReading
 
-Mediana das `RawReading` em uma janela temporal (padrão 15 min). Valor exibido nos cards. Exceção: `nc` não é medianado (é categórico) — usa o valor mais recente do slot.
+Última `RawReading` válida em uma janela temporal (padrão 15 min). Valor exibido nos cards. Não é média nem mediana (não são conceitos clínicos para sinal vital) — é sempre a leitura mais recente do slot; se vier vazia/zerada (falha do equipamento), usa a leitura válida anterior dentro do mesmo slot. `nc` segue a mesma regra de "valor mais recente", mas nunca teve fallback por valor ausente — é avaliação categórica pontual da enfermagem, não sofre falha de sensor.
 
 | Campo adicional | Tipo | Descrição |
 |---|---|---|
 | `ewsTotal` | `number` | Escore EWS calculado para o slot |
 | `ewsStatus` | `StatusClinico` | Status clínico do slot |
 
-**Invariante:** O valor exibido nos cards é sempre a mediana do Slot Temporal — nunca o valor bruto.
+**Invariante:** O valor exibido nos cards é sempre a última leitura válida do Slot Temporal — nunca uma agregação estatística (média/mediana).
 
 ---
 
@@ -190,7 +190,7 @@ Histórico pré-populado: 15 minutos de leituras brutas no carregamento da aplic
 ## Ciclo de Atualização
 
 ```
-SimulationEngine.advance() — a cada 5 segundos
+SimulationEngine.advance() — a cada tick (1 leitura/minuto por sinal vital)
   ├── nextReading() por internação (mean reversion + ruído gaussiano)
   ├── Trim de rawHistory (janela 3h)
   ├── calculateEWS() → currentEws + currentStatus

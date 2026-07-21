@@ -12,7 +12,7 @@ SKOPIEN v1 — plataforma web demonstrativa de monitoramento hospitalar em tempo
 
 Key invariants:
 - Sinais vitais e alertas pertencem à **Internação**, não ao Paciente
-- O valor exibido nos cards é sempre a **mediana do Slot Temporal** (padrão 15 min) — nunca o valor bruto
+- O valor exibido nos cards é sempre a **última leitura válida do Slot Temporal** (padrão 15 min) — nunca uma média/mediana (não é conceito clínico); se a leitura mais recente vier vazia/zerada, usa a válida anterior dentro do mesmo slot
 - Leito sem Internação ativa exibe "Leito Disponível" — o card existe mas sem dados clínicos
 - No Centro Cirúrgico a entidade é **Sala Cirúrgica**, não Leito
 
@@ -42,7 +42,7 @@ npm test -- --testPathPattern=ews   # rodar apenas testes do EWSCalculator
 
 ## Core modules
 
-**`SimulationEngine`** — store Zustand central. Seed com 48 pacientes (12 PS, 20 Enfermaria, 6 salas CC, 10 UTI). Loop `setInterval` ~5s gerando novos valores brutos. Janela deslizante para cálculo de mediana por Slot Temporal. Pré-popula 15 min de histórico no carregamento. Expõe `useSimulation()`.
+**`SimulationEngine`** — store Zustand central. Seed com 48 pacientes (12 PS, 20 Enfermaria, 6 salas CC, 10 UTI). Loop `setInterval` gerando novos valores brutos a 1 leitura/minuto por sinal vital. Slot Temporal agrega pela última leitura válida (fallback para a anterior no mesmo slot se vazia/zerada). Pré-popula 15 min de histórico no carregamento. Expõe `useSimulation()`.
 
 **`EWSCalculator`** — função pura. Recebe FR, PAS, FC, TEMP e Nível de Consciência (NC, escala AVPU) e retorna pontuação individual + total + Status Clínico. Tabela MEWS institucional (`docs/MEWS.docx`), escala 0–15. SpO₂ continua nos Sinais Vitais exibidos mas não entra nesse cálculo. Sem regra de exceção — status depende só da soma total. Limiares: 0–3=Estável, 4=Atenção, 5–6=Risco Elevado, ≥7=Crítico.
 

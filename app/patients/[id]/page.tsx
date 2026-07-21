@@ -24,7 +24,8 @@ import { useAuthStore } from "@/store/auth";
 import { computeSlots, currentSlotValues } from "@/lib/simulation/vitals";
 import { calculateEWS } from "@/lib/ews";
 import { vitalSeverity } from "@/lib/vitalSeverity";
-import type { Internacao, SurgicalInternacao, NivelConsciencia } from "@/lib/simulation/types";
+import { UTI_TIPO_LABELS } from "@/lib/units";
+import type { Internacao, SurgicalInternacao, NivelConsciencia, Bed } from "@/lib/simulation/types";
 
 const NC_OPTIONS: readonly NivelConsciencia[] = ["Alerta", "Confuso", "Responde à Dor", "Inconsciente"];
 
@@ -36,6 +37,14 @@ const UNIT_LABELS: Record<string, string> = {
   "uti":               "UTI",
   "centro-cirurgico":  "Centro Cirúrgico",
 };
+
+function bedUnitLabel(bed: Bed | null, unit: string): string {
+  if (!bed) return UNIT_LABELS[unit] ?? unit;
+  const number = bed.label.match(/(\d+)$/)?.[0] ?? bed.label;
+  const noun = unit === "centro-cirurgico" ? "Sala" : "Leito";
+  const unitLabel = unit === "uti" && bed.utiTipo ? UTI_TIPO_LABELS[bed.utiTipo] : UNIT_LABELS[unit] ?? unit;
+  return `${unitLabel} - ${noun} ${number}`;
+}
 
 function formatElapsed(admittedAt: number): string {
   const totalMin = Math.floor((Date.now() - admittedAt) / 60_000);
@@ -598,8 +607,8 @@ function PatientContent({ id }: { id: string }) {
     );
   }
 
-  // Mesma base de cálculo do gráfico da aba Sinais Vitais (mediana do Slot Temporal
-  // selecionado) — evita que o valor ao lado do nome divirja do que o gráfico mostra.
+  // Mesma base de cálculo do gráfico da aba Sinais Vitais (última leitura válida do
+  // Slot Temporal selecionado) — evita que o valor ao lado do nome divirja do gráfico.
   const slots   = computeSlots(internacao.rawHistory, slotMin, windowMs, Date.now());
   const current = slots[slots.length - 1] ?? currentSlotValues(internacao.rawHistory, slotMin, Date.now());
   const ews     = calculateEWS(current);
@@ -618,14 +627,18 @@ function PatientContent({ id }: { id: string }) {
   ];
   const ADMISSION_REASON_INDEX = 2;
 
+  // Antonio: diagnóstico sai do fluxo de texto e vira um badge centralizado, alinhado com o Escore EWS
+  const antonioMetaItems = metaItems.filter((_, i) => i !== ADMISSION_REASON_INDEX);
+  const bedUnitText = bedUnitLabel(bed, internacao.unit);
+
   return (
     <div className="flex flex-col min-h-0" style={{ background: "var(--background)" }}>
 
       {isAntonio ? (
         /* ── Antonio: header compacto (sem TopBar) — ganha espaço vertical de tela ── */
         <div className="px-6 pt-3 pb-3" style={{ borderBottom: "1px solid var(--border)" }}>
-          {/* Linha 1: identidade do paciente + controles de perfil */}
-          <div className="flex items-center justify-between gap-3 flex-wrap">
+          {/* Linha 1: identidade do paciente + Escore EWS (centralizado na página) + controles de perfil */}
+          <div className="relative flex items-center justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-3 flex-wrap">
               <button
                 onClick={() => router.push(`/units/${internacao.unit}`)}
@@ -636,19 +649,25 @@ function PatientContent({ id }: { id: string }) {
                 ←
               </button>
               <h1 className="text-xl font-semibold">{internacao.patient.name}</h1>
-              <div className="flex items-center gap-3 ml-20">
-                <ScorePill text={`EWS ${ews.total} - ${ews.status}`} color={statusColor} size="lg" />
+              <span className="text-sm" style={{ color: "var(--muted)" }}>{bedUnitText}</span>
+            </div>
 
-                {/* Braden — apenas para UTI-01 */}
-                {bed?.label === "UTI-01" && (
-                  <ScorePill
-                    text="Braden 10 - Alto"
-                    color={BRADEN_COLOR["Alto"]}
-                    onClick={() => setTab("lesao-pele")}
-                    size="lg"
-                  />
-                )}
-              </div>
+            {/* Escore EWS — centralizado na página (mesma referência horizontal do diagnóstico na linha de baixo) */}
+            <div
+              className="absolute flex items-center gap-3"
+              style={{ left: "50%", transform: "translateX(-50%)" }}
+            >
+              <ScorePill text={`EWS ${ews.total} - ${ews.status}`} color={statusColor} size="md" />
+
+              {/* Braden — apenas para UTI-01 */}
+              {bed?.label === "UTI-01" && (
+                <ScorePill
+                  text="Braden 10 - Alto"
+                  color={BRADEN_COLOR["Alto"]}
+                  onClick={() => setTab("lesao-pele")}
+                  size="lg"
+                />
+              )}
             </div>
 
             <div className="flex items-center gap-0.5 shrink-0">
@@ -687,18 +706,14 @@ function PatientContent({ id }: { id: string }) {
             </div>
           </div>
 
-          {/* Linha 2: metadados + Exames / Prontuário / Câmera */}
-          <div className="flex items-center justify-between gap-3 flex-wrap mt-1.5 pl-6">
+          {/* Linha 2: metadados (idade, gênero, admissão, tempo internado) + Exames / Prontuário / Câmera.
+              Diagnóstico vira um badge à parte, centralizado bem embaixo do Escore EWS. */}
+          <div className="relative flex items-center justify-between gap-3 flex-wrap mt-1.5 pl-6">
             <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm" style={{ color: "var(--muted)" }}>
-              {metaItems.map((item, i) => (
+              {antonioMetaItems.map((item, i) => (
                 <span key={i} className="flex items-center gap-1.5">
                   {i > 0 && <span>·</span>}
-                  <span
-                    className={i === ADMISSION_REASON_INDEX ? "text-base" : undefined}
-                    style={i === ADMISSION_REASON_INDEX ? { color: "var(--accent)", fontWeight: 700 } : undefined}
-                  >
-                    {item}
-                  </span>
+                  <span>{item}</span>
                 </span>
               ))}
               {internacao.unit !== "pronto-socorro" && (
@@ -710,6 +725,13 @@ function PatientContent({ id }: { id: string }) {
                 </span>
               )}
             </div>
+
+            <span
+              className="absolute text-sm font-semibold whitespace-nowrap"
+              style={{ left: "50%", transform: "translateX(-50%)", color: "var(--accent)" }}
+            >
+              {internacao.patient.admissionReason}
+            </span>
 
             <div className="flex items-center gap-2 shrink-0">
               <button
