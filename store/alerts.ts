@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type { Alert, AlertType, StatusClinico, UnitId, VitalAlertResolution } from "@/lib/simulation/types";
 import { ALARM_VITAL_KEYS, ALARM_LABEL, ALARM_UNIT, isOutOfAlarmLimit, type AlarmVitalKey } from "@/lib/vitalAlarm";
+import { SCORE_STATUS_RANK } from "@/lib/simulation/vitals";
 
 let _alertCounter = 1;
 const alertId = () => `alert-${_alertCounter++}`;
@@ -11,13 +12,6 @@ const VITAL_ALERT_COOLDOWN_MS = 60 * 60_000;
 
 // Mesma margem, agora pro Alerta de Escore ficar parado na mesma categoria sem piorar.
 const SCORE_ALERT_COOLDOWN_MS = 60 * 60_000;
-
-const SCORE_STATUS_RANK: Record<StatusClinico, number> = {
-  "Estável": 0,
-  "Atenção": 1,
-  "Risco Elevado": 2,
-  "Crítico": 3,
-};
 
 function cooldownKey(internacaoId: string, parametro: AlarmVitalKey): string {
   return `${internacaoId}:${parametro}`;
@@ -87,6 +81,13 @@ interface AlertState {
 
   // Seed all demo alert types at app startup (called once by SimulationProvider)
   seedDemoAlerts: (items: Array<Omit<Alert, "id" | "firedAt" | "status">>) => void;
+
+  // Backfill de Alerta de Escore: recria retroativamente os que teriam disparado
+  // dentro do histórico já semeado (buildHistory pré-popula até 62h antes do motor
+  // de alerta existir pra ver ao vivo — sem isso o gráfico mostra piora sem marcador).
+  // Cada item já vem com firedAt/status definidos (computeScoreTransitionHistory),
+  // só falta o id. Ver CONTEXT.md § Alertas.
+  seedBackfilledScoreAlerts: (items: Array<Omit<Alert, "id">>) => void;
 
   // Derived helper: returns active alerts for a specific internação
   getAlertsForInternacao: (internacaoId: string) => Alert[];
@@ -350,6 +351,25 @@ export const useAlertStore = create<AlertState>()((set, get) => ({
       const merged = [...state.active, ...seeded];
       return {
         active: merged,
+        activeCount: merged.length,
+      };
+    });
+  },
+
+  seedBackfilledScoreAlerts(items) {
+    set((state) => {
+      const withIds: Alert[] = items.map((item) => ({ ...item, id: alertId() }));
+      const historyItems = withIds.filter((a) => a.status !== "active");
+      // Nunca duplica um Alerta de Escore já ativo pra mesma internação — pode
+      // acontecer se um dos alertas de demo roteirizados (seedDemoAlerts) já
+      // cobrir essa internação. Só o histórico (já resolvido) sempre entra.
+      const activeItems = withIds.filter(
+        (a) => a.status === "active" && !state.active.some((x) => x.type === "escore" && x.internacaoId === a.internacaoId)
+      );
+      const merged = [...state.active, ...activeItems];
+      return {
+        active: merged,
+        history: [...state.history, ...historyItems],
         activeCount: merged.length,
       };
     });

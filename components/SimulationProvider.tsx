@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useSimulationStore } from "@/store/simulation";
 import { useAlertStore } from "@/store/alerts";
 import { ALARM_VITAL_KEYS } from "@/lib/vitalAlarm";
+import { computeScoreTransitionHistory } from "@/lib/simulation/vitals";
 import type { Alert } from "@/lib/simulation/types";
 
 // Tempo real: 1 tick = 1 leitura simulada, alinhado à cadência real do
@@ -17,6 +18,7 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
   const checkScoreAlerts = useAlertStore((s) => s.checkScoreAlerts);
   const fireAlert        = useAlertStore((s) => s.fireAlert);
   const seedDemoAlerts   = useAlertStore((s) => s.seedDemoAlerts);
+  const seedBackfilledScoreAlerts = useAlertStore((s) => s.seedBackfilledScoreAlerts);
 
   // Seed one alert of each type at startup so demo always shows all alert kinds
   useEffect(() => {
@@ -95,6 +97,39 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
 
     seedDemoAlerts(items);
   }, [seedDemoAlerts]);
+
+  // Backfill do Alerta de Escore: buildHistory pré-popula até 62h de histórico de
+  // uma vez no carregamento, antes do motor de alerta existir pra ver ao vivo — sem
+  // isso o gráfico mostraria uma piora de categoria sem marcador nenhum. Reconstrói
+  // retroativamente as transições e recria os alertas que teriam disparado (os já
+  // resolvidos viram histórico, o que ainda estivesse aberto vira Alerta Ativo).
+  // Ver CONTEXT.md § Alertas.
+  useEffect(() => {
+    const { beds, internacoes } = useSimulationStore.getState();
+    const items: Array<Omit<Alert, "id">> = [];
+
+    for (const inv of Object.values(internacoes)) {
+      const b = beds.find((bed) => bed.internacaoId === inv.id);
+      const simNow = inv.rawHistory[inv.rawHistory.length - 1]?.t ?? Date.now();
+      const events = computeScoreTransitionHistory(inv.rawHistory, simNow);
+
+      for (const ev of events) {
+        items.push({
+          type: "escore",
+          internacaoId: inv.id,
+          patientName: inv.patient.name,
+          bedLabel: b?.label ?? inv.bedId,
+          unit: inv.unit,
+          message: `Status Clínico piorou para ${ev.status} (Escore ${ev.ewsTotal})`,
+          firedAt: ev.firedAt,
+          status: ev.clearedAt ? "auto-cleared" : "active",
+          dismissedAt: ev.clearedAt,
+        });
+      }
+    }
+
+    if (items.length) seedBackfilledScoreAlerts(items);
+  }, [seedBackfilledScoreAlerts]);
 
   useEffect(() => {
     const id = setInterval(() => {

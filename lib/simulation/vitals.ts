@@ -1,5 +1,15 @@
 import { calculateEWS } from "@/lib/ews";
-import type { RawReading, SlotReading, VitalsBaseline } from "./types";
+import type { RawReading, SlotReading, StatusClinico, VitalsBaseline } from "./types";
+
+// Ranking de severidade do Status Clínico — usado pra detectar piora/melhora de
+// categoria tanto no Alerta de Escore ao vivo (store/alerts.ts) quanto no backfill
+// retroativo (computeScoreTransitionHistory). Fonte única, evita as duas divergirem.
+export const SCORE_STATUS_RANK: Record<StatusClinico, number> = {
+  "Estável": 0,
+  "Atenção": 1,
+  "Risco Elevado": 2,
+  "Crítico": 3,
+};
 
 const BOUNDS = {
   fr:   { min: 6,    max: 35,   step: 0.8 },
@@ -163,16 +173,24 @@ export function computeScoreHistory(
 ): SlotReading[] {
   const bucketMs = SCORE_WINDOW_MINUTES * 60 * 1000;
   const windowStart = now - windowMs;
+  // Bucket em andamento ainda não fechou — mediana instável (poucas leituras),
+  // nunca entra na série. Ver currentScoreVitals.
+  const openBucketStart = Math.floor(now / bucketMs) * bucketMs;
 
+  // Bucketiza TODAS as leituras primeiro, sem cortar pela Janela — cortar aqui
+  // truncaria o bucket que fica bem na borda da Janela, fazendo a mediana daquele
+  // bucket variar conforme o tamanho da Janela escolhida. A Janela só decide DEPOIS
+  // quais buckets (inteiros) aparecem na série, nunca corta leitura de dentro de um.
   const buckets = new Map<number, RawReading[]>();
   for (const r of history) {
-    if (r.t < windowStart) continue;
     const bucketKey = Math.floor(r.t / bucketMs) * bucketMs;
+    if (bucketKey >= openBucketStart) continue;
     if (!buckets.has(bucketKey)) buckets.set(bucketKey, []);
     buckets.get(bucketKey)!.push(r);
   }
 
   return Array.from(buckets.entries())
+    .filter(([bucketStart]) => bucketStart + bucketMs > windowStart)
     .sort(([a], [b]) => a - b)
     .map(([bucketStart, readings]) => {
       const fr   = round(medianInBucket(readings, "fr"));
@@ -183,7 +201,9 @@ export function computeScoreHistory(
       const nc   = readings[readings.length - 1].nc;
       const ews  = calculateEWS({ fr, spo2, pas, fc, temp, nc });
       return {
-        t: bucketStart,
+        // Plota no fechamento do bucket (quando o valor passa a valer), não no
+        // início — senão o ponto mais recente parece "atrasado" 30min no eixo X.
+        t: bucketStart + bucketMs,
         fr, spo2, pas, fc, temp, nc,
         ewsTotal: ews.total,
         ewsStatus: ews.status,
@@ -191,10 +211,65 @@ export function computeScoreHistory(
     });
 }
 
+export interface ScoreTransitionEvent {
+  firedAt: number;       // fechamento do bucket em que a categoria piorou
+  status: StatusClinico;
+  ewsTotal: number;
+  clearedAt?: number;    // fechamento do bucket em que melhorou depois — undefined = ainda em aberto
+}
+
+// Backfill: reconstrói retroativamente as transições de categoria do Status Clínico
+// dentro do histórico já semeado (buildHistory pré-popula até 62h de uma vez, antes
+// do motor de Alerta de Escore existir pra ver acontecer ao vivo). Mesma regra do
+// checkScoreAlerts (store/alerts.ts) — só não reavalia a carência de 60min, que
+// depende de uma ação humana de dispensa que não existe em dado sintético.
+export function computeScoreTransitionHistory(history: RawReading[], now: number): ScoreTransitionEvent[] {
+  if (history.length === 0) return [];
+
+  const bucketMs = SCORE_WINDOW_MINUTES * 60 * 1000;
+  const earliest = history[0].t;
+  const fullWindowMs = now - earliest + bucketMs;
+  const closedSlots = computeScoreHistory(history, fullWindowMs, now);
+
+  const events: ScoreTransitionEvent[] = [];
+  let prevStatus: StatusClinico | null = null;
+  let openEvent: ScoreTransitionEvent | null = null;
+
+  for (const slot of closedSlots) {
+    if (prevStatus == null) {
+      prevStatus = slot.ewsStatus;
+      continue;
+    }
+
+    const prevRank = SCORE_STATUS_RANK[prevStatus];
+    const rank = SCORE_STATUS_RANK[slot.ewsStatus];
+
+    if (rank > prevRank) {
+      if (openEvent) {
+        openEvent.clearedAt = slot.t;
+        events.push(openEvent);
+      }
+      openEvent = { firedAt: slot.t, status: slot.ewsStatus, ewsTotal: slot.ewsTotal };
+    } else if (rank < prevRank && openEvent) {
+      openEvent.clearedAt = slot.t;
+      events.push(openEvent);
+      openEvent = null;
+    }
+    prevStatus = slot.ewsStatus;
+  }
+
+  if (openEvent) events.push(openEvent);
+  return events;
+}
+
+// Recalcula só quando o bucket de 30min FECHA — nunca o bucket em andamento, que
+// tem poucas leituras e reintroduziria ruído (era pra ser um bucket fixo, não uma
+// janela rolante). Ver CONTEXT.md § Janela de Escore.
 export function currentScoreVitals(history: RawReading[], now: number): RawReading {
   const bucketMs = SCORE_WINDOW_MINUTES * 60 * 1000;
-  const bucketStart = Math.floor(now / bucketMs) * bucketMs;
-  const inBucket = history.filter((r) => r.t >= bucketStart);
+  const bucketEnd = Math.floor(now / bucketMs) * bucketMs;
+  const bucketStart = bucketEnd - bucketMs;
+  const inBucket = history.filter((r) => r.t >= bucketStart && r.t < bucketEnd);
 
   if (inBucket.length === 0) {
     const last = history[history.length - 1];
@@ -202,7 +277,7 @@ export function currentScoreVitals(history: RawReading[], now: number): RawReadi
   }
 
   return {
-    t: now,
+    t: bucketEnd,
     fr:   round(medianInBucket(inBucket, "fr")),
     spo2: round(medianInBucket(inBucket, "spo2")),
     pas:  round(medianInBucket(inBucket, "pas")),

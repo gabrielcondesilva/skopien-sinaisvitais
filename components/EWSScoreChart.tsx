@@ -59,16 +59,13 @@ function ScoreDot({ cx, cy, value, index, isAlert }: {
   if (cx == null || cy == null || value == null) return null;
 
   // Marca de horário de alerta (toggle "Alertas" ligado) — ponto onde o alerta disparou.
+  // Fixo (sem piscar), vermelho, borda branca — precisa chamar mais atenção que o
+  // ponto normal do gráfico.
   if (isAlert) {
     return (
       <g key={`ews-dot-${index}`}>
-        <circle cx={cx} cy={cy} r={8} fill="#F03E3E" fillOpacity={0.3}>
-          <animate attributeName="r"       values="4;10;4"    dur="1s" repeatCount="indefinite" />
-          <animate attributeName="opacity" values="0.6;0;0.6" dur="1s" repeatCount="indefinite" />
-        </circle>
-        <circle cx={cx} cy={cy} r={4} fill="#F03E3E">
-          <animate attributeName="opacity" values="1;0.4;1" dur="1s" repeatCount="indefinite" />
-        </circle>
+        <circle cx={cx} cy={cy} r={10} fill="#F03E3E" fillOpacity={0.25} />
+        <circle cx={cx} cy={cy} r={6} fill="#F03E3E" stroke="#fff" strokeWidth={2} />
       </g>
     );
   }
@@ -140,6 +137,20 @@ export function EWSScoreChart({ slots, syncId, compact = false, collapsible = tr
       )}
       {headerExtra}
       </div>
+
+      {/* Faixas de Status Clínico — evita confundir subida de valor com troca de
+          categoria (ex.: 5→6 continua Risco Elevado, não dispara Alerta de Escore). */}
+      {!compact && !isCollapsed && (
+        <p className="text-[11px] mt-0.5" style={{ color: "var(--muted)" }}>
+          <span style={{ color: "#2F9E44" }}>Estável 0–3</span>
+          {" · "}
+          <span style={{ color: "#F59F00" }}>Atenção 4</span>
+          {" · "}
+          <span style={{ color: "#F76707" }}>Risco Elevado 5–6</span>
+          {" · "}
+          <span style={{ color: "#F03E3E" }}>Crítico ≥7</span>
+        </p>
+      )}
 
       {!isCollapsed && (
       <>
@@ -234,15 +245,6 @@ export function EWSScoreChart({ slots, syncId, compact = false, collapsible = tr
           </Line>
         </ComposedChart>
       </ResponsiveContainer>
-
-      {!compact && (
-        <div className="flex items-center justify-center flex-wrap gap-4 mt-3" style={{ color: "var(--muted)" }}>
-          <span className="text-xs" style={{ color: "#2F9E44" }}>— Estável</span>
-          <span className="text-xs" style={{ color: "#F59F00" }}>— Atenção ≥4</span>
-          <span className="text-xs" style={{ color: "#F76707" }}>— Risco Elevado ≥5</span>
-          <span className="text-xs" style={{ color: "#F03E3E" }}>— Crítico ≥7</span>
-        </div>
-      )}
       </div>
       </>
       )}

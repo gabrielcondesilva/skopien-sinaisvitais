@@ -105,17 +105,24 @@ function scoreOf(scores: { fr: number; pas: number; fc: number; temp: number; nc
 }
 
 const ALERT_TYPE_LABEL: Record<string, string> = {
+  escore: "Escore",
   medicacao: "Medicação Atrasada",
   alta: "Previsão de Alta",
 };
 
-// Resumo agregado do alerta exibido no gráfico de EWS, ao passar o mouse na bolinha
-// vermelha (ex.: "Alerta - FC · PAS") — não distingue qual gráfico é responsável,
-// isso é papel de buildVitalAlertSlotMap (por parâmetro, usado nos gráficos de vitais).
+// Resumo exibido no gráfico de EWS ao passar o mouse na bolinha vermelha — recebe
+// só os Alertas de Escore (filtrados na chamada), cada gráfico mostra o próprio
+// alerta. Sinal vital por parâmetro é papel de buildVitalAlertSlotMap, usado nos
+// gráficos de vitais.
 function buildAlertSlotLabels(alerts: Alert[], slots: SlotReading[], slotMin: number): Map<number, string> {
   const slotMs = slotMin * 60_000;
   const bySlot = new Map<number, Alert[]>();
   for (const a of alerts) {
+    // firedAt cai dentro do bucket que acabou de fechar quando o alerta disparou
+    // (ao vivo, alguns segundos depois do fechamento; no backfill, exatamente no
+    // fechamento). Math.floor já aponta pro fechamento desse bucket — que é
+    // numericamente igual ao t (fechamento) do ponto correspondente em ewsSlots,
+    // sem precisar somar nada. Ver computeScoreHistory.
     const bucket = Math.floor(a.firedAt / slotMs) * slotMs;
     const arr = bySlot.get(bucket);
     if (arr) arr.push(a); else bySlot.set(bucket, [a]);
@@ -473,9 +480,11 @@ function SinaisVitaisTab({ internacao, slotMin, windowMs, view, cardsVisible, ch
 
   // Bucket do horário de cada alerta no slot exibido — só marca no gráfico se o slot
   // correspondente estiver de fato renderizado (dentro da janela escolhida). O gráfico
-  // de EWS bucketa pela Janela de Escore fixa, os demais pelo Slot escolhido.
-  const alertSlotLabels = showAlertTimesOnCharts && alerts?.length
-    ? buildAlertSlotLabels(alerts, ewsSlots, SCORE_WINDOW_MINUTES)
+  // de EWS mostra só Alerta de Escore (bucketado pela Janela de Escore fixa) — cada
+  // gráfico mostra o próprio alerta, sinal vital não aparece aqui.
+  const ewsAlerts = alerts?.filter((a) => a.type === "escore");
+  const alertSlotLabels = showAlertTimesOnCharts && ewsAlerts?.length
+    ? buildAlertSlotLabels(ewsAlerts, ewsSlots, SCORE_WINDOW_MINUTES)
     : undefined;
   const vitalAlertSlotMap = showAlertTimesOnCharts && alerts?.length
     ? buildVitalAlertSlotMap(alerts, slots, slotMin)

@@ -26,16 +26,13 @@ function VitalDot({
 
   // Marca de horário de alerta (toggle "Alertas" ligado) sobrepõe a cor de severidade —
   // é o ponto onde o alerta disparou, independente do valor estar ou não em faixa crítica.
+  // Fixo (sem piscar), vermelho, borda branca — precisa chamar mais atenção que o
+  // ponto normal do gráfico.
   if (isAlert) {
     return (
       <g>
-        <circle cx={cx} cy={cy} r={8} fill={ALERT_RED} fillOpacity={0.3}>
-          <animate attributeName="r"       values="4;10;4"    dur="1s" repeatCount="indefinite" />
-          <animate attributeName="opacity" values="0.6;0;0.6" dur="1s" repeatCount="indefinite" />
-        </circle>
-        <circle cx={cx} cy={cy} r={4} fill={ALERT_RED}>
-          <animate attributeName="opacity" values="1;0.4;1" dur="1s" repeatCount="indefinite" />
-        </circle>
+        <circle cx={cx} cy={cy} r={10} fill={ALERT_RED} fillOpacity={0.25} />
+        <circle cx={cx} cy={cy} r={6} fill={ALERT_RED} stroke="#fff" strokeWidth={2} />
       </g>
     );
   }
