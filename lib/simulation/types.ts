@@ -88,6 +88,7 @@ export interface Bed {
 
 export type AlertType =
   | "sinal-vital"  // parâmetro cruza o Limite de Alarme do dispositivo (independente do Escore EWS)
+  | "escore"       // Status Clínico piora de categoria — sem ícone, severidade já visível no card
   | "medicacao"    // scripted delayed medication; badge clears on acknowledge
   | "alta";        // scripted discharge prediction; badge clears on acknowledge, can re-fire
 // Note: hasPump on Internacao is the visual pump indicator — not an alert type

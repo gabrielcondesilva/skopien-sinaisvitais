@@ -1,4 +1,4 @@
-import { buildHistory, currentSlotValues, CARD_SLOT_MINUTES } from "./vitals";
+import { buildHistory, currentScoreVitals } from "./vitals";
 import type {
   Bed, Internacao, SurgicalInternacao, Patient,
   UnitId, VitalsBaseline, ManchesterClass, Gender,
@@ -35,7 +35,7 @@ function makeInternacao(
   const now = NOW();
   const windowMs = 62 * 3_600_000; // cobre a maior Janela selecionável (62h)
   const rawHistory = buildHistory(baseline, now, windowMs);
-  const ews = calculateEWS(currentSlotValues(rawHistory, CARD_SLOT_MINUTES, now));
+  const ews = calculateEWS(currentScoreVitals(rawHistory, now));
 
   const forecastSteps = 36; // 36 × 5min = 3h
   const ewsForecast = Array.from({ length: forecastSteps }, (_, i) => ({
@@ -401,7 +401,7 @@ export function buildSeed(): {
   for (const s of surgeries) {
     const bed = makeBed(s.label, "centro-cirurgico", "TBD");
     const rawHistory = buildHistory(STABLE, now, 62 * 3_600_000);
-    const ews = calculateEWS(currentSlotValues(rawHistory, CARD_SLOT_MINUTES, now));
+    const ews = calculateEWS(currentScoreVitals(rawHistory, now));
 
     const surgicalFlow = SURGICAL_STEP_NAMES.map((name, i) => {
       if (i < s.currentStep) {

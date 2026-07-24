@@ -192,7 +192,8 @@ export function BedCard({ bed, internacao }: Props) {
             <AlertBadge key={b.key} icon={b.icon} title={b.title} />
           ))}
           {alerts
-            .filter((a) => a.type !== "sinal-vital")
+            // Escore não mostra badge — severidade já visível na borda/pill do card.
+            .filter((a) => a.type !== "sinal-vital" && a.type !== "escore")
             .map((a) => {
               const meta = ALERT_META[a.type];
               return meta ? <AlertBadge key={a.id} icon={meta.icon} title={meta.label} /> : null;

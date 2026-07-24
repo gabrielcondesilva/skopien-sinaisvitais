@@ -30,6 +30,10 @@ function DragHandle() {
 
 interface Props {
   slots: SlotReading[];
+  // Série do gráfico de EWS — sempre a Janela de Escore (30min/mediana, janela com
+  // mínimo de 3h), nunca o Slot escolhido pros demais gráficos. Ver CONTEXT.md §
+  // Janela de Escore. Cai para `slots` se não informado.
+  ewsSlots?: SlotReading[];
   syncId?: string;
   layout?: "linha" | "matriz";
   compact?: boolean;
@@ -43,7 +47,7 @@ interface Props {
 // Permite arrastar e reordenar os gráficos de Sinais Vitais (EWS + 5 vitais),
 // tanto em Linha (empilhados, largura total) quanto em Matriz (grid 2 colunas,
 // ajustado à página) — o arrasto funciona igual nos dois layouts.
-export function ReorderableVitalsCharts({ slots, syncId, layout = "linha", compact = false, chartHeight, alertSlotLabels, vitalAlertSlotMap }: Props) {
+export function ReorderableVitalsCharts({ slots, ewsSlots, syncId, layout = "linha", compact = false, chartHeight, alertSlotLabels, vitalAlertSlotMap }: Props) {
   const [order, setOrder] = useState<ChartId[]>(DEFAULT_ORDER);
   const [draggedId, setDraggedId] = useState<ChartId | null>(null);
   const [dragOverId, setDragOverId] = useState<ChartId | null>(null);
@@ -89,7 +93,7 @@ export function ReorderableVitalsCharts({ slots, syncId, layout = "linha", compa
           >
             {id === "ews" ? (
               <EWSScoreChart
-                slots={slots}
+                slots={ewsSlots ?? slots}
                 syncId={syncId}
                 headerExtra={<DragHandle />}
                 compact={compact}

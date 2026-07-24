@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Alert, AlertType, UnitId, VitalAlertResolution } from "@/lib/simulation/types";
+import type { Alert, AlertType, StatusClinico, UnitId, VitalAlertResolution } from "@/lib/simulation/types";
 import { ALARM_VITAL_KEYS, ALARM_LABEL, ALARM_UNIT, isOutOfAlarmLimit, type AlarmVitalKey } from "@/lib/vitalAlarm";
 
 let _alertCounter = 1;
@@ -8,6 +8,16 @@ const alertId = () => `alert-${_alertCounter++}`;
 // Carência de re-disparo pro mesmo (internação, parâmetro) depois de "Ação Tomada" —
 // contada a partir do disparo ORIGINAL, não do clique. Ver CONTEXT.md § Alertas.
 const VITAL_ALERT_COOLDOWN_MS = 60 * 60_000;
+
+// Mesma margem, agora pro Alerta de Escore ficar parado na mesma categoria sem piorar.
+const SCORE_ALERT_COOLDOWN_MS = 60 * 60_000;
+
+const SCORE_STATUS_RANK: Record<StatusClinico, number> = {
+  "Estável": 0,
+  "Atenção": 1,
+  "Risco Elevado": 2,
+  "Crítico": 3,
+};
 
 function cooldownKey(internacaoId: string, parametro: AlarmVitalKey): string {
   return `${internacaoId}:${parametro}`;
@@ -21,10 +31,19 @@ interface AlertState {
   // 60min completam — nesse ponto a próxima piora é tratada como episódio novo.
   _cooldowns: Map<string, number>;
 
+  // Último Status Clínico observado por internação — usado só pra detectar transição
+  // de categoria no próximo tick, nunca dispara nada sozinho (ver checkScoreAlerts).
+  _lastStatus: Map<string, StatusClinico>;
+
+  // Carência pendente por internação (Alerta de Escore): valor = firedAt do alerta
+  // original fechado via "Ação Tomada" enquanto o Escore seguia na mesma categoria.
+  _scoreCooldowns: Map<string, number>;
+
   activeCount: number;
 
-  // Called by SimulationProvider on each tick with o valor atual dos 5 sinais vitais
-  // (Slot Temporal fixo de 15 min) por internação — dispara/auto-encerra por parâmetro.
+  // Called by SimulationProvider on each tick com a leitura BRUTA mais recente (1/min)
+  // por internação — o Limite de Alarme reage em tempo real, sem esperar nenhuma
+  // agregação (Slot Temporal ou Janela de Escore). Ver CONTEXT.md § Limite de Alarme.
   checkVitalAlerts: (
     internacoes: Array<{
       id: string;
@@ -32,6 +51,20 @@ interface AlertState {
       bedLabel: string;
       unit: UnitId;
       vitals: Record<AlarmVitalKey, number>;
+    }>
+  ) => void;
+
+  // Called by SimulationProvider on each tick com o Status Clínico atual (calculado
+  // sobre a Janela de Escore) por internação — dispara/auto-encerra o Alerta de Escore
+  // por transição de categoria. Ver CONTEXT.md § Alertas.
+  checkScoreAlerts: (
+    internacoes: Array<{
+      id: string;
+      patientName: string;
+      bedLabel: string;
+      unit: UnitId;
+      status: StatusClinico;
+      ewsTotal: number;
     }>
   ) => void;
 
@@ -63,6 +96,8 @@ export const useAlertStore = create<AlertState>()((set, get) => ({
   active: [],
   history: [],
   _cooldowns: new Map(),
+  _lastStatus: new Map(),
+  _scoreCooldowns: new Map(),
   activeCount: 0,
 
   checkVitalAlerts(internacoes) {
@@ -77,6 +112,10 @@ export const useAlertStore = create<AlertState>()((set, get) => ({
       for (const inv of internacoes) {
         for (const key of ALARM_VITAL_KEYS) {
           const value = inv.vitals[key];
+          // Leitura vazia/zerada (falha de equipamento) — ignora por completo, não
+          // dispara nem encerra um alerta ativo, só aguarda a próxima leitura válida.
+          if (!value) continue;
+
           const outOfRange = isOutOfAlarmLimit(key, value);
           const ckKey = cooldownKey(inv.id, key);
 
@@ -133,6 +172,92 @@ export const useAlertStore = create<AlertState>()((set, get) => ({
     });
   },
 
+  checkScoreAlerts(internacoes) {
+    const now = Date.now();
+
+    set((state) => {
+      const lastStatus = new Map(state._lastStatus);
+      const cooldowns = new Map(state._scoreCooldowns);
+      const stillActive = [...state.active];
+      const toFire: Alert[] = [];
+      const toHistory: Alert[] = [];
+
+      for (const inv of internacoes) {
+        const prevStatus = lastStatus.get(inv.id);
+        lastStatus.set(inv.id, inv.status);
+
+        if (prevStatus == null) {
+          // Primeira observação desta internação — só define a base, não dispara nada.
+          continue;
+        }
+
+        const activeIdx = stillActive.findIndex((a) => a.type === "escore" && a.internacaoId === inv.id);
+        const prevRank = SCORE_STATUS_RANK[prevStatus];
+        const rank = SCORE_STATUS_RANK[inv.status];
+
+        if (rank > prevRank) {
+          // Piora de categoria — episódio novo, dispara na hora. Se um Alerta de
+          // Escore anterior ainda estiver ativo (esquecido), é substituído.
+          if (activeIdx !== -1) {
+            const [superseded] = stillActive.splice(activeIdx, 1);
+            toHistory.push({
+              ...superseded,
+              status: "dismissed",
+              dismissedAt: now,
+              dismissAction: "Substituído — nova piora",
+            });
+          }
+          cooldowns.delete(inv.id);
+          toFire.push({
+            id: alertId(),
+            type: "escore",
+            internacaoId: inv.id,
+            patientName: inv.patientName,
+            bedLabel: inv.bedLabel,
+            unit: inv.unit,
+            message: `Status Clínico piorou para ${inv.status} (Escore ${inv.ewsTotal})`,
+            firedAt: now,
+            status: "active",
+          });
+        } else if (rank < prevRank) {
+          // Melhora — nunca dispara, e limpa sozinho um Alerta de Escore ativo.
+          if (activeIdx !== -1) {
+            const [cleared] = stillActive.splice(activeIdx, 1);
+            toHistory.push({ ...cleared, status: "auto-cleared", dismissedAt: now });
+          }
+          cooldowns.delete(inv.id);
+        } else if (rank > 0 && activeIdx === -1) {
+          // Mesma categoria, sem alerta ativo (dispensado antes) — só reabre depois
+          // de completar 60min sem melhora desde o disparo original.
+          const pendingSince = cooldowns.get(inv.id);
+          if (pendingSince != null && now - pendingSince >= SCORE_ALERT_COOLDOWN_MS) {
+            cooldowns.delete(inv.id);
+            toFire.push({
+              id: alertId(),
+              type: "escore",
+              internacaoId: inv.id,
+              patientName: inv.patientName,
+              bedLabel: inv.bedLabel,
+              unit: inv.unit,
+              message: `Status Clínico permanece ${inv.status} (Escore ${inv.ewsTotal})`,
+              firedAt: now,
+              status: "active",
+            });
+          }
+        }
+      }
+
+      const merged = [...stillActive, ...toFire];
+      return {
+        active: merged,
+        history: [...state.history, ...toHistory],
+        activeCount: merged.length,
+        _lastStatus: lastStatus,
+        _scoreCooldowns: cooldowns,
+      };
+    });
+  },
+
   fireAlert({ type, internacaoId, patientName, bedLabel, unit, message }) {
     set((state) => {
       // Skip if an active alert of the same type already exists for this internação
@@ -167,10 +292,18 @@ export const useAlertStore = create<AlertState>()((set, get) => ({
         dismissAction: action,
       };
       const nowActive = state.active.filter((a) => a.id !== id);
+
+      // "Ação Tomada" no Alerta de Escore abre a carência de 60min pro mesmo
+      // paciente, ancorada no disparo original — ver checkScoreAlerts.
+      const scoreCooldowns = target.type === "escore"
+        ? new Map(state._scoreCooldowns).set(target.internacaoId, target.firedAt)
+        : state._scoreCooldowns;
+
       return {
         active: nowActive,
         history: [...state.history, dismissed],
         activeCount: nowActive.length,
+        _scoreCooldowns: scoreCooldowns,
       };
     });
   },

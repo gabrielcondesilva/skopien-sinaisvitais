@@ -24,7 +24,7 @@ import { useSimulationStore } from "@/store/simulation";
 import { useSidebarStore } from "@/store/sidebar";
 import { useAlertStore } from "@/store/alerts";
 import { useAuthStore } from "@/store/auth";
-import { computeSlots, currentSlotValues } from "@/lib/simulation/vitals";
+import { computeSlots, currentSlotValues, currentScoreVitals, computeScoreHistory, SCORE_WINDOW_MINUTES } from "@/lib/simulation/vitals";
 import { calculateEWS } from "@/lib/ews";
 import { vitalSeverity } from "@/lib/vitalSeverity";
 import { ALARM_LABEL, alarmIconFor, type AlarmVitalKey } from "@/lib/vitalAlarm";
@@ -69,20 +69,25 @@ const CHART_LAYOUT_DEFAULTS = {
   matriz: { slotMin: 30, windowMs: 21_600_000 }, // 6h
 } as const;
 
+// Gráfico de Early Warning Score (aba Sinais Vitais) não segue o Slot escolhido —
+// é sempre a Janela de Escore (30min/mediana). A Janela dele só aumenta a partir de
+// um mínimo de 3h, nunca reduz abaixo disso, mesmo que o usuário escolha uma Janela
+// menor pros demais gráficos. Ver CONTEXT.md § Janela de Escore.
+const EWS_CHART_MIN_WINDOW_MS = 3 * 3_600_000;
+
 const SLOT_OPTS = [
+  { label: "1min", min: 1 },
   { label: "5min", min: 5 },
   { label: "15min", min: 15 },
   { label: "30min", min: 30 },
   { label: "1h", min: 60 },
-  { label: "2h", min: 120 },
-  { label: "4h", min: 240 },
 ] as const;
 const WINDOW_OPTS = [
-  { label: "1h",  ms:  3_600_000 },
-  { label: "3h",  ms: 10_800_000 },
-  { label: "6h",  ms: 21_600_000 },
-  { label: "12h", ms: 43_200_000 },
-  { label: "24h", ms: 86_400_000 },
+  { label: "15min", ms:    900_000 },
+  { label: "30min", ms:  1_800_000 },
+  { label: "1h",     ms:  3_600_000 },
+  { label: "3h",     ms: 10_800_000 },
+  { label: "6h",     ms: 21_600_000 },
 ] as const;
 
 const VITALS = [
@@ -220,7 +225,7 @@ function ControlsBar({ slotMin, setSlotMin, windowMs, setWindowMs, view, setView
   const [slotPickerOpen, setSlotPickerOpen] = useState(false);
   const [windowPickerOpen, setWindowPickerOpen] = useState(false);
 
-  const EXTENDED_WINDOW_MS = [36, 48, 62].map((h) => h * 3_600_000);
+  const EXTENDED_WINDOW_MS = [12, 24, 36, 48, 62].map((h) => h * 3_600_000);
   const isExtended = EXTENDED_WINDOW_MS.includes(windowMs);
 
   const isCustomSlot = !SLOT_OPTS.some((o) => o.min === slotMin);
@@ -259,7 +264,7 @@ function ControlsBar({ slotMin, setSlotMin, windowMs, setWindowMs, view, setView
               border: `1px solid ${isCustomSlot ? "rgba(77,171,247,0.4)" : "var(--border)"}`,
             }}
           >
-            {isCustomSlot ? `${slotMin >= 60 ? `${slotMin / 60}h` : `${slotMin}min`}` : "Escolher Slot"}
+            {isCustomSlot ? `${slotMin >= 60 ? `${slotMin / 60}h` : `${slotMin}min`}` : "Outros"}
           </button>
 
           {slotPickerOpen && (
@@ -290,10 +295,10 @@ function ControlsBar({ slotMin, setSlotMin, windowMs, setWindowMs, view, setView
                   borderBottom: "1px solid var(--border)",
                 }}
               >
-                Slot temporal (hora em hora)
+                Outros (hora em hora, 2h–24h)
               </div>
-              {Array.from({ length: 24 }, (_, i) => {
-                const hVal = i + 1;
+              {Array.from({ length: 23 }, (_, i) => {
+                const hVal = i + 2;
                 const mVal = hVal * 60;
                 const active = slotMin === mVal;
                 return (
@@ -370,7 +375,7 @@ function ControlsBar({ slotMin, setSlotMin, windowMs, setWindowMs, view, setView
               >
                 Janela estendida
               </div>
-              {[36, 48, 62].map((h) => {
+              {[12, 24, 36, 48, 62].map((h) => {
                 const ms = h * 3_600_000;
                 const active = windowMs === ms;
 
@@ -452,15 +457,25 @@ function SinaisVitaisTab({ internacao, slotMin, windowMs, view, cardsVisible, ch
   const setNivelConsciencia = useSimulationStore((s) => s.setNivelConsciencia);
 
   const rawHistory = useSimulationStore((s) => s.internacoes[internacao.id]?.rawHistory ?? []);
-  const slots = computeSlots(rawHistory, slotMin, windowMs, Date.now());
+  // A timeline simulada roda mais rápido que o relógio real — janela/slot usam o
+  // timestamp da própria leitura mais recente, nunca Date.now(), senão o gráfico
+  // desalinha do relógio conforme a sessão avança (ver store/simulation.ts § advance).
+  const simNow = rawHistory[rawHistory.length - 1]?.t ?? Date.now();
+  const slots = computeSlots(rawHistory, slotMin, windowMs, simNow);
   // Cartão sempre reflete o último ponto do gráfico (mesmo slot em andamento) — nunca uma leitura bruta à parte
-  const current = slots[slots.length - 1] ?? currentSlotValues(rawHistory, slotMin, Date.now());
+  const current = slots[slots.length - 1] ?? currentSlotValues(rawHistory, slotMin, simNow);
   const ews     = calculateEWS(current);
 
+  // Gráfico de EWS: sempre Janela de Escore (30min/mediana), Janela com mínimo de
+  // 3h — nunca segue o Slot escolhido pros demais gráficos.
+  const ewsWindowMs = Math.max(windowMs, EWS_CHART_MIN_WINDOW_MS);
+  const ewsSlots = computeScoreHistory(rawHistory, ewsWindowMs, simNow);
+
   // Bucket do horário de cada alerta no slot exibido — só marca no gráfico se o slot
-  // correspondente estiver de fato renderizado (dentro da janela escolhida).
+  // correspondente estiver de fato renderizado (dentro da janela escolhida). O gráfico
+  // de EWS bucketa pela Janela de Escore fixa, os demais pelo Slot escolhido.
   const alertSlotLabels = showAlertTimesOnCharts && alerts?.length
-    ? buildAlertSlotLabels(alerts, slots, slotMin)
+    ? buildAlertSlotLabels(alerts, ewsSlots, SCORE_WINDOW_MINUTES)
     : undefined;
   const vitalAlertSlotMap = showAlertTimesOnCharts && alerts?.length
     ? buildVitalAlertSlotMap(alerts, slots, slotMin)
@@ -504,6 +519,7 @@ function SinaisVitaisTab({ internacao, slotMin, windowMs, view, cardsVisible, ch
         <div ref={isMatrix ? gridRef : undefined}>
           <ReorderableVitalsCharts
             slots={slots}
+            ewsSlots={ewsSlots}
             syncId={`vitals-${internacao.id}`}
             layout={chartLayout}
             compact={isMatrix}
@@ -523,12 +539,13 @@ function SinaisVitaisTab({ internacao, slotMin, windowMs, view, cardsVisible, ch
 
 const EWS_FORECAST_WINDOW_MS = 3 * 3_600_000; // esta aba é sempre 3h histórico + 3h previsão
 
-function EWSTab({ internacao, slotMin }: {
+function EWSTab({ internacao }: {
   internacao: Internacao | SurgicalInternacao;
-  slotMin: number;
 }) {
+  // Histórico do Escore sempre pela Janela de Escore (30min/mediana) — não segue
+  // nenhum Slot escolhido nos gráficos de Sinais Vitais. Ver CONTEXT.md § Janela de Escore.
   const rawHistory = useSimulationStore((s) => s.internacoes[internacao.id]?.rawHistory ?? []);
-  const slots = computeSlots(rawHistory, slotMin, EWS_FORECAST_WINDOW_MS, Date.now());
+  const slots = computeScoreHistory(rawHistory, EWS_FORECAST_WINDOW_MS, Date.now());
 
   return (
     <EWSForecastChart
@@ -540,12 +557,14 @@ function EWSTab({ internacao, slotMin }: {
 
 // ─── Tab: Predição de Internação ─────────────────────────────────────────────
 
-function InternacaoTab({ internacao, slotMin }: {
+function InternacaoTab({ internacao }: {
   internacao: Internacao | SurgicalInternacao;
-  slotMin: number;
 }) {
+  // Escore EWS sempre canônico (Janela de Escore, 30min/mediana) — ver CONTEXT.md § Janela de Escore.
+  // Usa o timestamp da própria leitura mais recente, não Date.now() (timeline simulada).
   const rawHistory = useSimulationStore((s) => s.internacoes[internacao.id]?.rawHistory ?? []);
-  const current = currentSlotValues(rawHistory, slotMin, Date.now());
+  const simNow = rawHistory[rawHistory.length - 1]?.t ?? Date.now();
+  const current = currentScoreVitals(rawHistory, simNow);
   const ews = calculateEWS(current);
 
   const prob  = internacao.admissionProbability;
@@ -647,17 +666,18 @@ function InternacaoTab({ internacao, slotMin }: {
 // Popup aberto pelo ícone de monitor ao lado da aba Medicamento — mostra os
 // alertas ativos e o histórico daquela internação. Sempre abre em "Ativos".
 
-const PATIENT_ALERT_META: Record<string, { icon: IconName; title: string; color: string }> = {
+const PATIENT_ALERT_META: Record<string, { icon?: IconName; title: string; color: string }> = {
   "sinal-vital": { icon: "monitor",       title: "Sinal Vital Crítico", color: "var(--status-critical)"  },
+  "escore":      { title: "Escore Elevado", color: "var(--status-elevated)" },
   "medicacao":   { icon: "medicacao",     title: "Medicação Atrasada",  color: "var(--status-attention)" },
   "alta":        { icon: "predicao_alta", title: "Previsão de Alta",    color: "var(--accent)"           },
 };
 
 // Ícone do alerta de sinal-vital depende do parâmetro (FR = ventilador, demais
-// = monitor). Ver CONTEXT.md § Alertas.
-function patientAlertIcon(alert: Alert): IconName {
+// = monitor). Alerta de Escore não tem ícone. Ver CONTEXT.md § Alertas.
+function patientAlertIcon(alert: Alert): IconName | undefined {
   if (alert.type === "sinal-vital" && alert.parametro) return alarmIconFor(alert.parametro);
-  return PATIENT_ALERT_META[alert.type]?.icon ?? "monitor";
+  return PATIENT_ALERT_META[alert.type]?.icon;
 }
 
 function formatAlertClock(ts: number): string {
@@ -668,7 +688,8 @@ function formatAlertClock(ts: number): string {
 
 function PatientAlertCard({ alert }: { alert: Alert }) {
   const resolveVitalAlert = useAlertStore((s) => s.resolveVitalAlert);
-  const meta = PATIENT_ALERT_META[alert.type] ?? { icon: "monitor" as const, title: "Alerta", color: "var(--muted)" };
+  const meta = PATIENT_ALERT_META[alert.type] ?? { title: "Alerta", color: "var(--muted)" };
+  const icon = patientAlertIcon(alert);
   const title = alert.type === "sinal-vital" && alert.parametro
     ? `${ALARM_LABEL[alert.parametro]} Crítica`
     : meta.title;
@@ -682,7 +703,7 @@ function PatientAlertCard({ alert }: { alert: Alert }) {
   return (
     <div className="px-4 py-3 flex flex-col gap-2" style={{ borderBottom: "1px solid var(--border)" }}>
       <div className="flex items-start gap-3">
-        <StreamlineIcon name={patientAlertIcon(alert)} size={20} className="mt-0.5 shrink-0" />
+        {icon && <StreamlineIcon name={icon} size={20} className="mt-0.5 shrink-0" />}
         <div className="flex-1 min-w-0">
           <p className="text-xs font-semibold" style={{ color: meta.color }}>{title}</p>
           <p className="text-xs mt-1 leading-snug">{alert.message}</p>
@@ -832,13 +853,9 @@ function PatientContent({ id }: { id: string }) {
     );
   }
 
-  // Mesma base de cálculo do gráfico da aba Sinais Vitais (última leitura válida do
-  // Slot Temporal selecionado) — evita que o valor ao lado do nome divirja do gráfico.
-  const slots   = computeSlots(internacao.rawHistory, slotMin, windowMs, Date.now());
-  const current = slots[slots.length - 1] ?? currentSlotValues(internacao.rawHistory, slotMin, Date.now());
-  const ews     = calculateEWS(current);
-
-  const statusColor = STATUS_COLOR[ews.status] ?? "var(--muted)";
+  // Escore EWS sempre canônico (Janela de Escore, 30min/mediana) — nunca segue o
+  // Slot/Janela escolhidos nos gráficos de Sinais Vitais. Ver CONTEXT.md § Janela de Escore.
+  const statusColor = STATUS_COLOR[internacao.currentStatus] ?? "var(--muted)";
   const proxyUrl = process.env.NEXT_PUBLIC_CAMERA_PROXY_URL;
   const isLiveCamera = bed?.label === "UTI-01" && !!proxyUrl;
   const streamUrl = `${proxyUrl}/stream/index.m3u8`;
@@ -887,7 +904,7 @@ function PatientContent({ id }: { id: string }) {
               className="absolute flex items-center gap-3"
               style={{ left: "50%", transform: "translateX(-50%)" }}
             >
-              <ScorePill text={`EWS ${ews.total} - ${ews.status}`} color={statusColor} size="md" />
+              <ScorePill text={`EWS ${internacao.currentEws} - ${internacao.currentStatus}`} color={statusColor} size="md" />
 
               {/* Braden — apenas para UTI-01 */}
               {bed?.label === "UTI-01" && (
@@ -895,7 +912,7 @@ function PatientContent({ id }: { id: string }) {
                   text="Braden 10 - Alto"
                   color={BRADEN_COLOR["Alto"]}
                   onClick={() => setTab("lesao-pele")}
-                  size="lg"
+                  size="md"
                 />
               )}
             </div>
@@ -1020,7 +1037,7 @@ function PatientContent({ id }: { id: string }) {
                 ←
               </button>
               <h1 className="text-xl font-semibold">{internacao.patient.name}</h1>
-              <ScorePill text={`EWS ${ews.total} - ${ews.status}`} color={statusColor} size="lg" />
+              <ScorePill text={`EWS ${internacao.currentEws} - ${internacao.currentStatus}`} color={statusColor} size="lg" />
 
               {/* Badge Braden — apenas para UTI-01 */}
               {bed?.label === "UTI-01" && (
@@ -1353,12 +1370,12 @@ function PatientContent({ id }: { id: string }) {
             />
           )}
           {tab === "ews" && (
-            <EWSTab internacao={internacao} slotMin={slotMin} />
+            <EWSTab internacao={internacao} />
           )}
           {tab === "lesao-pele" && <SkinLesionTab />}
           {tab === "medicamento" && <MedicationTab />}
           {tab === "internacao" && (
-            <InternacaoTab internacao={internacao} slotMin={slotMin} />
+            <InternacaoTab internacao={internacao} />
           )}
         </div>
 

@@ -9,8 +9,11 @@ const BOUNDS = {
   temp: { min: 34.5, max: 40.5, step: 0.05 },
 };
 
-// Slot Temporal padrão usado para o valor exibido nos cards (EWS/status) — nunca o valor bruto.
-export const CARD_SLOT_MINUTES = 15;
+// Janela de Escore: bucket fixo de 30min agregado pela mediana, exclusivo do cálculo
+// do Escore EWS — distinto do Slot Temporal (última leitura válida, ajustável por
+// tela). Não segue nenhum seletor de granularidade. Ver CONTEXT.md § Janela de Escore
+// e ADR-0004 pro racional de usar mediana aqui e última leitura nos demais casos.
+export const SCORE_WINDOW_MINUTES = 30;
 
 function clamp(v: number, min: number, max: number) {
   return Math.min(Math.max(v, min), max);
@@ -134,6 +137,79 @@ export function computeSlots(
         ewsStatus: ews.status,
       };
     });
+}
+
+function median(values: number[]): number {
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+// Mediana das leituras válidas do bucket — se nenhuma leitura do bucket for válida
+// (falha de equipamento generalizada), cai para a mediana bruta em vez de deixar a
+// Janela de Escore vazia.
+function medianInBucket(readings: RawReading[], key: VitalKey): number {
+  const valid = readings.map((r) => r[key]).filter(isValidReading);
+  return median(valid.length ? valid : readings.map((r) => r[key]));
+}
+
+// Série histórica do Escore EWS para o gráfico "Histórico e Predição EWS" — sempre
+// em buckets fixos de Janela de Escore (30min/mediana), independente de qualquer
+// Slot escolhido nos gráficos de Sinais Vitais. Ver CONTEXT.md § Janela de Escore.
+export function computeScoreHistory(
+  history: RawReading[],
+  windowMs: number,
+  now: number
+): SlotReading[] {
+  const bucketMs = SCORE_WINDOW_MINUTES * 60 * 1000;
+  const windowStart = now - windowMs;
+
+  const buckets = new Map<number, RawReading[]>();
+  for (const r of history) {
+    if (r.t < windowStart) continue;
+    const bucketKey = Math.floor(r.t / bucketMs) * bucketMs;
+    if (!buckets.has(bucketKey)) buckets.set(bucketKey, []);
+    buckets.get(bucketKey)!.push(r);
+  }
+
+  return Array.from(buckets.entries())
+    .sort(([a], [b]) => a - b)
+    .map(([bucketStart, readings]) => {
+      const fr   = round(medianInBucket(readings, "fr"));
+      const spo2 = round(medianInBucket(readings, "spo2"));
+      const pas  = round(medianInBucket(readings, "pas"));
+      const fc   = round(medianInBucket(readings, "fc"));
+      const temp = round(medianInBucket(readings, "temp"), 1);
+      const nc   = readings[readings.length - 1].nc;
+      const ews  = calculateEWS({ fr, spo2, pas, fc, temp, nc });
+      return {
+        t: bucketStart,
+        fr, spo2, pas, fc, temp, nc,
+        ewsTotal: ews.total,
+        ewsStatus: ews.status,
+      };
+    });
+}
+
+export function currentScoreVitals(history: RawReading[], now: number): RawReading {
+  const bucketMs = SCORE_WINDOW_MINUTES * 60 * 1000;
+  const bucketStart = Math.floor(now / bucketMs) * bucketMs;
+  const inBucket = history.filter((r) => r.t >= bucketStart);
+
+  if (inBucket.length === 0) {
+    const last = history[history.length - 1];
+    return last ?? { t: now, fr: 16, spo2: 98, pas: 120, fc: 75, temp: 37.0, nc: "Alerta" };
+  }
+
+  return {
+    t: now,
+    fr:   round(medianInBucket(inBucket, "fr")),
+    spo2: round(medianInBucket(inBucket, "spo2")),
+    pas:  round(medianInBucket(inBucket, "pas")),
+    fc:   round(medianInBucket(inBucket, "fc")),
+    temp: round(medianInBucket(inBucket, "temp"), 1),
+    nc:   inBucket[inBucket.length - 1].nc,
+  };
 }
 
 export function currentSlotValues(

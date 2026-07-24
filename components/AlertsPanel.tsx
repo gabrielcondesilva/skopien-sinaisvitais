@@ -5,17 +5,19 @@ import type { Alert, UnitId } from "@/lib/simulation/types";
 import { ALARM_LABEL, alarmIconFor } from "@/lib/vitalAlarm";
 import { StreamlineIcon, type IconName } from "./ui/StreamlineIcon";
 
-const ALERT_META: Record<string, { icon: IconName; title: string; color: string }> = {
+const ALERT_META: Record<string, { icon?: IconName; title: string; color: string }> = {
   "sinal-vital": { icon: "monitor",       title: "Sinal Vital Crítico", color: "var(--status-critical)"  },
+  "escore":      { title: "Escore Elevado", color: "var(--status-elevated)" },
   "medicacao":   { icon: "medicacao",     title: "Medicação Atrasada",  color: "var(--status-attention)" },
   "alta":        { icon: "predicao_alta", title: "Previsão de Alta",    color: "var(--accent)"           },
 };
 
 // Ícone do alerta de sinal-vital depende do parâmetro (FR = ventilador, demais
-// = monitor) — não é fixo por tipo como os outros alertas. Ver CONTEXT.md § Alertas.
-function alertIcon(alert: Alert): IconName {
+// = monitor) — não é fixo por tipo como os outros alertas. Alerta de Escore não tem
+// ícone — a severidade já é visível na borda/rótulo do card. Ver CONTEXT.md § Alertas.
+function alertIcon(alert: Alert): IconName | undefined {
   if (alert.type === "sinal-vital" && alert.parametro) return alarmIconFor(alert.parametro);
-  return ALERT_META[alert.type]?.icon ?? "monitor";
+  return ALERT_META[alert.type]?.icon;
 }
 
 // Título do alerta de sinal-vital é dinâmico por parâmetro (ex.: "FC Crítica"),
@@ -37,14 +39,15 @@ function formatRelative(firedAt: number): string {
 function AlertCard({ alert }: { alert: Alert }) {
   const dismiss = useAlertStore((s) => s.dismiss);
   const resolveVitalAlert = useAlertStore((s) => s.resolveVitalAlert);
-  const meta = ALERT_META[alert.type] ?? { icon: "monitor" as const, color: "var(--muted)" };
+  const meta = ALERT_META[alert.type] ?? { color: "var(--muted)" };
+  const icon = alertIcon(alert);
   const isAlta = alert.type === "alta";
   const isSinalVital = alert.type === "sinal-vital";
 
   return (
     <div className="p-4 flex flex-col gap-3" style={{ borderBottom: "1px solid var(--border)" }}>
       <div className="flex items-start gap-3">
-        <StreamlineIcon name={alertIcon(alert)} size={22} className="mt-0.5 shrink-0" />
+        {icon && <StreamlineIcon name={icon} size={22} className="mt-0.5 shrink-0" />}
         <div className="flex-1 min-w-0">
           <p className="text-xs font-semibold" style={{ color: meta.color }}>{alertTitle(alert)}</p>
           <p className="text-sm font-medium mt-0.5 truncate">{alert.patientName}</p>

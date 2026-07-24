@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { buildSeed } from "@/lib/simulation/seed";
-import { nextReading, currentSlotValues, computeSlots, CARD_SLOT_MINUTES } from "@/lib/simulation/vitals";
+import { nextReading, currentSlotValues, currentScoreVitals, computeSlots } from "@/lib/simulation/vitals";
 import { calculateEWS } from "@/lib/ews";
 import type { Bed, Internacao, SurgicalInternacao, SlotReading, UnitId, NivelConsciencia, RawReading } from "@/lib/simulation/types";
 
@@ -43,9 +43,6 @@ export const useSimulationStore = create<SimulationState>()((set, get) => ({
   ...initState(),
 
   advance() {
-    const now = Date.now();
-    const cutoff = now - HISTORY_RETENTION_MS;
-
     set((state) => {
       const updated: Record<string, Internacao | SurgicalInternacao> = {};
 
@@ -53,12 +50,18 @@ export const useSimulationStore = create<SimulationState>()((set, get) => ({
         const prev = internacao.rawHistory[internacao.rawHistory.length - 1];
         const next = nextReading(prev, internacao.baseline);
 
+        // A timeline simulada avança mais rápido que o relógio real (1 leitura
+        // simulada a cada TICK_INTERVAL_MS reais) — todo corte/janela usa o
+        // timestamp da própria leitura mais recente (next.t), nunca Date.now(),
+        // senão os cálculos desalinham do relógio conforme a sessão avança.
+        const cutoff = next.t - HISTORY_RETENTION_MS;
         const trimmed = internacao.rawHistory.filter((r) => r.t >= cutoff);
         trimmed.push(next);
 
-        // Card/badge EWS reflete a última leitura válida do Slot Temporal, nunca o valor instantâneo
-        const cardCurrent = currentSlotValues(trimmed, CARD_SLOT_MINUTES, now);
-        const ews = calculateEWS(cardCurrent);
+        // Escore EWS canônico usa a Janela de Escore (mediana/30min fixo) — não o
+        // Slot Temporal nem a leitura bruta. Ver CONTEXT.md § Janela de Escore.
+        const scoreCurrent = currentScoreVitals(trimmed, next.t);
+        const ews = calculateEWS(scoreCurrent);
         updated[id] = {
           ...internacao,
           rawHistory: trimmed,
@@ -67,7 +70,7 @@ export const useSimulationStore = create<SimulationState>()((set, get) => ({
         };
       }
 
-      return { internacoes: updated, tick: state.tick + 1, lastUpdated: now };
+      return { internacoes: updated, tick: state.tick + 1, lastUpdated: Date.now() };
     });
   },
 
@@ -79,14 +82,16 @@ export const useSimulationStore = create<SimulationState>()((set, get) => ({
       const internacao = state.internacoes[internacaoId];
       if (!internacao) return state;
 
-      const now = Date.now();
+      // Registrada no instante simulado atual (última leitura), não no relógio
+      // real — mantém a leitura na mesma timeline do resto do rawHistory.
       const last = internacao.rawHistory[internacao.rawHistory.length - 1];
+      const simNow = last?.t ?? Date.now();
       const reading: RawReading = last
-        ? { ...last, t: now, nc }
-        : { t: now, fr: internacao.baseline.fr, spo2: internacao.baseline.spo2, pas: internacao.baseline.pas, fc: internacao.baseline.fc, temp: internacao.baseline.temp, nc };
+        ? { ...last, t: simNow, nc }
+        : { t: simNow, fr: internacao.baseline.fr, spo2: internacao.baseline.spo2, pas: internacao.baseline.pas, fc: internacao.baseline.fc, temp: internacao.baseline.temp, nc };
 
-      const current = currentSlotValues([...internacao.rawHistory, reading], CARD_SLOT_MINUTES, now);
-      const ews = calculateEWS(current);
+      const scoreCurrent = currentScoreVitals([...internacao.rawHistory, reading], simNow);
+      const ews = calculateEWS(scoreCurrent);
 
       return {
         internacoes: {
@@ -200,12 +205,14 @@ export const useSimulationStore = create<SimulationState>()((set, get) => ({
   getSlots(internacaoId, slotMinutes, windowMs) {
     const internacao = get().internacoes[internacaoId];
     if (!internacao) return [];
-    return computeSlots(internacao.rawHistory, slotMinutes, windowMs, Date.now());
+    const simNow = internacao.rawHistory[internacao.rawHistory.length - 1]?.t ?? Date.now();
+    return computeSlots(internacao.rawHistory, slotMinutes, windowMs, simNow);
   },
 
   getCurrentVitals(internacaoId, slotMinutes) {
     const internacao = get().internacoes[internacaoId];
     if (!internacao) return { t: Date.now(), fr: 0, spo2: 0, pas: 0, fc: 0, temp: 0, nc: "Alerta" };
-    return currentSlotValues(internacao.rawHistory, slotMinutes, Date.now());
+    const simNow = internacao.rawHistory[internacao.rawHistory.length - 1]?.t ?? Date.now();
+    return currentSlotValues(internacao.rawHistory, slotMinutes, simNow);
   },
 }));

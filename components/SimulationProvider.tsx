@@ -3,16 +3,18 @@
 import { useEffect } from "react";
 import { useSimulationStore } from "@/store/simulation";
 import { useAlertStore } from "@/store/alerts";
-import { currentSlotValues, CARD_SLOT_MINUTES } from "@/lib/simulation/vitals";
 import { ALARM_VITAL_KEYS } from "@/lib/vitalAlarm";
 import type { Alert } from "@/lib/simulation/types";
 
-const TICK_INTERVAL_MS = 15_000;
+// Tempo real: 1 tick = 1 leitura simulada, alinhado à cadência real do
+// equipamento (1 leitura/min, ver CLAUDE.md § SimulationEngine).
+const TICK_INTERVAL_MS = 60_000;
 
 export function SimulationProvider({ children }: { children: React.ReactNode }) {
   const advance          = useSimulationStore((s) => s.advance);
   const checkScenes      = useSimulationStore((s) => s.checkScenes);
   const checkVitalAlerts = useAlertStore((s) => s.checkVitalAlerts);
+  const checkScoreAlerts = useAlertStore((s) => s.checkScoreAlerts);
   const fireAlert        = useAlertStore((s) => s.fireAlert);
   const seedDemoAlerts   = useAlertStore((s) => s.seedDemoAlerts);
 
@@ -29,6 +31,7 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
     const uti02 = find("UTI-02");
     const enf01 = find("ENF-01");
     const enf02 = find("ENF-02");
+    const enf03 = find("ENF-03");
 
     type Item = Omit<Alert, "id" | "firedAt" | "status">;
     const items: Item[] = [];
@@ -79,6 +82,17 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
       });
     }
 
+    if (enf03) {
+      items.push({
+        type: "escore",
+        internacaoId: enf03.id,
+        patientName: enf03.patient.name,
+        bedLabel: "ENF-03",
+        unit: "enfermaria",
+        message: "Status Clínico piorou para Risco Elevado (Escore 6)",
+      });
+    }
+
     seedDemoAlerts(items);
   }, [seedDemoAlerts]);
 
@@ -86,26 +100,43 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
     const id = setInterval(() => {
       advance();
 
-      // Build vitals snapshot for alert engine — sempre o Slot Temporal fixo do
-      // sistema (CARD_SLOT_MINUTES), nunca a granularidade que uma tela escolheu exibir.
-      const snapshot = Object.values(
-        useSimulationStore.getState().internacoes
-      ).map((inv) => {
-        const b = useSimulationStore.getState().beds.find((b) => b.internacaoId === inv.id);
-        const vitals = currentSlotValues(inv.rawHistory, CARD_SLOT_MINUTES, Date.now());
+      const internacoesAfter = Object.values(useSimulationStore.getState().internacoes);
+      const bedsAfter = useSimulationStore.getState().beds;
+
+      // Limite de Alarme reage em tempo real à leitura bruta assim que ela chega
+      // (1/min) — não espera o Slot Temporal nem qualquer seletor de granularidade.
+      // Ver CONTEXT.md § Limite de Alarme.
+      const vitalSnapshot = internacoesAfter.map((inv) => {
+        const b = bedsAfter.find((b) => b.internacaoId === inv.id);
+        const latest = inv.rawHistory[inv.rawHistory.length - 1];
 
         return {
           id: inv.id,
           patientName: inv.patient.name,
           bedLabel: b?.label ?? inv.bedId,
           unit: inv.unit,
-          vitals: Object.fromEntries(ALARM_VITAL_KEYS.map((k) => [k, vitals[k]])) as Record<
+          vitals: Object.fromEntries(ALARM_VITAL_KEYS.map((k) => [k, latest[k]])) as Record<
             (typeof ALARM_VITAL_KEYS)[number],
             number
           >,
         };
       });
-      checkVitalAlerts(snapshot);
+      checkVitalAlerts(vitalSnapshot);
+
+      // Alerta de Escore reage à mudança de categoria do Status Clínico, calculado
+      // sobre a Janela de Escore (mediana/30min fixo) por advance(). Ver CONTEXT.md § Alertas.
+      const scoreSnapshot = internacoesAfter.map((inv) => {
+        const b = bedsAfter.find((b) => b.internacaoId === inv.id);
+        return {
+          id: inv.id,
+          patientName: inv.patient.name,
+          bedLabel: b?.label ?? inv.bedId,
+          unit: inv.unit,
+          status: inv.currentStatus,
+          ewsTotal: inv.currentEws,
+        };
+      });
+      checkScoreAlerts(scoreSnapshot);
 
       // Check and fire scripted scenes
       const sceneAlerts = checkScenes();
@@ -115,7 +146,7 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
     }, TICK_INTERVAL_MS);
 
     return () => clearInterval(id);
-  }, [advance, checkScenes, checkVitalAlerts, fireAlert]);
+  }, [advance, checkScenes, checkVitalAlerts, checkScoreAlerts, fireAlert]);
 
   return <>{children}</>;
 }
