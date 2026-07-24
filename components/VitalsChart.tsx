@@ -98,12 +98,20 @@ function makeLabel(vitalKey: string, vitalColor: string) {
 // abaixo do mínimo — não a janela inteira arredondada em múltiplos de step,
 // que deixava os pontos "encostados" numa borda distante do valor real.
 
+// Faixas de severidade exibidas no subtítulo de cada gráfico — espelham exatamente
+// os limiares de vitalSeverity.ts (normal/atenção/crítico), índice alinhado com
+// VITAL_SEVERITY_COLOR (0=cinza, 1=amarelo, 2=vermelho).
 export const VITALS_CFG = [
-  { key: "fr"   as const, label: "FR",   unit: "rpm",  color: "#3b82f6", absMin: 4,  absMax: 60,  step: 2   },
-  { key: "spo2" as const, label: "SpO₂", unit: "%",    color: "#a78bfa", absMin: 70, absMax: 100, step: 1   },
-  { key: "pas"  as const, label: "PAS",  unit: "mmHg", color: "#fb923c", absMin: 40, absMax: 250, step: 5   },
-  { key: "fc"   as const, label: "FC",   unit: "bpm",  color: "#f472b6", absMin: 20, absMax: 220, step: 5   },
-  { key: "temp" as const, label: "TEMP", unit: "°C",   color: "#facc15", absMin: 33, absMax: 43,  step: 0.5 },
+  { key: "fr"   as const, label: "FR",   unit: "rpm",  color: "#3b82f6", absMin: 4,  absMax: 60,  step: 2,
+    ranges: ["Normal 12–20", "Atenção 10–11 / 21–24", "Crítico ≤9 / ≥25"] as [string, string, string] },
+  { key: "spo2" as const, label: "SpO₂", unit: "%",    color: "#a78bfa", absMin: 70, absMax: 100, step: 1,
+    ranges: ["Normal ≥95", "Atenção 92–94", "Crítico ≤91"] as [string, string, string] },
+  { key: "pas"  as const, label: "PAS",  unit: "mmHg", color: "#fb923c", absMin: 40, absMax: 250, step: 5,
+    ranges: ["Normal 100–139", "Atenção 90–99 / 140–179", "Crítico ≤89 / ≥180"] as [string, string, string] },
+  { key: "fc"   as const, label: "FC",   unit: "bpm",  color: "#f472b6", absMin: 20, absMax: 220, step: 5,
+    ranges: ["Normal 60–100", "Atenção 50–59 / 101–120", "Crítico ≤49 / ≥121"] as [string, string, string] },
+  { key: "temp" as const, label: "TEMP", unit: "°C",   color: "#facc15", absMin: 33, absMax: 43,  step: 0.5,
+    ranges: ["Normal 36,0–37,4", "Atenção 35,5–35,9 / 37,5–38,4", "Crítico ≤35,4 / ≥38,5"] as [string, string, string] },
 ];
 
 export type VitalChartConfig = (typeof VITALS_CFG)[number];
@@ -165,11 +173,23 @@ export function VitalChartCard({ vital: v, slots, syncId, compact = false, heade
       className={compact ? "rounded-lg p-2 flex flex-col" : "rounded-lg p-4 flex flex-col"}
       style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
     >
-      <div className={`flex items-center justify-between gap-2 ${compact ? "mb-0.5" : "mb-3"}`}>
-        <p className={compact ? "text-xs font-semibold" : "text-base font-semibold"} style={{ color: "var(--muted)" }}>
-          {v.label}&nbsp;<span style={{ opacity: 0.6, fontSize: compact ? 11 : 12 }}>({v.unit})</span>
-        </p>
-        {headerExtra}
+      <div className={compact ? "mb-0.5" : "mb-3"}>
+        <div className="flex items-center justify-between gap-2">
+          <p className={compact ? "text-xs font-semibold" : "text-base font-semibold"} style={{ color: "var(--muted)" }}>
+            {v.label}&nbsp;<span style={{ opacity: 0.6, fontSize: compact ? 11 : 12 }}>({v.unit})</span>
+          </p>
+          {headerExtra}
+        </div>
+        {/* Faixas de severidade — mesma escala do card (vitalSeverity.ts), cinza/amarelo/vermelho */}
+        {!compact && (
+          <p className="text-[11px] mt-0.5" style={{ color: "var(--muted)" }}>
+            <span style={{ color: VITAL_SEVERITY_COLOR[0] }}>{v.ranges[0]}</span>
+            {" · "}
+            <span style={{ color: VITAL_SEVERITY_COLOR[1] }}>{v.ranges[1]}</span>
+            {" · "}
+            <span style={{ color: VITAL_SEVERITY_COLOR[2] }}>{v.ranges[2]}</span>
+          </p>
+        )}
       </div>
       <ResponsiveContainer width="100%" height={chartHeight}>
         <AreaChart data={slots} syncId={syncId} margin={{ top: 18, right: 8, left: 0, bottom: 0 }}>

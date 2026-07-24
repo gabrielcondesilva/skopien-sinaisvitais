@@ -3,8 +3,9 @@
 import { useEffect } from "react";
 import { useSimulationStore } from "@/store/simulation";
 import { useAlertStore } from "@/store/alerts";
-import { ALARM_VITAL_KEYS } from "@/lib/vitalAlarm";
+import { ALARM_VITAL_KEYS, ALARM_LABEL, ALARM_UNIT, computeVitalAlarmBackfill } from "@/lib/vitalAlarm";
 import { computeScoreTransitionHistory } from "@/lib/simulation/vitals";
+import { VITAL_ALERT_COOLDOWN_MS } from "@/store/alerts";
 import type { Alert } from "@/lib/simulation/types";
 
 // Tempo real: 1 tick = 1 leitura simulada, alinhado à cadência real do
@@ -19,6 +20,7 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
   const fireAlert        = useAlertStore((s) => s.fireAlert);
   const seedDemoAlerts   = useAlertStore((s) => s.seedDemoAlerts);
   const seedBackfilledScoreAlerts = useAlertStore((s) => s.seedBackfilledScoreAlerts);
+  const seedBackfilledVitalAlerts = useAlertStore((s) => s.seedBackfilledVitalAlerts);
 
   // Seed one alert of each type at startup so demo always shows all alert kinds
   useEffect(() => {
@@ -131,12 +133,63 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
     if (items.length) seedBackfilledScoreAlerts(items);
   }, [seedBackfilledScoreAlerts]);
 
+  // Backfill do Alerta de Sinal Vital Crítico — mesma ideia do Escore acima, mas por
+  // parâmetro (fr/spo2/pas/fc/temp) e com a regra de supressão fixa de 30min (ver
+  // computeVitalAlarmBackfill). Também semeia a supressão ainda pendente no fim do
+  // histórico, senão o primeiro tick ao vivo poderia disparar de novo antes da hora.
+  useEffect(() => {
+    const { beds, internacoes } = useSimulationStore.getState();
+    const items: Array<Omit<Alert, "id">> = [];
+    const pendingCooldowns: Array<{ internacaoId: string; parametro: (typeof ALARM_VITAL_KEYS)[number]; since: number }> = [];
+
+    for (const inv of Object.values(internacoes)) {
+      const b = beds.find((bed) => bed.internacaoId === inv.id);
+
+      for (const key of ALARM_VITAL_KEYS) {
+        const { events, pendingCooldownSince } = computeVitalAlarmBackfill(
+          inv.rawHistory,
+          key,
+          VITAL_ALERT_COOLDOWN_MS
+        );
+
+        for (const ev of events) {
+          items.push({
+            type: "sinal-vital",
+            internacaoId: inv.id,
+            patientName: inv.patient.name,
+            bedLabel: b?.label ?? inv.bedId,
+            unit: inv.unit,
+            message: `${ALARM_LABEL[key]} ${ev.value}${ALARM_UNIT[key]} — fora do Limite de Alarme`,
+            firedAt: ev.firedAt,
+            status: ev.clearedAt ? "auto-cleared" : "active",
+            dismissedAt: ev.clearedAt,
+            parametro: key,
+            valor: ev.value,
+          });
+        }
+
+        if (pendingCooldownSince != null) {
+          pendingCooldowns.push({ internacaoId: inv.id, parametro: key, since: pendingCooldownSince });
+        }
+      }
+    }
+
+    if (items.length || pendingCooldowns.length) seedBackfilledVitalAlerts(items, pendingCooldowns);
+  }, [seedBackfilledVitalAlerts]);
+
   useEffect(() => {
     const id = setInterval(() => {
       advance();
 
       const internacoesAfter = Object.values(useSimulationStore.getState().internacoes);
       const bedsAfter = useSimulationStore.getState().beds;
+
+      // Relógio simulado (timestamp da própria leitura), nunca Date.now() — todas as
+      // internações avançam em lockstep (mesmo seed, mesmo passo de 60s por tick),
+      // então uma leitura qualquer serve de referência pro tick inteiro. Se o firedAt
+      // do alerta usasse o relógio real, ele desalinharia do bucket que o gráfico usa
+      // pra plotar (mesmo problema já corrigido nas funções de janela/slot).
+      const simNow = internacoesAfter[0]?.rawHistory[internacoesAfter[0].rawHistory.length - 1]?.t ?? Date.now();
 
       // Limite de Alarme reage em tempo real à leitura bruta assim que ela chega
       // (1/min) — não espera o Slot Temporal nem qualquer seletor de granularidade.
@@ -156,7 +209,7 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
           >,
         };
       });
-      checkVitalAlerts(vitalSnapshot);
+      checkVitalAlerts(vitalSnapshot, simNow);
 
       // Alerta de Escore reage à mudança de categoria do Status Clínico, calculado
       // sobre a Janela de Escore (mediana/30min fixo) por advance(). Ver CONTEXT.md § Alertas.
@@ -171,7 +224,7 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
           ewsTotal: inv.currentEws,
         };
       });
-      checkScoreAlerts(scoreSnapshot);
+      checkScoreAlerts(scoreSnapshot, simNow);
 
       // Check and fire scripted scenes
       const sceneAlerts = checkScenes();

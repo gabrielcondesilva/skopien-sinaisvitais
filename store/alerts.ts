@@ -6,11 +6,14 @@ import { SCORE_STATUS_RANK } from "@/lib/simulation/vitals";
 let _alertCounter = 1;
 const alertId = () => `alert-${_alertCounter++}`;
 
-// Carência de re-disparo pro mesmo (internação, parâmetro) depois de "Ação Tomada" —
-// contada a partir do disparo ORIGINAL, não do clique. Ver CONTEXT.md § Alertas.
-const VITAL_ALERT_COOLDOWN_MS = 60 * 60_000;
+// Supressão de re-disparo pro mesmo (internação, parâmetro) — sempre 30min a partir
+// do disparo ORIGINAL, não importa como o alerta anterior foi encerrado (normalização
+// automática, Ação Tomada ou Falso Positivo). Ver CONTEXT.md § Alertas.
+// Exportada pro backfill (computeVitalAlarmBackfill) usar a mesma regra.
+export const VITAL_ALERT_COOLDOWN_MS = 30 * 60_000;
 
-// Mesma margem, agora pro Alerta de Escore ficar parado na mesma categoria sem piorar.
+// Margem própria do Alerta de Escore (60min, diferente dos 30min do Sinal Vital) pro
+// caso de ficar parado na mesma categoria sem piorar nem melhorar.
 const SCORE_ALERT_COOLDOWN_MS = 60 * 60_000;
 
 function cooldownKey(internacaoId: string, parametro: AlarmVitalKey): string {
@@ -20,9 +23,10 @@ function cooldownKey(internacaoId: string, parametro: AlarmVitalKey): string {
 interface AlertState {
   active: Alert[];
   history: Alert[];
-  // Carência pendente por (internação, parâmetro): valor = firedAt do alerta original
-  // fechado via "Ação Tomada". Some quando uma leitura normal aparece ou quando os
-  // 60min completam — nesse ponto a próxima piora é tratada como episódio novo.
+  // Supressão pendente por (internação, parâmetro): valor = firedAt do alerta
+  // original. Setada sempre que um alerta desse parâmetro encerra — normalização
+  // automática, Ação Tomada ou Falso Positivo, sem distinção. Só expira pelo tempo
+  // (30min), nunca é invalidada por uma leitura normal no meio do caminho.
   _cooldowns: Map<string, number>;
 
   // Último Status Clínico observado por internação — usado só pra detectar transição
@@ -38,6 +42,9 @@ interface AlertState {
   // Called by SimulationProvider on each tick com a leitura BRUTA mais recente (1/min)
   // por internação — o Limite de Alarme reage em tempo real, sem esperar nenhuma
   // agregação (Slot Temporal ou Janela de Escore). Ver CONTEXT.md § Limite de Alarme.
+  // `now` é o relógio SIMULADO (timestamp da leitura mais recente), nunca
+  // Date.now() — senão o firedAt do alerta desalinha do bucket que o gráfico usa
+  // pra plotar, e o valor mostrado no marcador diverge do ponto onde ele aparece.
   checkVitalAlerts: (
     internacoes: Array<{
       id: string;
@@ -45,12 +52,13 @@ interface AlertState {
       bedLabel: string;
       unit: UnitId;
       vitals: Record<AlarmVitalKey, number>;
-    }>
+    }>,
+    now: number
   ) => void;
 
   // Called by SimulationProvider on each tick com o Status Clínico atual (calculado
   // sobre a Janela de Escore) por internação — dispara/auto-encerra o Alerta de Escore
-  // por transição de categoria. Ver CONTEXT.md § Alertas.
+  // por transição de categoria. `now` também é o relógio simulado. Ver CONTEXT.md § Alertas.
   checkScoreAlerts: (
     internacoes: Array<{
       id: string;
@@ -59,7 +67,8 @@ interface AlertState {
       unit: UnitId;
       status: StatusClinico;
       ewsTotal: number;
-    }>
+    }>,
+    now: number
   ) => void;
 
   // Fire a scripted (non-vital) alert
@@ -75,8 +84,8 @@ interface AlertState {
   // Dismiss an alert with an optional action note — usado só por medicacao/alta
   dismiss: (alertId: string, action?: string) => void;
 
-  // Encerra um alerta de sinal-vital por ação humana — Ação Tomada abre carência de
-  // 60min pro mesmo parâmetro, Falso Positivo não abre carência nenhuma.
+  // Encerra um alerta de sinal-vital por ação humana (Ação Tomada ou Falso Positivo)
+  // — os dois abrem a mesma supressão de 30min pro mesmo parâmetro, sem distinção.
   resolveVitalAlert: (alertId: string, resolvedAs: VitalAlertResolution) => void;
 
   // Seed all demo alert types at app startup (called once by SimulationProvider)
@@ -88,6 +97,15 @@ interface AlertState {
   // Cada item já vem com firedAt/status definidos (computeScoreTransitionHistory),
   // só falta o id. Ver CONTEXT.md § Alertas.
   seedBackfilledScoreAlerts: (items: Array<Omit<Alert, "id">>) => void;
+
+  // Mesma ideia pro Alerta de Sinal Vital Crítico (computeVitalAlarmBackfill, em
+  // lib/vitalAlarm.ts). Além dos alertas em si, semeia a supressão pendente por
+  // (internação, parâmetro) que ainda não completou 30min no fim do histórico — sem
+  // isso o primeiro tick ao vivo poderia disparar de novo antes da hora.
+  seedBackfilledVitalAlerts: (
+    items: Array<Omit<Alert, "id">>,
+    pendingCooldowns: Array<{ internacaoId: string; parametro: AlarmVitalKey; since: number }>
+  ) => void;
 
   // Derived helper: returns active alerts for a specific internação
   getAlertsForInternacao: (internacaoId: string) => Alert[];
@@ -101,9 +119,7 @@ export const useAlertStore = create<AlertState>()((set, get) => ({
   _scoreCooldowns: new Map(),
   activeCount: 0,
 
-  checkVitalAlerts(internacoes) {
-    const now = Date.now();
-
+  checkVitalAlerts(internacoes, now) {
     set((state) => {
       const cooldowns = new Map(state._cooldowns);
       const stillActive = [...state.active];
@@ -125,26 +141,25 @@ export const useAlertStore = create<AlertState>()((set, get) => ({
           );
 
           if (activeIdx !== -1) {
-            // Já ativo — nunca duplica. Só sai da lista ativa se normalizar sozinho.
+            // Já ativo — nunca duplica. Se normalizar sozinho, encerra e abre os
+            // 30min de supressão a partir do disparo original, igual a qualquer
+            // outra forma de encerramento — ver resolveVitalAlert.
             if (!outOfRange) {
               const [cleared] = stillActive.splice(activeIdx, 1);
               toHistory.push({ ...cleared, status: "auto-cleared", dismissedAt: now });
+              cooldowns.set(ckKey, cleared.firedAt);
             }
             continue;
           }
 
-          if (!outOfRange) {
-            // Valor normal: qualquer carência pendente vira obsoleta — a próxima
-            // piora (se vier) é um episódio novo, não uma continuação da crise.
-            cooldowns.delete(ckKey);
-            continue;
-          }
+          if (!outOfRange) continue; // normal, sem alerta ativo — nada a fazer
 
-          // Fora do limite, sem alerta ativo — checa carência antes de disparar.
+          // Fora do limite, sem alerta ativo — supressão de 30min desde o disparo
+          // original, sempre, não importa como o alerta anterior encerrou.
           const pendingSince = cooldowns.get(ckKey);
           if (pendingSince != null) {
-            if (now - pendingSince < VITAL_ALERT_COOLDOWN_MS) continue; // ainda em carência
-            cooldowns.delete(ckKey); // carência completou — libera disparo
+            if (now - pendingSince < VITAL_ALERT_COOLDOWN_MS) continue; // ainda suprimido
+            cooldowns.delete(ckKey); // supressão completou — libera disparo
           }
 
           toFire.push({
@@ -173,9 +188,7 @@ export const useAlertStore = create<AlertState>()((set, get) => ({
     });
   },
 
-  checkScoreAlerts(internacoes) {
-    const now = Date.now();
-
+  checkScoreAlerts(internacoes, now) {
     set((state) => {
       const lastStatus = new Map(state._lastStatus);
       const cooldowns = new Map(state._scoreCooldowns);
@@ -322,13 +335,12 @@ export const useAlertStore = create<AlertState>()((set, get) => ({
       };
       const nowActive = state.active.filter((a) => a.id !== id);
 
-      const cooldowns = new Map(state._cooldowns);
-      const ckKey = cooldownKey(target.internacaoId, target.parametro);
-      if (resolvedAs === "acao-tomada") {
-        cooldowns.set(ckKey, target.firedAt);
-      } else {
-        cooldowns.delete(ckKey);
-      }
+      // Ação Tomada ou Falso Positivo — sem distinção, os 30min de supressão
+      // sempre abrem a partir do disparo original. Ver CONTEXT.md § Alertas.
+      const cooldowns = new Map(state._cooldowns).set(
+        cooldownKey(target.internacaoId, target.parametro),
+        target.firedAt
+      );
 
       return {
         active: nowActive,
@@ -371,6 +383,36 @@ export const useAlertStore = create<AlertState>()((set, get) => ({
         active: merged,
         history: [...state.history, ...historyItems],
         activeCount: merged.length,
+      };
+    });
+  },
+
+  seedBackfilledVitalAlerts(items, pendingCooldowns) {
+    set((state) => {
+      const withIds: Alert[] = items.map((item) => ({ ...item, id: alertId() }));
+      const historyItems = withIds.filter((a) => a.status !== "active");
+      // Nunca duplica um Alerta de Sinal Vital já ativo pro mesmo (internação,
+      // parâmetro) — pode acontecer se um dos alertas de demo roteirizados
+      // (seedDemoAlerts) já cobrir esse parâmetro. Só o histórico sempre entra.
+      const activeItems = withIds.filter(
+        (a) =>
+          a.status === "active" &&
+          !state.active.some(
+            (x) => x.type === "sinal-vital" && x.internacaoId === a.internacaoId && x.parametro === a.parametro
+          )
+      );
+      const merged = [...state.active, ...activeItems];
+
+      const cooldowns = new Map(state._cooldowns);
+      for (const c of pendingCooldowns) {
+        cooldowns.set(cooldownKey(c.internacaoId, c.parametro), c.since);
+      }
+
+      return {
+        active: merged,
+        history: [...state.history, ...historyItems],
+        activeCount: merged.length,
+        _cooldowns: cooldowns,
       };
     });
   },
