@@ -53,8 +53,26 @@ function computeEwsTicks(top: number): number[] {
   return ticks;
 }
 
-function ScoreDot({ cx, cy, value, index }: { cx?: number; cy?: number; value?: number; index?: number }) {
+function ScoreDot({ cx, cy, value, index, isAlert }: {
+  cx?: number; cy?: number; value?: number; index?: number; isAlert?: boolean;
+}) {
   if (cx == null || cy == null || value == null) return null;
+
+  // Marca de horário de alerta (toggle "Alertas" ligado) — ponto onde o alerta disparou.
+  if (isAlert) {
+    return (
+      <g key={`ews-dot-${index}`}>
+        <circle cx={cx} cy={cy} r={8} fill="#F03E3E" fillOpacity={0.3}>
+          <animate attributeName="r"       values="4;10;4"    dur="1s" repeatCount="indefinite" />
+          <animate attributeName="opacity" values="0.6;0;0.6" dur="1s" repeatCount="indefinite" />
+        </circle>
+        <circle cx={cx} cy={cy} r={4} fill="#F03E3E">
+          <animate attributeName="opacity" values="1;0.4;1" dur="1s" repeatCount="indefinite" />
+        </circle>
+      </g>
+    );
+  }
+
   return <circle key={`ews-dot-${index}`} cx={cx} cy={cy} r={3} fill={statusColor(value)} />;
 }
 
@@ -90,9 +108,10 @@ interface Props {
   highlight?: boolean;
   headerExtra?: React.ReactNode;
   chartHeight?: number;
+  alertSlotLabels?: Map<number, string>;
 }
 
-export function EWSScoreChart({ slots, syncId, compact = false, collapsible = true, highlight = false, headerExtra, chartHeight: chartHeightProp }: Props) {
+export function EWSScoreChart({ slots, syncId, compact = false, collapsible = true, highlight = false, headerExtra, chartHeight: chartHeightProp, alertSlotLabels }: Props) {
   const [collapsed, setCollapsed] = useState(false);
   const ScoreLabel = makeScoreLabel();
   const [domainMin, domainMax] = computeEwsDomain(slots);
@@ -132,7 +151,7 @@ export function EWSScoreChart({ slots, syncId, compact = false, collapsible = tr
           <XAxis
             dataKey="t"
             tickFormatter={fmtTime}
-            tick={{ fontSize: 10, fill: "var(--muted)" }}
+            tick={{ fontSize: 12, fill: "var(--muted)" }}
             tickLine={false}
             axisLine={false}
             interval="preserveStartEnd"
@@ -142,7 +161,7 @@ export function EWSScoreChart({ slots, syncId, compact = false, collapsible = tr
           <YAxis
             domain={[domainMin, domainMax]}
             ticks={ticks}
-            tick={{ fontSize: 10, fill: "var(--muted)" }}
+            tick={{ fontSize: 12, fill: "var(--muted)" }}
             tickLine={false}
             axisLine={false}
             width={30}
@@ -177,6 +196,11 @@ export function EWSScoreChart({ slots, syncId, compact = false, collapsible = tr
                       </span>
                     ))}
                   </div>
+                  {alertSlotLabels?.get(slot.t) && (
+                    <div className="mt-1 font-semibold" style={{ color: "#F03E3E" }}>
+                      {alertSlotLabels.get(slot.t)}
+                    </div>
+                  )}
                 </div>
               );
             }}
@@ -189,7 +213,16 @@ export function EWSScoreChart({ slots, syncId, compact = false, collapsible = tr
             dataKey="ewsTotal"
             stroke="#888888"
             strokeWidth={2}
-            dot={<ScoreDot />}
+            dot={(props) => (
+              <ScoreDot
+                key={`ews-dot-${props.index}`}
+                cx={props.cx}
+                cy={props.cy}
+                value={props.value}
+                index={props.index}
+                isAlert={alertSlotLabels?.has((props.payload as SlotReading)?.t)}
+              />
+            )}
             isAnimationActive={false}
             activeDot={(props) => {
               const { cx, cy, value } = props as { cx?: number; cy?: number; value?: number };

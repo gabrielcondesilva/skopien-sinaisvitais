@@ -2,13 +2,30 @@
 
 import { useAlertStore } from "@/store/alerts";
 import type { Alert, UnitId } from "@/lib/simulation/types";
-import { StreamlineIcon } from "./ui/StreamlineIcon";
+import { ALARM_LABEL, alarmIconFor } from "@/lib/vitalAlarm";
+import { StreamlineIcon, type IconName } from "./ui/StreamlineIcon";
 
-const ALERT_META: Record<string, { icon: "sinal_vital" | "medicacao" | "predicao_alta"; title: string; color: string }> = {
-  "sinal-vital": { icon: "sinal_vital",   title: "Sinal Vital Crítico", color: "var(--status-critical)"  },
+const ALERT_META: Record<string, { icon: IconName; title: string; color: string }> = {
+  "sinal-vital": { icon: "monitor",       title: "Sinal Vital Crítico", color: "var(--status-critical)"  },
   "medicacao":   { icon: "medicacao",     title: "Medicação Atrasada",  color: "var(--status-attention)" },
   "alta":        { icon: "predicao_alta", title: "Previsão de Alta",    color: "var(--accent)"           },
 };
+
+// Ícone do alerta de sinal-vital depende do parâmetro (FR = ventilador, demais
+// = monitor) — não é fixo por tipo como os outros alertas. Ver CONTEXT.md § Alertas.
+function alertIcon(alert: Alert): IconName {
+  if (alert.type === "sinal-vital" && alert.parametro) return alarmIconFor(alert.parametro);
+  return ALERT_META[alert.type]?.icon ?? "monitor";
+}
+
+// Título do alerta de sinal-vital é dinâmico por parâmetro (ex.: "FC Crítica"),
+// não o rótulo genérico — cada parâmetro fora do Limite de Alarme é um alerta à parte.
+function alertTitle(alert: Alert): string {
+  if (alert.type === "sinal-vital" && alert.parametro) {
+    return `${ALARM_LABEL[alert.parametro]} Crítica`;
+  }
+  return ALERT_META[alert.type]?.title ?? "Alerta";
+}
 
 function formatRelative(firedAt: number): string {
   const mins = Math.floor((Date.now() - firedAt) / 60_000);
@@ -19,15 +36,17 @@ function formatRelative(firedAt: number): string {
 
 function AlertCard({ alert }: { alert: Alert }) {
   const dismiss = useAlertStore((s) => s.dismiss);
-  const meta = ALERT_META[alert.type] ?? { icon: "!", title: "Alerta", color: "var(--muted)" };
+  const resolveVitalAlert = useAlertStore((s) => s.resolveVitalAlert);
+  const meta = ALERT_META[alert.type] ?? { icon: "monitor" as const, color: "var(--muted)" };
   const isAlta = alert.type === "alta";
+  const isSinalVital = alert.type === "sinal-vital";
 
   return (
     <div className="p-4 flex flex-col gap-3" style={{ borderBottom: "1px solid var(--border)" }}>
       <div className="flex items-start gap-3">
-        <StreamlineIcon name={meta.icon} size={22} className="mt-0.5 shrink-0" />
+        <StreamlineIcon name={alertIcon(alert)} size={22} className="mt-0.5 shrink-0" />
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-semibold" style={{ color: meta.color }}>{meta.title}</p>
+          <p className="text-xs font-semibold" style={{ color: meta.color }}>{alertTitle(alert)}</p>
           <p className="text-sm font-medium mt-0.5 truncate">{alert.patientName}</p>
           <p className="text-xs" style={{ color: "var(--muted)" }}>
             {alert.bedLabel}&nbsp;·&nbsp;{alert.unit.replace(/-/g, " ")}
@@ -58,7 +77,26 @@ function AlertCard({ alert }: { alert: Alert }) {
         </div>
       )}
 
-      {!isAlta && (
+      {isSinalVital && (
+        <div className="flex gap-2">
+          <button
+            onClick={() => resolveVitalAlert(alert.id, "acao-tomada")}
+            className="flex-1 text-xs py-1.5 rounded font-medium transition-colors hover:opacity-90"
+            style={{ background: "var(--accent)", color: "#fff" }}
+          >
+            Ação Tomada
+          </button>
+          <button
+            onClick={() => resolveVitalAlert(alert.id, "falso-positivo")}
+            className="flex-1 text-xs py-1.5 rounded font-medium transition-colors hover:bg-white/10"
+            style={{ background: "rgba(255,255,255,0.08)", color: "var(--foreground)" }}
+          >
+            Falso Positivo
+          </button>
+        </div>
+      )}
+
+      {!isAlta && !isSinalVital && (
         <button
           onClick={() => dismiss(alert.id, "Ação tomada pela equipe")}
           className="w-full text-xs py-1.5 rounded font-medium transition-colors hover:bg-white/10"

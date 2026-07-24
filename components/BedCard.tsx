@@ -6,7 +6,8 @@ import { useAlertStore } from "@/store/alerts";
 import { useAuthStore } from "@/store/auth";
 import { useShallow } from "zustand/react/shallow";
 import type { Alert, Bed, Internacao, SurgicalInternacao } from "@/lib/simulation/types";
-import { StreamlineIcon } from "./ui/StreamlineIcon";
+import { ALARM_LABEL, alarmIconFor } from "@/lib/vitalAlarm";
+import { StreamlineIcon, type IconName } from "./ui/StreamlineIcon";
 import { UTI_TIPO_LABELS } from "@/lib/units";
 
 function bedDisplayLabel(bed: Bed): string {
@@ -59,10 +60,9 @@ export function ScorePill({ text, color, onClick, size = "sm" }: {
   );
 }
 
-const ALERT_META: Record<string, { icon: "sinal_vital" | "medicacao" | "predicao_alta"; color: string; label: string }> = {
-  "sinal-vital": { icon: "sinal_vital",   color: "var(--status-critical)",  label: "Sinal Vital Crítico" },
-  "medicacao":   { icon: "medicacao",     color: "var(--status-attention)", label: "Medicação Atrasada"  },
-  "alta":        { icon: "predicao_alta", color: "var(--accent)",           label: "Previsão de Alta"    },
+const ALERT_META: Record<string, { icon: IconName; color: string; label: string }> = {
+  "medicacao": { icon: "medicacao",     color: "var(--status-attention)", label: "Medicação Atrasada" },
+  "alta":      { icon: "predicao_alta", color: "var(--accent)",           label: "Previsão de Alta"   },
 };
 
 function formatElapsed(admittedAt: number): string {
@@ -75,17 +75,45 @@ function formatElapsed(admittedAt: number): string {
   return `${totalMin}min`;
 }
 
-function AlertBadge({ alert }: { alert: Alert }) {
-  const meta = ALERT_META[alert.type];
-  if (!meta) return null;
+function AlertBadge({ icon, title }: { icon: IconName; title: string }) {
   return (
     <span
-      title={meta.label}
-      className="animate-pulse select-none inline-flex items-center justify-center"
+      title={title}
+      className="select-none inline-flex items-center justify-center"
     >
-      <StreamlineIcon name={meta.icon} size={16} />
+      <StreamlineIcon name={icon} size={22} />
     </span>
   );
+}
+
+// Sinal Vital Crítico não mostra um ícone por parâmetro no Card do Leito — só
+// um monitor (e um ventilador, se FR estiver entre os parâmetros em alerta).
+// A lista completa por parâmetro fica no painel de Alertas. Ver CONTEXT.md § Alertas.
+function sinalVitalBadges(alerts: Alert[]): Array<{ key: string; icon: IconName; title: string }> {
+  const vitalAlerts = alerts.filter((a): a is Alert & { parametro: NonNullable<Alert["parametro"]> } =>
+    a.type === "sinal-vital" && a.parametro != null
+  );
+  if (vitalAlerts.length === 0) return [];
+
+  const badges: Array<{ key: string; icon: IconName; title: string }> = [];
+  const ventilador = vitalAlerts.filter((a) => alarmIconFor(a.parametro) === "ventilador");
+  const monitor = vitalAlerts.filter((a) => alarmIconFor(a.parametro) === "monitor");
+
+  if (ventilador.length > 0) {
+    badges.push({
+      key: "ventilador",
+      icon: "ventilador",
+      title: ventilador.map((a) => `${ALARM_LABEL[a.parametro]} Crítica`).join(", "),
+    });
+  }
+  if (monitor.length > 0) {
+    badges.push({
+      key: "monitor",
+      icon: "monitor",
+      title: monitor.map((a) => `${ALARM_LABEL[a.parametro]} Crítica`).join(", "),
+    });
+  }
+  return badges;
 }
 
 interface Props {
@@ -157,10 +185,18 @@ export function BedCard({ bed, internacao }: Props) {
         <div className="flex items-center gap-1 flex-wrap justify-end">
           {internacao.hasPump && (
             <span title="Bomba de Infusão ativa" className="inline-flex items-center select-none">
-              <StreamlineIcon name="bomba_infusao" size={16} />
+              <StreamlineIcon name="bomba_infusao" size={22} />
             </span>
           )}
-          {alerts.map((a) => <AlertBadge key={a.id} alert={a} />)}
+          {sinalVitalBadges(alerts).map((b) => (
+            <AlertBadge key={b.key} icon={b.icon} title={b.title} />
+          ))}
+          {alerts
+            .filter((a) => a.type !== "sinal-vital")
+            .map((a) => {
+              const meta = ALERT_META[a.type];
+              return meta ? <AlertBadge key={a.id} icon={meta.icon} title={meta.label} /> : null;
+            })}
         </div>
       </div>
 

@@ -131,7 +131,10 @@ Evento clínico ativo ou encerrado.
 | `firedAt` | `number` | Timestamp ms de disparo |
 | `status` | `AlertStatus` | `active`, `dismissed`, ou `auto-cleared` |
 | `dismissedAt` | `number?` | Timestamp ms do reconhecimento |
-| `dismissAction` | `string?` | Ação tomada (texto livre) |
+| `dismissAction` | `string?` | Ação tomada (texto livre) — só `medicacao`/`alta` |
+| `parametro` | `AlarmVitalKey?` | `fr`\|`spo2`\|`pas`\|`fc`\|`temp` — só `type === "sinal-vital"`, qual sinal cruzou o Limite de Alarme |
+| `valor` | `number?` | Valor bruto que cruzou o Limite de Alarme — só `type === "sinal-vital"` |
+| `resolvidoComo` | `"acao-tomada" \| "falso-positivo"?` | Como um humano encerrou o alerta — uso interno pra regra de carência de re-disparo, não exibido na UI de histórico |
 
 ---
 

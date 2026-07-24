@@ -34,7 +34,7 @@ A versão demo usa simulação client-side; este documento descreve o que substi
 | Classificação de risco Manchester | Triagem | FHIR Observation / campo HIS |
 | Prescriçao de bomba de infusão | Prescrição | HL7 RAS ou API HIS |
 
-**Latência aceitável:** ≤ 60 s para alertas EWS; ≤ 5 min para KPIs de ocupação.
+**Latência aceitável:** ≤ 60 s para alertas de sinal vital; ≤ 5 min para KPIs de ocupação.
 
 ---
 

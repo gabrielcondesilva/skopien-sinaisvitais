@@ -1,7 +1,9 @@
 "use client";
 
-import { use, useState, useEffect, useLayoutEffect, useRef } from "react";
+import { use, useState, useEffect, useLayoutEffect, useRef, Fragment } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { useShallow } from "zustand/react/shallow";
 import { AuthGuard } from "@/components/AuthGuard";
 import { Sidebar } from "@/components/Sidebar";
 import { TopBar } from "@/components/TopBar";
@@ -17,6 +19,7 @@ import { PatientRecordPanel } from "@/components/PatientRecordPanel";
 import { ScorePill, BRADEN_COLOR } from "@/components/BedCard";
 import { AlertsPanel } from "@/components/AlertsPanel";
 import { Icon } from "@/components/ui/Icon";
+import { StreamlineIcon, type IconName } from "@/components/ui/StreamlineIcon";
 import { useSimulationStore } from "@/store/simulation";
 import { useSidebarStore } from "@/store/sidebar";
 import { useAlertStore } from "@/store/alerts";
@@ -24,8 +27,9 @@ import { useAuthStore } from "@/store/auth";
 import { computeSlots, currentSlotValues } from "@/lib/simulation/vitals";
 import { calculateEWS } from "@/lib/ews";
 import { vitalSeverity } from "@/lib/vitalSeverity";
+import { ALARM_LABEL, alarmIconFor, type AlarmVitalKey } from "@/lib/vitalAlarm";
 import { UTI_TIPO_LABELS } from "@/lib/units";
-import type { Internacao, SurgicalInternacao, NivelConsciencia, Bed } from "@/lib/simulation/types";
+import type { Internacao, SurgicalInternacao, NivelConsciencia, Bed, Alert, SlotReading } from "@/lib/simulation/types";
 
 const NC_OPTIONS: readonly NivelConsciencia[] = ["Alerta", "Confuso", "Responde à Dor", "Inconsciente"];
 
@@ -93,6 +97,64 @@ const VITALS = [
 // SpO2 não entra no Escore MEWS — sem pontuação associada, sempre exibido neutro
 function scoreOf(scores: { fr: number; pas: number; fc: number; temp: number; nc: number }, key: string): number {
   return key === "spo2" ? 0 : (scores as Record<string, number>)[key] ?? 0;
+}
+
+const ALERT_TYPE_LABEL: Record<string, string> = {
+  medicacao: "Medicação Atrasada",
+  alta: "Previsão de Alta",
+};
+
+// Resumo agregado do alerta exibido no gráfico de EWS, ao passar o mouse na bolinha
+// vermelha (ex.: "Alerta - FC · PAS") — não distingue qual gráfico é responsável,
+// isso é papel de buildVitalAlertSlotMap (por parâmetro, usado nos gráficos de vitais).
+function buildAlertSlotLabels(alerts: Alert[], slots: SlotReading[], slotMin: number): Map<number, string> {
+  const slotMs = slotMin * 60_000;
+  const bySlot = new Map<number, Alert[]>();
+  for (const a of alerts) {
+    const bucket = Math.floor(a.firedAt / slotMs) * slotMs;
+    const arr = bySlot.get(bucket);
+    if (arr) arr.push(a); else bySlot.set(bucket, [a]);
+  }
+
+  const labels = new Map<number, string>();
+  for (const slot of slots) {
+    const here = bySlot.get(slot.t);
+    if (!here?.length) continue;
+
+    const parts: string[] = [];
+    for (const a of here) {
+      const label = a.type === "sinal-vital" && a.parametro
+        ? ALARM_LABEL[a.parametro]
+        : (ALERT_TYPE_LABEL[a.type] ?? "Alerta");
+      if (!parts.includes(label)) parts.push(label);
+    }
+
+    labels.set(slot.t, `Alerta - ${parts.join(" · ")}`);
+  }
+  return labels;
+}
+
+// Marca em qual slot exibido cada alerta de Sinal Vital caiu, por parâmetro — usado
+// pra piscar só no gráfico responsável, com o valor e horário reais do disparo
+// (CONTEXT.md § Alertas), independente da granularidade (slotMin) escolhida na tela.
+function buildVitalAlertSlotMap(
+  alerts: Alert[],
+  slots: SlotReading[],
+  slotMin: number
+): Partial<Record<AlarmVitalKey, Map<number, Alert>>> {
+  const slotMs = slotMin * 60_000;
+  const result: Partial<Record<AlarmVitalKey, Map<number, Alert>>> = {};
+
+  for (const a of alerts) {
+    if (a.type !== "sinal-vital" || !a.parametro) continue;
+    const bucket = Math.floor(a.firedAt / slotMs) * slotMs;
+    if (!slots.some((s) => s.t === bucket)) continue;
+    const map = result[a.parametro] ?? new Map<number, Alert>();
+    map.set(bucket, a); // slot exibido largo com 2 alertas do mesmo parâmetro: fica o mais recente
+    result[a.parametro] = map;
+  }
+
+  return result;
 }
 
 const STATUS_COLOR: Record<string, string> = {
@@ -376,13 +438,15 @@ function useEnfermariaChartHeight(enabled: boolean) {
   return { gridRef, chartHeight };
 }
 
-function SinaisVitaisTab({ internacao, slotMin, windowMs, view, cardsVisible, chartLayout }: {
+function SinaisVitaisTab({ internacao, slotMin, windowMs, view, cardsVisible, chartLayout, alerts, showAlertTimesOnCharts }: {
   internacao: Internacao | SurgicalInternacao;
   slotMin: number;
   windowMs: number;
   view: "graficos" | "heatmap";
   cardsVisible: boolean;
   chartLayout: "linha" | "matriz";
+  alerts?: Alert[];
+  showAlertTimesOnCharts?: boolean;
 }) {
   const isAntonio = useAuthStore((s) => s.email === "antonio@hospital.com");
   const setNivelConsciencia = useSimulationStore((s) => s.setNivelConsciencia);
@@ -392,6 +456,15 @@ function SinaisVitaisTab({ internacao, slotMin, windowMs, view, cardsVisible, ch
   // Cartão sempre reflete o último ponto do gráfico (mesmo slot em andamento) — nunca uma leitura bruta à parte
   const current = slots[slots.length - 1] ?? currentSlotValues(rawHistory, slotMin, Date.now());
   const ews     = calculateEWS(current);
+
+  // Bucket do horário de cada alerta no slot exibido — só marca no gráfico se o slot
+  // correspondente estiver de fato renderizado (dentro da janela escolhida).
+  const alertSlotLabels = showAlertTimesOnCharts && alerts?.length
+    ? buildAlertSlotLabels(alerts, slots, slotMin)
+    : undefined;
+  const vitalAlertSlotMap = showAlertTimesOnCharts && alerts?.length
+    ? buildVitalAlertSlotMap(alerts, slots, slotMin)
+    : undefined;
 
   const minMax = Object.fromEntries(
     VITALS.map((v) => {
@@ -435,6 +508,8 @@ function SinaisVitaisTab({ internacao, slotMin, windowMs, view, cardsVisible, ch
             layout={chartLayout}
             compact={isMatrix}
             chartHeight={isMatrix ? chartHeight : undefined}
+            alertSlotLabels={alertSlotLabels}
+            vitalAlertSlotMap={vitalAlertSlotMap}
           />
         </div>
       ) : (
@@ -568,6 +643,146 @@ function InternacaoTab({ internacao, slotMin }: {
   );
 }
 
+// ─── Patient alerts modal (Antonio) ──────────────────────────────────────────
+// Popup aberto pelo ícone de monitor ao lado da aba Medicamento — mostra os
+// alertas ativos e o histórico daquela internação. Sempre abre em "Ativos".
+
+const PATIENT_ALERT_META: Record<string, { icon: IconName; title: string; color: string }> = {
+  "sinal-vital": { icon: "monitor",       title: "Sinal Vital Crítico", color: "var(--status-critical)"  },
+  "medicacao":   { icon: "medicacao",     title: "Medicação Atrasada",  color: "var(--status-attention)" },
+  "alta":        { icon: "predicao_alta", title: "Previsão de Alta",    color: "var(--accent)"           },
+};
+
+// Ícone do alerta de sinal-vital depende do parâmetro (FR = ventilador, demais
+// = monitor). Ver CONTEXT.md § Alertas.
+function patientAlertIcon(alert: Alert): IconName {
+  if (alert.type === "sinal-vital" && alert.parametro) return alarmIconFor(alert.parametro);
+  return PATIENT_ALERT_META[alert.type]?.icon ?? "monitor";
+}
+
+function formatAlertClock(ts: number): string {
+  return new Date(ts).toLocaleString("pt-BR", {
+    day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit",
+  }).replace(",", "");
+}
+
+function PatientAlertCard({ alert }: { alert: Alert }) {
+  const resolveVitalAlert = useAlertStore((s) => s.resolveVitalAlert);
+  const meta = PATIENT_ALERT_META[alert.type] ?? { icon: "monitor" as const, title: "Alerta", color: "var(--muted)" };
+  const title = alert.type === "sinal-vital" && alert.parametro
+    ? `${ALARM_LABEL[alert.parametro]} Crítica`
+    : meta.title;
+  const isActiveSinalVital = alert.type === "sinal-vital" && alert.status === "active";
+  const statusLabel = alert.status === "active"
+    ? `Disparado em ${formatAlertClock(alert.firedAt)}`
+    : `${alert.dismissedAt ? `${formatAlertClock(alert.dismissedAt)} · ` : ""}${
+        alert.dismissAction ?? (alert.status === "auto-cleared" ? "Normalizado automaticamente" : "Encerrado")
+      }`;
+
+  return (
+    <div className="px-4 py-3 flex flex-col gap-2" style={{ borderBottom: "1px solid var(--border)" }}>
+      <div className="flex items-start gap-3">
+        <StreamlineIcon name={patientAlertIcon(alert)} size={20} className="mt-0.5 shrink-0" />
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-semibold" style={{ color: meta.color }}>{title}</p>
+          <p className="text-xs mt-1 leading-snug">{alert.message}</p>
+          <p className="text-[11px] mt-1" style={{ color: "var(--muted)" }}>{statusLabel}</p>
+        </div>
+      </div>
+
+      {isActiveSinalVital && (
+        <div className="flex gap-2 pl-8">
+          <button
+            onClick={() => resolveVitalAlert(alert.id, "acao-tomada")}
+            className="flex-1 text-[11px] py-1 rounded font-medium transition-colors hover:opacity-90"
+            style={{ background: "var(--accent)", color: "#fff" }}
+          >
+            Ação Tomada
+          </button>
+          <button
+            onClick={() => resolveVitalAlert(alert.id, "falso-positivo")}
+            className="flex-1 text-[11px] py-1 rounded font-medium transition-colors hover:bg-white/10"
+            style={{ background: "rgba(255,255,255,0.08)", color: "var(--foreground)" }}
+          >
+            Falso Positivo
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PatientAlertsModal({ internacaoId, view, onViewChange, onClose }: {
+  internacaoId: string;
+  view: "ativos" | "historico";
+  onViewChange: (v: "ativos" | "historico") => void;
+  onClose: () => void;
+}) {
+  const active  = useAlertStore(useShallow((s) => s.active.filter((a) => a.internacaoId === internacaoId)));
+  const history = useAlertStore(useShallow((s) => s.history.filter((a) => a.internacaoId === internacaoId)));
+  const list = view === "ativos" ? active : history;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{ background: "rgba(0,0,0,0.6)" }}
+      onClick={onClose}
+    >
+      <div
+        className="flex flex-col rounded-xl overflow-hidden"
+        style={{ width: "min(420px, 90vw)", maxHeight: "80vh", background: "var(--surface)", border: "1px solid var(--border)" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-4 py-3 shrink-0" style={{ borderBottom: "1px solid var(--border)" }}>
+          <span className="text-sm font-semibold">Alertas do Paciente</span>
+          <button
+            onClick={onClose}
+            className="text-sm leading-none hover:opacity-70 transition-opacity"
+            style={{ color: "var(--muted)" }}
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="flex items-center gap-1 px-4 pt-3 shrink-0">
+          <button
+            onClick={() => onViewChange("ativos")}
+            className="flex-1 text-xs py-1.5 rounded-lg font-medium transition-colors"
+            style={{
+              background: view === "ativos" ? "var(--accent)" : "rgba(255,255,255,0.06)",
+              color: view === "ativos" ? "#fff" : "var(--muted)",
+            }}
+          >
+            Ativos{active.length > 0 ? ` (${active.length})` : ""}
+          </button>
+          <button
+            onClick={() => onViewChange("historico")}
+            className="flex-1 text-xs py-1.5 rounded-lg font-medium transition-colors"
+            style={{
+              background: view === "historico" ? "var(--accent)" : "rgba(255,255,255,0.06)",
+              color: view === "historico" ? "#fff" : "var(--muted)",
+            }}
+          >
+            Histórico{history.length > 0 ? ` (${history.length})` : ""}
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto mt-3">
+          {list.length === 0 ? (
+            <div className="flex items-center justify-center h-24">
+              <p className="text-xs" style={{ color: "var(--muted)" }}>
+                {view === "ativos" ? "Nenhum alerta ativo" : "Nenhum alerta no histórico"}
+              </p>
+            </div>
+          ) : (
+            list.map((a) => <PatientAlertCard key={a.id} alert={a} />)
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Patient content ─────────────────────────────────────────────────────────
 
 type Tab = "sinais-vitais" | "ews" | "lesao-pele" | "medicamento" | "internacao";
@@ -586,6 +801,7 @@ function PatientContent({ id }: { id: string }) {
   const isAntonio = useAuthStore((s) => s.email === "antonio@hospital.com");
   const logout    = useAuthStore((s) => s.logout);
   const active    = useAlertStore((s) => s.active);
+  const history   = useAlertStore((s) => s.history);
 
   const internacao = useSimulationStore((s) => s.internacoes[id] ?? null);
   const bed = useSimulationStore((s) => s.beds.find((b) => b.internacaoId === id) ?? null);
@@ -603,6 +819,10 @@ function PatientContent({ id }: { id: string }) {
   const [camFullscreen, setCamFullscreen] = useState(false);
   const [panelOpen, setPanelOpen]     = useState(false);
   const [recordPanel, setRecordPanel] = useState<null | "exames" | "prontuario">(null);
+  // Mostra o horário dos alertas do paciente sobreposto nos gráficos — só visual por enquanto
+  const [showAlertTimesOnCharts, setShowAlertTimesOnCharts] = useState(false);
+  const [alertsModalOpen, setAlertsModalOpen] = useState(false);
+  const [alertsModalView, setAlertsModalView] = useState<"ativos" | "historico">("ativos");
 
   if (!internacao) {
     return (
@@ -623,6 +843,11 @@ function PatientContent({ id }: { id: string }) {
   const isLiveCamera = bed?.label === "UTI-01" && !!proxyUrl;
   const streamUrl = `${proxyUrl}/stream/index.m3u8`;
   const activeAlertCount = active.filter((a) => a.unit === internacao.unit).length;
+  const patientAlerts = [
+    ...active.filter((a) => a.internacaoId === internacao.id),
+    ...history.filter((a) => a.internacaoId === internacao.id),
+  ];
+  const patientAlertCount = patientAlerts.length;
 
   const metaItems = [
     `${internacao.patient.age} anos`,
@@ -732,7 +957,7 @@ function PatientContent({ id }: { id: string }) {
             </div>
 
             <span
-              className="absolute text-sm font-semibold whitespace-nowrap"
+              className="absolute text-lg font-bold whitespace-nowrap"
               style={{ left: "50%", transform: "translateX(-50%)", color: "var(--accent)" }}
             >
               {internacao.patient.admissionReason}
@@ -896,6 +1121,15 @@ function PatientContent({ id }: { id: string }) {
         </>
       )}
 
+      {alertsModalOpen && (
+        <PatientAlertsModal
+          internacaoId={internacao.id}
+          view={alertsModalView}
+          onViewChange={setAlertsModalView}
+          onClose={() => setAlertsModalOpen(false)}
+        />
+      )}
+
       {/* Camera fullscreen modal */}
       {camFullscreen && isLiveCamera && (
         isAntonio ? (
@@ -935,8 +1169,8 @@ function PatientContent({ id }: { id: string }) {
           .map((t) => {
           const active = tab === t;
           return (
+            <Fragment key={t}>
             <button
-              key={t}
               onClick={() => setTab(t)}
               className="flex items-center px-4 py-3 text-sm transition-colors"
               style={{
@@ -965,6 +1199,64 @@ function PatientContent({ id }: { id: string }) {
                 )}
               </span>
             </button>
+            {t === "medicamento" && isAntonio && (
+              <div className="flex items-center gap-1">
+                <span
+                  className="flex items-center pl-4 pr-1.5 py-3 text-sm"
+                  style={{
+                    color: "var(--foreground)",
+                    borderBottom: "2px solid transparent",
+                    marginBottom: "-1px",
+                  }}
+                >
+                  Alertas
+                </span>
+                <button
+                  onClick={() => setShowAlertTimesOnCharts((v) => !v)}
+                  aria-pressed={showAlertTimesOnCharts}
+                  aria-label="Mostrar horário dos alertas nos gráficos"
+                  title="Mostrar horário dos alertas nos gráficos"
+                  className="flex items-center rounded-full overflow-hidden text-[10px] font-bold tracking-wide"
+                  style={{ border: "1px solid var(--border)" }}
+                >
+                  <span
+                    className="px-2 py-1 transition-colors"
+                    style={{
+                      background: showAlertTimesOnCharts ? "var(--accent)" : "transparent",
+                      color: showAlertTimesOnCharts ? "#fff" : "var(--muted)",
+                    }}
+                  >
+                    ON
+                  </span>
+                  <span
+                    className="px-2 py-1 transition-colors"
+                    style={{
+                      background: !showAlertTimesOnCharts ? "rgba(255,255,255,0.12)" : "transparent",
+                      color: !showAlertTimesOnCharts ? "var(--foreground)" : "var(--muted)",
+                    }}
+                  >
+                    OFF
+                  </span>
+                </button>
+                <button
+                  onClick={() => { setAlertsModalView("ativos"); setAlertsModalOpen(true); }}
+                  aria-label="Ver alertas do paciente"
+                  title="Ver alertas do paciente"
+                  className="relative flex items-center justify-center shrink-0 hover:opacity-80 transition-opacity"
+                >
+                  <Image src="/monitor.png" alt="" width={24} height={24} />
+                  {patientAlertCount > 0 && (
+                    <span
+                      className="absolute -top-1.5 -right-2 min-w-[16px] h-[16px] flex items-center justify-center rounded-full text-[9px] font-bold px-1"
+                      style={{ background: "var(--status-critical)", color: "#fff" }}
+                    >
+                      {patientAlertCount}
+                    </span>
+                  )}
+                </button>
+              </div>
+            )}
+            </Fragment>
           );
         })}
 
@@ -1049,7 +1341,16 @@ function PatientContent({ id }: { id: string }) {
       <div className={`flex-1 min-h-0 overflow-y-auto flex items-start gap-4 px-6 pb-6 min-w-0 ${tab === "sinais-vitais" ? "pt-2" : "pt-6"}`}>
         <div className="flex-1 min-w-0">
           {tab === "sinais-vitais" && (
-            <SinaisVitaisTab internacao={internacao} slotMin={slotMin} windowMs={windowMs} view={view} cardsVisible={cardsVisible} chartLayout={chartLayout} />
+            <SinaisVitaisTab
+              internacao={internacao}
+              slotMin={slotMin}
+              windowMs={windowMs}
+              view={view}
+              cardsVisible={cardsVisible}
+              chartLayout={chartLayout}
+              alerts={patientAlerts}
+              showAlertTimesOnCharts={isAntonio && showAlertTimesOnCharts}
+            />
           )}
           {tab === "ews" && (
             <EWSTab internacao={internacao} slotMin={slotMin} />

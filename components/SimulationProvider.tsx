@@ -3,17 +3,9 @@
 import { useEffect } from "react";
 import { useSimulationStore } from "@/store/simulation";
 import { useAlertStore } from "@/store/alerts";
-import { currentSlotValues } from "@/lib/simulation/vitals";
-import { calculateEWS, type NivelConsciencia } from "@/lib/ews";
+import { currentSlotValues, CARD_SLOT_MINUTES } from "@/lib/simulation/vitals";
+import { ALARM_VITAL_KEYS } from "@/lib/vitalAlarm";
 import type { Alert } from "@/lib/simulation/types";
-
-const VITAL_META = [
-  { key: "fr"   as const, label: "FR",   unit: "rpm",  fmt: (v: number | NivelConsciencia) => `${v} rpm`  },
-  { key: "pas"  as const, label: "PAS",  unit: "mmHg", fmt: (v: number | NivelConsciencia) => `${v} mmHg` },
-  { key: "fc"   as const, label: "FC",   unit: "bpm",  fmt: (v: number | NivelConsciencia) => `${v} bpm`  },
-  { key: "temp" as const, label: "TEMP", unit: "°C",   fmt: (v: number | NivelConsciencia) => `${v} °C`   },
-  { key: "nc"   as const, label: "NC",   unit: "",     fmt: (v: number | NivelConsciencia) => `${v}`      },
-];
 
 const TICK_INTERVAL_MS = 15_000;
 
@@ -40,18 +32,29 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
 
     type Item = Omit<Alert, "id" | "firedAt" | "status">;
     const items: Item[] = [];
-    const criticalIds: string[] = [];
 
     if (uti02) {
+      // Cada parâmetro fora do Limite de Alarme é um alerta independente (CONTEXT.md § Alertas)
       items.push({
         type: "sinal-vital",
         internacaoId: uti02.id,
         patientName: uti02.patient.name,
         bedLabel: "UTI-02",
         unit: "uti",
-        message: "FR 27 rpm · PAS 84 mmHg · NC Confuso",
+        message: "FR 32 rpm — fora do Limite de Alarme",
+        parametro: "fr",
+        valor: 32,
       });
-      criticalIds.push(uti02.id);
+      items.push({
+        type: "sinal-vital",
+        internacaoId: uti02.id,
+        patientName: uti02.patient.name,
+        bedLabel: "UTI-02",
+        unit: "uti",
+        message: "PAS 84 mmHg — fora do Limite de Alarme",
+        parametro: "pas",
+        valor: 84,
+      });
     }
 
     if (enf01) {
@@ -76,35 +79,30 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
       });
     }
 
-    seedDemoAlerts(items, criticalIds);
+    seedDemoAlerts(items);
   }, [seedDemoAlerts]);
 
   useEffect(() => {
     const id = setInterval(() => {
       advance();
 
-      // Build vitals snapshot for alert engine
+      // Build vitals snapshot for alert engine — sempre o Slot Temporal fixo do
+      // sistema (CARD_SLOT_MINUTES), nunca a granularidade que uma tela escolheu exibir.
       const snapshot = Object.values(
         useSimulationStore.getState().internacoes
       ).map((inv) => {
         const b = useSimulationStore.getState().beds.find((b) => b.internacaoId === inv.id);
-
-        const vitals = currentSlotValues(inv.rawHistory, 15, Date.now());
-        const ews = calculateEWS(vitals);
-        const altered = VITAL_META
-          .filter((m) => ews.scores[m.key] >= 2)
-          .map((m) => `${m.label} ${m.fmt(vitals[m.key])}`);
-        const criticalMessage = altered.length
-          ? altered.join(" · ")
-          : "Sinais vitais críticos — EWS elevado";
+        const vitals = currentSlotValues(inv.rawHistory, CARD_SLOT_MINUTES, Date.now());
 
         return {
           id: inv.id,
           patientName: inv.patient.name,
           bedLabel: b?.label ?? inv.bedId,
           unit: inv.unit,
-          currentStatus: inv.currentStatus,
-          criticalMessage,
+          vitals: Object.fromEntries(ALARM_VITAL_KEYS.map((k) => [k, vitals[k]])) as Record<
+            (typeof ALARM_VITAL_KEYS)[number],
+            number
+          >,
         };
       });
       checkVitalAlerts(snapshot);

@@ -42,6 +42,10 @@ _Evitar_: Glasgow, escala de coma (é AVPU, uma escala distinta e mais simples)
 Pontuação calculada a partir de FR, PAS, FC, TEMP e Nível de Consciência (NC) usando a tabela MEWS institucional. SpO₂ não entra na conta. Escala de 0–15. Pertence à Internação, calculado sobre o Slot Temporal ativo (exceto o componente NC, que usa o estado categórico atual).
 _Evitar_: Score, pontuação, índice, NEWS2 (a tabela em uso é MEWS)
 
+**Limite de Alarme**:
+Faixa por parâmetro (FR, PAS, FC, TEMP, SpO₂) que, ultrapassada na leitura do Slot Temporal fixo do sistema (15 min, independente de qualquer seletor de granularidade que uma tela específica esteja exibindo), dispara um Alerta de Sinal Vital Crítico para aquele parâmetro. Conceito totalmente desacoplado do Escore EWS — não é a tabela MEWS nem os limiares visuais de severidade usados para colorir cards/gráficos (`vitalSeverity`), que continuam existindo à parte e não mudam com isto. SpO₂ tem Limite de Alarme mesmo não pontuando no Escore EWS. NC não tem Limite de Alarme — não é lido pelo dispositivo.
+_Evitar_: Limiar clínico, faixa de normalidade, limite crítico (confundem com `vitalSeverity` ou com a tabela MEWS)
+
 **Status Clínico**:
 Classificação qualitativa derivada do Escore EWS. Regras: 0–3 → Estável; 4 → Atenção; 5–6 → Risco Elevado; ≥7 → Crítico. Não há regra de exceção por sinal individual — depende só da soma total.
 _Evitar_: Estado, condição, situação; Baixo/Moderado/Alto (nomenclatura de 3 níveis descontinuada — a classificação em uso tem 4 níveis, apesar do nome coincidir com o do NEWS2 a tabela de pontuação continua sendo a MEWS)
@@ -64,7 +68,7 @@ _Evitar_: Mapa de calor por hora, matriz de correlação
 
 **Alerta**:
 Notificação disparada automaticamente por evento clínico ou operacional. Pertence à Internação. Quatro tipos com comportamentos distintos ao ser respondido:
-- **Sinal Vital Crítico**: "Ação tomada" move para histórico, mas a insígnia do Leito só desaparece quando o Sinal Vital normalizar. Pode disparar novamente para o mesmo paciente.
+- **Sinal Vital Crítico**: dispara quando um parâmetro ultrapassa seu Limite de Alarme. Cada parâmetro fora do limite é um Alerta independente — dois parâmetros simultâneos (ex.: FC e PAS) são dois Alertas separados, cada um com título dinâmico por parâmetro (ex.: "FC Crítica") e reconhecido individualmente. Nunca duplica enquanto ativo. Encerra de três formas: "Ação Tomada", "Falso Positivo" (ambos por escolha do profissional) ou normalização automática (o valor volta ao normal sozinho, sem exigir ação de ninguém). O histórico não distingue qual das três encerrou — mostra só o alerta e a data/hora. Regra de novo disparo para o mesmo parâmetro: sem carência após "Falso Positivo" ou normalização automática (dispara na hora se sair do limite de novo); após "Ação Tomada", só dispara de novo se o valor passar por normal antes de piorar de novo (episódio novo, dispara na hora) ou, caso nunca normalize entre o clique e a leitura seguinte, somente depois de completar 60min desde o disparo original (evita duplicar a mesma crise ainda em andamento).
 - **Medicação por Alergia / Medicação Atrasada**: "Ação tomada" move para histórico e remove a insígnia do Leito.
 - **Previsão de Alta**: dois botões — "Confirmar alta" e "Manter internado". Ambos movem para histórico e removem a insígnia. Pode disparar novamente para o mesmo paciente se o modelo voltar a identificar probabilidade de alta.
 _Evitar_: Notificação, aviso, evento
@@ -147,3 +151,6 @@ Tema base: dark mode global. Referência visual: Vercel dashboard — fundo quas
 
 > Dev: "Vou aplicar a mesma regra de 'última leitura válida' no Nível de Consciência também, igual aos outros parâmetros do Escore."
 > Domínio: "Não — NC não é medido por sensor, é avaliado pela enfermagem de tempo em tempo. Sempre foi o estado atual, e continua sendo — a mudança de regra dos demais sinais vitais não afeta o NC."
+
+> Dev: "O paciente clicou 'Ação Tomada' no alerta de FC, mas o próximo valor ainda veio fora do Limite de Alarme. Vou disparar um novo alerta."
+> Domínio: "Não ainda — se o valor nunca passou por normal desde o disparo original, é a mesma crise continuando, não um evento novo. Só dispara de novo depois de completar 60min do disparo original. Agora, se o valor tivesse normalizado em algum momento e piorado de novo depois — mesmo dentro dessa primeira hora — aí sim é um episódio novo e dispara na hora."

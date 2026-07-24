@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import type { SlotReading } from "@/lib/simulation/types";
+import type { Alert, SlotReading } from "@/lib/simulation/types";
+import type { AlarmVitalKey } from "@/lib/vitalAlarm";
 import { VitalChartCard, VITALS_CFG } from "./VitalsChart";
 import { EWSScoreChart } from "./EWSScoreChart";
 import { Icon } from "./ui/Icon";
@@ -33,12 +34,16 @@ interface Props {
   layout?: "linha" | "matriz";
   compact?: boolean;
   chartHeight?: number;
+  alertSlotLabels?: Map<number, string>;
+  // Alertas de sinal-vital por parâmetro, indexados pelo slot exibido — só o
+  // gráfico do parâmetro responsável recebe o dele (ver VitalChartCard).
+  vitalAlertSlotMap?: Partial<Record<AlarmVitalKey, Map<number, Alert>>>;
 }
 
 // Permite arrastar e reordenar os gráficos de Sinais Vitais (EWS + 5 vitais),
 // tanto em Linha (empilhados, largura total) quanto em Matriz (grid 2 colunas,
 // ajustado à página) — o arrasto funciona igual nos dois layouts.
-export function ReorderableVitalsCharts({ slots, syncId, layout = "linha", compact = false, chartHeight }: Props) {
+export function ReorderableVitalsCharts({ slots, syncId, layout = "linha", compact = false, chartHeight, alertSlotLabels, vitalAlertSlotMap }: Props) {
   const [order, setOrder] = useState<ChartId[]>(DEFAULT_ORDER);
   const [draggedId, setDraggedId] = useState<ChartId | null>(null);
   const [dragOverId, setDragOverId] = useState<ChartId | null>(null);
@@ -91,6 +96,7 @@ export function ReorderableVitalsCharts({ slots, syncId, layout = "linha", compa
                 collapsible={!compact}
                 highlight={compact}
                 chartHeight={chartHeight}
+                alertSlotLabels={alertSlotLabels}
               />
             ) : (
               <VitalChartCard
@@ -100,6 +106,7 @@ export function ReorderableVitalsCharts({ slots, syncId, layout = "linha", compa
                 headerExtra={<DragHandle />}
                 compact={compact}
                 chartHeight={chartHeight}
+                alertSlotMap={vitalAlertSlotMap?.[id as AlarmVitalKey]}
               />
             )}
           </div>

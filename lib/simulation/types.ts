@@ -1,3 +1,5 @@
+import type { AlarmVitalKey } from "../vitalAlarm";
+
 export type UnitId = "pronto-socorro" | "enfermaria" | "centro-cirurgico" | "uti";
 export type UtiTipo = "adulto" | "neonatal" | "pediatrica";
 export type StatusClinico = "Estável" | "Atenção" | "Risco Elevado" | "Crítico";
@@ -85,12 +87,17 @@ export interface Bed {
 // ─── Alert types ──────────────────────────────────────────────────────────────
 
 export type AlertType =
-  | "sinal-vital"  // EWS atinge Risco Elevado/Crítico (score ≥ 5); badge clears when status normaliza
+  | "sinal-vital"  // parâmetro cruza o Limite de Alarme do dispositivo (independente do Escore EWS)
   | "medicacao"    // scripted delayed medication; badge clears on acknowledge
   | "alta";        // scripted discharge prediction; badge clears on acknowledge, can re-fire
 // Note: hasPump on Internacao is the visual pump indicator — not an alert type
 
 export type AlertStatus = "active" | "dismissed" | "auto-cleared";
+
+// Como um alerta de sinal-vital foi encerrado por um humano — uso interno pra
+// decidir a regra de carência de re-disparo (ver store/alerts.ts), não é
+// exibido na UI de histórico (CONTEXT.md § Alertas).
+export type VitalAlertResolution = "acao-tomada" | "falso-positivo";
 
 export interface Alert {
   id: string;
@@ -103,5 +110,8 @@ export interface Alert {
   firedAt: number;
   status: AlertStatus;
   dismissedAt?: number;
-  dismissAction?: string; // free-text action taken
+  dismissAction?: string; // free-text action taken — só medicacao/alta
+  parametro?: AlarmVitalKey; // só type === "sinal-vital"
+  valor?: number;                                    // valor que cruzou o Limite de Alarme
+  resolvidoComo?: VitalAlertResolution;               // só type === "sinal-vital"
 }

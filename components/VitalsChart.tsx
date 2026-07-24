@@ -4,8 +4,9 @@ import {
   AreaChart, Area, XAxis, YAxis, Tooltip,
   ResponsiveContainer, CartesianGrid, LabelList,
 } from "recharts";
-import type { SlotReading } from "@/lib/simulation/types";
+import type { Alert, SlotReading } from "@/lib/simulation/types";
 import { vitalSeverity, VITAL_SEVERITY_COLOR } from "@/lib/vitalSeverity";
+import { ALARM_UNIT } from "@/lib/vitalAlarm";
 
 function scoreVal(key: string, v: number): number {
   return vitalSeverity(key, v);
@@ -16,12 +17,28 @@ const [, ALERT_YELLOW, ALERT_RED] = VITAL_SEVERITY_COLOR;
 // ─── Custom dot ──────────────────────────────────────────────────────────────
 
 function VitalDot({
-  cx, cy, value, vitalKey, vitalColor,
+  cx, cy, value, vitalKey, isAlert,
 }: {
   cx?: number; cy?: number; value?: number;
-  vitalKey: string; vitalColor: string;
+  vitalKey: string; vitalColor: string; isAlert?: boolean;
 }) {
   if (cx == null || cy == null || value == null) return null;
+
+  // Marca de horário de alerta (toggle "Alertas" ligado) sobrepõe a cor de severidade —
+  // é o ponto onde o alerta disparou, independente do valor estar ou não em faixa crítica.
+  if (isAlert) {
+    return (
+      <g>
+        <circle cx={cx} cy={cy} r={8} fill={ALERT_RED} fillOpacity={0.3}>
+          <animate attributeName="r"       values="4;10;4"    dur="1s" repeatCount="indefinite" />
+          <animate attributeName="opacity" values="0.6;0;0.6" dur="1s" repeatCount="indefinite" />
+        </circle>
+        <circle cx={cx} cy={cy} r={4} fill={ALERT_RED}>
+          <animate attributeName="opacity" values="1;0.4;1" dur="1s" repeatCount="indefinite" />
+        </circle>
+      </g>
+    );
+  }
 
   const score = scoreVal(vitalKey, value);
 
@@ -136,9 +153,12 @@ interface CardProps {
   compact?: boolean;
   headerExtra?: React.ReactNode;
   chartHeight?: number;
+  // Alertas de sinal-vital do PRÓPRIO parâmetro deste gráfico, indexados pelo slot
+  // exibido — pisca só aqui, nunca nos outros vitais (CONTEXT.md § Alertas).
+  alertSlotMap?: Map<number, Alert>;
 }
 
-export function VitalChartCard({ vital: v, slots, syncId, compact = false, headerExtra, chartHeight: chartHeightProp }: CardProps) {
+export function VitalChartCard({ vital: v, slots, syncId, compact = false, headerExtra, chartHeight: chartHeightProp, alertSlotMap }: CardProps) {
   const chartHeight = chartHeightProp ?? (compact ? 85 : 180);
   const { domain, ticks } = computeDomain(slots, v.key, v.absMin, v.absMax, v.step);
   const LabelComp = makeLabel(v.key, v.color);
@@ -166,7 +186,7 @@ export function VitalChartCard({ vital: v, slots, syncId, compact = false, heade
           <XAxis
             dataKey="t"
             tickFormatter={fmtTime}
-            tick={{ fontSize: 10, fill: "var(--muted)" }}
+            tick={{ fontSize: 12, fill: "var(--muted)" }}
             tickLine={false}
             axisLine={false}
             interval="preserveStartEnd"
@@ -175,7 +195,7 @@ export function VitalChartCard({ vital: v, slots, syncId, compact = false, heade
           <YAxis
             domain={domain}
             ticks={ticks}
-            tick={{ fontSize: 10, fill: "var(--muted)" }}
+            tick={{ fontSize: 12, fill: "var(--muted)" }}
             tickLine={false}
             axisLine={false}
             width={40}
@@ -184,15 +204,23 @@ export function VitalChartCard({ vital: v, slots, syncId, compact = false, heade
             isAnimationActive={false}
             content={({ active, payload, label }) => {
               if (!active || !payload?.[0]) return null;
+              const alert = alertSlotMap?.get(label as number);
               return (
                 <div
                   className="text-xs px-2 py-1 rounded"
                   style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
                 >
-                  <span style={{ color: "var(--muted)" }}>{fmtTime(label as number)}</span>
-                  <span className="ml-2 font-semibold" style={{ color: v.color }}>
-                    {(payload[0].value as number).toFixed(1)} {v.unit}
-                  </span>
+                  <div>
+                    <span style={{ color: "var(--muted)" }}>{fmtTime(label as number)}</span>
+                    <span className="ml-2 font-semibold" style={{ color: v.color }}>
+                      {(payload[0].value as number).toFixed(1)} {v.unit}
+                    </span>
+                  </div>
+                  {alert && (
+                    <div className="mt-0.5 font-semibold" style={{ color: ALERT_RED }}>
+                      {`Alerta - ${alert.valor ?? ""}${ALARM_UNIT[v.key]} às ${fmtTime(alert.firedAt)}`}
+                    </div>
+                  )}
                 </div>
               );
             }}
@@ -212,6 +240,7 @@ export function VitalChartCard({ vital: v, slots, syncId, compact = false, heade
                 value={props.value}
                 vitalKey={v.key}
                 vitalColor={v.color}
+                isAlert={alertSlotMap?.has((props.payload as SlotReading)?.t)}
               />
             )}
             activeDot={{ r: 4, fill: v.color }}

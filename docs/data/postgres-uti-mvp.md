@@ -125,8 +125,8 @@ CREATE INDEX avaliacoes_internacao_idx ON avaliacoes_consciencia (internacao_id,
 
 Guarda o ciclo de vida inteiro do alerta, não só o clique do botão — são dois momentos distintos, gravados na mesma linha:
 
-- **Disparo (INSERT automático)** — feito pelo sistema, sem intervenção humana, quando o EWS calculado cruza o limiar de Risco Elevado/Crítico (equivalente ao `fireAlert()` que já existe em `store/simulation.ts`, rodando no backend em vez do client). O alerta já nasce "ativo".
-- **Resposta (UPDATE humano)** — só preenchido quando o médico/enfermeiro aperta "Ação tomada" na UI. Antes disso essas colunas ficam `NULL`.
+- **Disparo (INSERT automático)** — feito pelo sistema, sem intervenção humana, quando um **parâmetro individual** (FR, PAS, FC, TEMP ou SpO₂) cruza seu Limite de Alarme na leitura do Slot Temporal fixo de 15 min (`CONTEXT.md` § Limite de Alarme — conceito desacoplado do Escore EWS, que continua calculado à parte e não influencia o disparo). Cada parâmetro fora do limite gera uma linha independente — dois parâmetros simultâneos (ex.: FC e PAS) são duas linhas, não uma. O alerta já nasce "ativo" e nunca duplica enquanto ativo (equivalente ao `checkVitalAlerts()` que já existe em `store/alerts.ts`, rodando no backend a cada nova leitura em vez de num tick client-side).
+- **Resposta (UPDATE humano)** — preenchido quando o profissional aperta "Ação Tomada" ou "Falso Positivo" na UI, ou automaticamente quando o valor normaliza sozinho antes de qualquer clique. Antes disso essas colunas ficam `NULL`.
 
 Só o tipo `sinal-vital` é gerado pelo pipeline da UTI hoje. `medicacao` e `alta` estão no CHECK porque são os mesmos três tipos do domínio (`CONTEXT.md` § Alertas), mas nada aqui ainda os dispara — ficam pra quando FAR/HIS entrarem (ver `docs/data/requisitos-integracao.md`).
 
@@ -135,24 +135,31 @@ CREATE TABLE alertas (
     id              BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     internacao_id   BIGINT NOT NULL REFERENCES internacoes(id),
     tipo            TEXT NOT NULL DEFAULT 'sinal-vital',
+    parametro       TEXT,              -- 'fr'|'spo2'|'pas'|'fc'|'temp' — só em tipo = 'sinal-vital'
+    valor_leitura   NUMERIC(5,1),      -- valor que cruzou o Limite de Alarme — só em tipo = 'sinal-vital'
     mensagem        TEXT NOT NULL,
 
     -- disparo: automático, gravado pelo sistema no momento em que o alerta nasce
     disparado_em    TIMESTAMPTZ NOT NULL DEFAULT now(),
 
-    -- resposta: humano, gravado só quando alguém aperta "Ação tomada" — NULL até lá
+    -- resposta: humano ou automática (normalização) — NULL até o alerta ser encerrado
     reconhecido_em  TIMESTAMPTZ,
     reconhecido_por TEXT,
-    acao_tomada     TEXT,
+    resolvido_como  TEXT,              -- 'acao-tomada'|'falso-positivo'|'auto-clear' — uso interno
+                                        -- pra regra de carência de re-disparo, não exibido na UI de histórico
 
-    CONSTRAINT alertas_tipo_chk CHECK (tipo IN ('sinal-vital','medicacao','alta'))
+    CONSTRAINT alertas_tipo_chk CHECK (tipo IN ('sinal-vital','medicacao','alta')),
+    CONSTRAINT alertas_parametro_chk CHECK (parametro IS NULL OR parametro IN ('fr','spo2','pas','fc','temp')),
+    CONSTRAINT alertas_resolvido_chk CHECK (resolvido_como IS NULL OR resolvido_como IN ('acao-tomada','falso-positivo','auto-clear'))
 );
 
 CREATE INDEX alertas_internacao_idx ON alertas (internacao_id, disparado_em DESC);
-CREATE INDEX alertas_ativos_idx ON alertas (internacao_id) WHERE reconhecido_em IS NULL;
+CREATE INDEX alertas_ativos_idx ON alertas (internacao_id, parametro) WHERE reconhecido_em IS NULL;
 ```
 
-`reconhecido_em` preenchido é só "ação tomada" — não é o mesmo que "sinal vital normalizou". Pela regra do domínio (Alerta de Sinal Vital: badge some só quando o sinal normaliza, e pode disparar de novo), a insígnia do leito na UI continua sendo derivada do EWS atual, não só da existência de um alerta reconhecido. Isso é lógica de leitura (comparar `internacoes` + última leitura/EWS com `alertas` abertos), não uma coluna nova.
+Regra de re-disparo pro mesmo `(internacao_id, parametro)` depois de encerrado (ver `CONTEXT.md` § Alertas para o racional completo): sem carência se `resolvido_como` for `'falso-positivo'` ou `'auto-clear'` (dispara na hora se sair do limite de novo); com carência de 60 min contados de `disparado_em` (não de `reconhecido_em`) se for `'acao-tomada'` — carência é descartada assim que aparecer uma leitura dentro do limite antes da próxima piora. Isso é lógica de aplicação (calculada a cada nova leitura em `leituras_sinais_vitais`), não uma constraint de banco.
+
+A insígnia do leito na UI é derivada diretamente da existência de alertas abertos (`reconhecido_em IS NULL`) pra aquela internação — não do Escore EWS.
 
 ### `predicoes_ews`
 
