@@ -25,6 +25,43 @@ function statusColor(total: number): string {
   return "#2F9E44"; // Estável
 }
 
+// Predição sempre em azul — diferencia visualmente de qualquer Status Clínico
+// (que já usa verde/amarelo/laranja/vermelho pro histórico).
+const FORECAST_COLOR = "#3b82f6";
+
+// ─── Predição (próximas 2h) ───────────────────────────────────────────────────
+// ewsForecast vem em passos de 5min ancorados no Date.now() do momento do seed
+// (ver seed.ts), não no relógio (bucket de 30min) do último ponto histórico —
+// por isso plotamos em marcos limpos de 30/60/90/120min a partir do último
+// ponto histórico (t "de exibição"), usando o valor do forecast bruto mais
+// próximo de cada marco. Sem isso o eixo mostrava um horário torto (ex.: 11:11
+// em vez de 11:30) porque a grade dos dois vinha de âncoras diferentes.
+const EWS_FORECAST_HORIZON_MS = 2 * 3_600_000;
+const EWS_FORECAST_STEP_MS = 30 * 60_000;
+
+interface EwsForecastPoint { t: number; ews: number }
+
+function buildForecastPoints(
+  forecast: EwsForecastPoint[] | undefined,
+  lastHistT: number | undefined
+): { t: number; ewsForecastTotal: number }[] {
+  if (!forecast?.length || lastHistT == null) return [];
+  const steps = Math.round(EWS_FORECAST_HORIZON_MS / EWS_FORECAST_STEP_MS);
+
+  const points: { t: number; ewsForecastTotal: number }[] = [];
+  for (let k = 1; k <= steps; k++) {
+    const targetT = lastHistT + k * EWS_FORECAST_STEP_MS;
+    let closest = forecast[0];
+    let bestDiff = Math.abs(closest.t - targetT);
+    for (const f of forecast) {
+      const diff = Math.abs(f.t - targetT);
+      if (diff < bestDiff) { closest = f; bestDiff = diff; }
+    }
+    points.push({ t: targetT, ewsForecastTotal: closest.ews });
+  }
+  return points;
+}
+
 // ─── Domain dinâmico ─────────────────────────────────────────────────────────
 // Piso de 8 (headroom o suficiente pra ver variação em torno de escores baixos/moderados).
 // Sobe de 2 em 2 sempre que algum valor da janela alcança o teto atual, até o máximo de 15.
@@ -33,10 +70,8 @@ const EWS_DOMAIN_FLOOR = 8;
 const EWS_DOMAIN_MAX = 15;
 const EWS_DOMAIN_STEP = 2;
 
-function computeEwsDomain(slots: SlotReading[]): [number, number] {
-  const vals = slots
-    .map((s) => s.ewsTotal)
-    .filter((v): v is number => v != null && !isNaN(v));
+function computeEwsDomain(rawVals: (number | null | undefined)[]): [number, number] {
+  const vals = rawVals.filter((v): v is number => v != null && !isNaN(v));
   const dataMax = vals.length > 0 ? Math.max(...vals) : 0;
 
   let top = EWS_DOMAIN_FLOOR;
@@ -73,6 +108,13 @@ function ScoreDot({ cx, cy, value, index, isAlert }: {
   return <circle key={`ews-dot-${index}`} cx={cx} cy={cy} r={3} fill={statusColor(value)} />;
 }
 
+function ForecastDot({ cx, cy, value, index }: {
+  cx?: number; cy?: number; value?: number; index?: number;
+}) {
+  if (cx == null || cy == null || value == null) return null;
+  return <circle key={`ews-fcast-dot-${index}`} cx={cx} cy={cy} r={3} fill={FORECAST_COLOR} />;
+}
+
 function makeScoreLabel() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return function ScoreLabel(props: any) {
@@ -97,8 +139,39 @@ function makeScoreLabel() {
   };
 }
 
+// skipIndex: índice da "ponte" (último ponto histórico, repetido também na série
+// de predição só pra linha nascer sem gap) — já tem dot/label pela linha histórica,
+// não deve ganhar um segundo aqui.
+function makeForecastLabel(skipIndex: number) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return function ForecastLabel(props: any) {
+    const { x, y, value, index } = props as { x?: string | number; y?: string | number; value?: unknown; index?: number };
+    if (index === skipIndex) return null;
+    const nx = typeof x === "string" ? parseFloat(x) : (x as number | undefined);
+    const ny = typeof y === "string" ? parseFloat(y) : (y as number | undefined);
+    const numVal = typeof value === "number" ? value : undefined;
+    if (nx == null || isNaN(nx) || ny == null || isNaN(ny) || numVal == null) return null;
+
+    return (
+      <text
+        x={nx}
+        y={ny - 10}
+        textAnchor="middle"
+        fontSize={12}
+        fontWeight={400}
+        fill={FORECAST_COLOR}
+      >
+        {numVal}
+      </text>
+    );
+  };
+}
+
 interface Props {
   slots: SlotReading[];
+  // Predição EWS das próximas 2h — mesma fonte usada na aba Predição EWS
+  // (internacao.ewsForecast). Sem forecast, o gráfico se comporta como antes.
+  forecast?: EwsForecastPoint[];
   syncId?: string;
   compact?: boolean;
   collapsible?: boolean;
@@ -108,10 +181,32 @@ interface Props {
   alertSlotLabels?: Map<number, string>;
 }
 
-export function EWSScoreChart({ slots, syncId, compact = false, collapsible = true, highlight = false, headerExtra, chartHeight: chartHeightProp, alertSlotLabels }: Props) {
+export function EWSScoreChart({ slots, forecast, syncId, compact = false, collapsible = true, highlight = false, headerExtra, chartHeight: chartHeightProp, alertSlotLabels }: Props) {
   const [collapsed, setCollapsed] = useState(false);
   const ScoreLabel = makeScoreLabel();
-  const [domainMin, domainMax] = computeEwsDomain(slots);
+
+  const lastHist = slots[slots.length - 1];
+  const forecastPoints = buildForecastPoints(forecast, lastHist?.t);
+  const hasForecast = forecastPoints.length > 0;
+  // Índice da "ponte" dentro de chartData — mesmo ponto do último dot/label histórico.
+  const bridgeIndex = slots.length - 1;
+  const ForecastLabel = makeForecastLabel(bridgeIndex);
+
+  // Ponte: o último ponto histórico ganha também um valor de ewsForecastTotal
+  // (igual ao seu próprio ewsTotal) pra linha pontilhada nascer exatamente onde
+  // a linha sólida termina, em vez de dar um salto/gap visual.
+  const chartData = [
+    ...slots.map((s, i) => ({
+      ...s,
+      ewsForecastTotal: (i === slots.length - 1 && hasForecast) ? s.ewsTotal : null,
+    })),
+    ...forecastPoints,
+  ];
+
+  const [domainMin, domainMax] = computeEwsDomain([
+    ...slots.map((s) => s.ewsTotal),
+    ...forecastPoints.map((f) => f.ewsForecastTotal),
+  ]);
   const ticks = computeEwsTicks(domainMax);
   const chartHeight = chartHeightProp ?? (compact ? 85 : 180);
   const isCollapsed = collapsible && collapsed;
@@ -122,6 +217,7 @@ export function EWSScoreChart({ slots, syncId, compact = false, collapsible = tr
       style={{ background: "var(--surface)", border: `1px solid ${highlight ? "var(--accent)" : "var(--border)"}` }}
     >
       <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center gap-2">
       {collapsible ? (
         <button
           onClick={() => setCollapsed((c) => !c)}
@@ -135,6 +231,14 @@ export function EWSScoreChart({ slots, syncId, compact = false, collapsible = tr
       ) : (
         <p className={compact ? "text-xs font-semibold" : "text-base font-semibold"}>Early Warning Score</p>
       )}
+      {/* Ao lado do título (não como subtítulo em linha própria) pra não crescer a
+          altura do card compacto da Matriz. */}
+      {hasForecast && !isCollapsed && (
+        <span className={compact ? "text-[9px] font-medium" : "text-xs font-medium"} style={{ color: FORECAST_COLOR }}>
+          — Predição EWS
+        </span>
+      )}
+      </div>
       {headerExtra}
       </div>
 
@@ -156,7 +260,7 @@ export function EWSScoreChart({ slots, syncId, compact = false, collapsible = tr
       <>
       <div className={compact ? "mt-1" : "mt-4"}>
       <ResponsiveContainer width="100%" height={chartHeight}>
-        <ComposedChart data={slots} syncId={syncId} margin={{ top: 18, right: 20, left: 0, bottom: 0 }}>
+        <ComposedChart data={chartData} syncId={syncId} margin={{ top: 18, right: 20, left: 0, bottom: 0 }}>
           <CartesianGrid stroke="rgba(255,255,255,0.04)" vertical={false} />
 
           <XAxis
@@ -182,7 +286,24 @@ export function EWSScoreChart({ slots, syncId, compact = false, collapsible = tr
             isAnimationActive={false}
             content={({ active, payload, label }) => {
               if (!active || !payload?.length) return null;
-              const slot = payload[0].payload as SlotReading;
+              const slot = payload[0].payload as SlotReading & { ewsForecastTotal?: number | null };
+
+              // Ponto de predição (sem leituras de sinais vitais associadas) — tooltip
+              // simplificado, só o valor previsto.
+              if (slot.fr == null) {
+                const val = slot.ewsForecastTotal;
+                if (val == null) return null;
+                return (
+                  <div
+                    className="text-xs px-2 py-1.5 rounded"
+                    style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
+                  >
+                    <span style={{ color: "var(--muted)" }}>{fmtTime(label as number)}</span>
+                    <span className="ml-2 font-bold" style={{ color: FORECAST_COLOR }}>EWS {val} (previsto)</span>
+                  </div>
+                );
+              }
+
               const ews = calculateEWS(slot);
               const rows = [
                 { label: "FR",   value: slot.fr.toFixed(1), score: ews.scores.fr },
@@ -243,6 +364,31 @@ export function EWSScoreChart({ slots, syncId, compact = false, collapsible = tr
           >
             <LabelList content={ScoreLabel} />
           </Line>
+
+          {hasForecast && (
+            <Line
+              dataKey="ewsForecastTotal"
+              stroke={FORECAST_COLOR}
+              strokeWidth={2}
+              strokeDasharray="5 3"
+              dot={(props) => {
+                if (props.index === bridgeIndex) return <g key={`ews-fcast-dot-${props.index}`} />;
+                return (
+                  <ForecastDot
+                    key={`ews-fcast-dot-${props.index}`}
+                    cx={props.cx}
+                    cy={props.cy}
+                    value={props.value}
+                    index={props.index}
+                  />
+                );
+              }}
+              isAnimationActive={false}
+              connectNulls={false}
+            >
+              <LabelList content={ForecastLabel} />
+            </Line>
+          )}
         </ComposedChart>
       </ResponsiveContainer>
       </div>

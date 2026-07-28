@@ -349,7 +349,7 @@ function ControlsBar({ slotMin, setSlotMin, windowMs, setWindowMs, view, setView
               border: `1px solid ${isExtended ? "rgba(77,171,247,0.4)" : "var(--border)"}`,
             }}
           >
-            {isExtended ? `${Math.round(windowMs / 3_600_000)}h` : "Escolher Janela"}
+            {isExtended ? `${Math.round(windowMs / 3_600_000)}h` : "Outros"}
           </button>
 
           {windowPickerOpen && (
@@ -528,6 +528,7 @@ function SinaisVitaisTab({ internacao, slotMin, windowMs, view, cardsVisible, ch
           <ReorderableVitalsCharts
             slots={slots}
             ewsSlots={ewsSlots}
+            ewsForecast={internacao.ewsForecast}
             syncId={`vitals-${internacao.id}`}
             layout={chartLayout}
             compact={isMatrix}
