@@ -242,20 +242,6 @@ export function EWSScoreChart({ slots, forecast, syncId, compact = false, collap
       {headerExtra}
       </div>
 
-      {/* Faixas de Status Clínico — evita confundir subida de valor com troca de
-          categoria (ex.: 5→6 continua Risco Elevado, não dispara Alerta de Escore). */}
-      {!compact && !isCollapsed && (
-        <p className="text-[11px] mt-0.5" style={{ color: "var(--muted)" }}>
-          <span style={{ color: "#2F9E44" }}>Estável 0–3</span>
-          {" · "}
-          <span style={{ color: "#F59F00" }}>Atenção 4</span>
-          {" · "}
-          <span style={{ color: "#F76707" }}>Risco Elevado 5–6</span>
-          {" · "}
-          <span style={{ color: "#F03E3E" }}>Crítico ≥7</span>
-        </p>
-      )}
-
       {!isCollapsed && (
       <>
       <div className={compact ? "mt-1" : "mt-4"}>
