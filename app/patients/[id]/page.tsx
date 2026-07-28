@@ -869,7 +869,10 @@ function PatientContent({ id }: { id: string }) {
   const [camOpen, setCamOpen]         = useState(false);
   const [camFullscreen, setCamFullscreen] = useState(false);
   const [panelOpen, setPanelOpen]     = useState(false);
-  const [recordPanel, setRecordPanel] = useState<null | "exames" | "prontuario">(null);
+  // Exames e Prontuário podem ficar abertos ao mesmo tempo, empilhados (Exames sempre acima) —
+  // cada um colapsa/expande de forma independente, sem fechar o outro.
+  const [recordOpen, setRecordOpen] = useState<{ exames: boolean; prontuario: boolean }>({ exames: false, prontuario: false });
+  const [recordCollapsed, setRecordCollapsed] = useState<{ exames: boolean; prontuario: boolean }>({ exames: false, prontuario: false });
   // Mostra o horário dos alertas do paciente sobreposto nos gráficos — só visual por enquanto
   const [showAlertTimesOnCharts, setShowAlertTimesOnCharts] = useState(false);
   const [alertsModalOpen, setAlertsModalOpen] = useState(false);
@@ -1012,11 +1015,11 @@ function PatientContent({ id }: { id: string }) {
 
             <div className="flex items-center gap-2 shrink-0">
               <button
-                onClick={() => setRecordPanel((p) => (p === "exames" ? null : "exames"))}
+                onClick={() => setRecordOpen((p) => ({ ...p, exames: !p.exames }))}
                 className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg transition-colors hover:bg-white/5"
                 style={{
-                  background: recordPanel === "exames" ? "var(--accent)" : "rgba(255,255,255,0.06)",
-                  color: recordPanel === "exames" ? "#fff" : "var(--muted)",
+                  background: recordOpen.exames ? "var(--accent)" : "rgba(255,255,255,0.06)",
+                  color: recordOpen.exames ? "#fff" : "var(--muted)",
                   border: "1px solid var(--border)",
                 }}
               >
@@ -1024,11 +1027,11 @@ function PatientContent({ id }: { id: string }) {
                 Exames
               </button>
               <button
-                onClick={() => setRecordPanel((p) => (p === "prontuario" ? null : "prontuario"))}
+                onClick={() => setRecordOpen((p) => ({ ...p, prontuario: !p.prontuario }))}
                 className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg transition-colors hover:bg-white/5"
                 style={{
-                  background: recordPanel === "prontuario" ? "var(--accent)" : "rgba(255,255,255,0.06)",
-                  color: recordPanel === "prontuario" ? "#fff" : "var(--muted)",
+                  background: recordOpen.prontuario ? "var(--accent)" : "rgba(255,255,255,0.06)",
+                  color: recordOpen.prontuario ? "#fff" : "var(--muted)",
                   border: "1px solid var(--border)",
                 }}
               >
@@ -1443,12 +1446,27 @@ function PatientContent({ id }: { id: string }) {
           )}
         </div>
 
-        {recordPanel && (
-          <PatientRecordPanel
-            mode={recordPanel}
-            patientName={internacao.patient.name}
-            onClose={() => setRecordPanel(null)}
-          />
+        {(recordOpen.exames || recordOpen.prontuario) && (
+          <div className="flex flex-col gap-4 shrink-0">
+            {recordOpen.exames && (
+              <PatientRecordPanel
+                mode="exames"
+                patientName={internacao.patient.name}
+                collapsed={recordCollapsed.exames}
+                onToggleCollapse={() => setRecordCollapsed((p) => ({ ...p, exames: !p.exames }))}
+                onClose={() => setRecordOpen((p) => ({ ...p, exames: false }))}
+              />
+            )}
+            {recordOpen.prontuario && (
+              <PatientRecordPanel
+                mode="prontuario"
+                patientName={internacao.patient.name}
+                collapsed={recordCollapsed.prontuario}
+                onToggleCollapse={() => setRecordCollapsed((p) => ({ ...p, prontuario: !p.prontuario }))}
+                onClose={() => setRecordOpen((p) => ({ ...p, prontuario: false }))}
+              />
+            )}
+          </div>
         )}
       </div>
 

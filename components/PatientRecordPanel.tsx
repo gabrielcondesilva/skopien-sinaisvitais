@@ -253,23 +253,25 @@ function ProntuarioContent() {
 interface Props {
   mode: "exames" | "prontuario";
   patientName: string;
+  collapsed: boolean;
+  onToggleCollapse: () => void;
   onClose: () => void;
 }
 
-export function PatientRecordPanel({ mode, patientName, onClose }: Props) {
+export function PatientRecordPanel({ mode, patientName, collapsed, onToggleCollapse, onClose }: Props) {
   return (
     <div
-      className="sticky top-6 shrink-0 flex flex-col rounded-lg overflow-hidden"
+      className="shrink-0 flex flex-col rounded-lg overflow-hidden"
       style={{
         width: 380,
-        maxHeight: "calc(100vh - 96px)",
+        maxHeight: collapsed ? undefined : "calc(100vh - 96px)",
         background: "var(--background)",
         border: "1px solid var(--border)",
       }}
     >
       <div
         className="flex items-center justify-between px-4 py-3 shrink-0"
-        style={{ borderBottom: "1px solid var(--border)", background: "var(--surface)" }}
+        style={{ borderBottom: collapsed ? "none" : "1px solid var(--border)", background: "var(--surface)" }}
       >
         <div className="flex items-center gap-2 min-w-0">
           <Icon name={mode === "exames" ? "flask" : "file-text"} size={15} color="var(--muted)" />
@@ -280,19 +282,31 @@ export function PatientRecordPanel({ mode, patientName, onClose }: Props) {
             <p className="text-[10px] truncate" style={{ color: "var(--muted)" }}>{patientName}</p>
           </div>
         </div>
-        <button
-          onClick={onClose}
-          aria-label="Fechar painel"
-          className="flex items-center justify-center w-6 h-6 rounded transition-colors hover:bg-white/10 shrink-0"
-          style={{ color: "var(--muted)" }}
-        >
-          ✕
-        </button>
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            onClick={onToggleCollapse}
+            aria-label={collapsed ? "Expandir painel" : "Recolher painel"}
+            className="flex items-center justify-center w-6 h-6 rounded transition-colors hover:bg-white/10"
+            style={{ color: "var(--muted)" }}
+          >
+            <Icon name={collapsed ? "chevron-down" : "chevron-up"} size={14} color="currentColor" />
+          </button>
+          <button
+            onClick={onClose}
+            aria-label="Fechar painel"
+            className="flex items-center justify-center w-6 h-6 rounded transition-colors hover:bg-white/10"
+            style={{ color: "var(--muted)" }}
+          >
+            ✕
+          </button>
+        </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-3">
-        {mode === "exames" ? <ExamesContent /> : <ProntuarioContent />}
-      </div>
+      {!collapsed && (
+        <div className="flex-1 overflow-y-auto p-3">
+          {mode === "exames" ? <ExamesContent /> : <ProntuarioContent />}
+        </div>
+      )}
     </div>
   );
 }
