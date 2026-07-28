@@ -1,7 +1,6 @@
 "use client";
 
 import { use, useState, useEffect, useLayoutEffect, useRef, Fragment } from "react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useShallow } from "zustand/react/shallow";
 import { AuthGuard } from "@/components/AuthGuard";
@@ -1313,9 +1312,10 @@ function PatientContent({ id }: { id: string }) {
                   onClick={() => { setAlertsModalView("ativos"); setAlertsModalOpen(true); }}
                   aria-label="Ver alertas do paciente"
                   title="Ver alertas do paciente"
-                  className="relative flex items-center justify-center shrink-0 hover:opacity-80 transition-opacity"
+                  className="relative flex items-center shrink-0 text-xs px-2.5 py-1 rounded transition-colors hover:opacity-80"
+                  style={{ background: "rgba(255,255,255,0.06)", color: "var(--muted)", border: "1px solid var(--border)" }}
                 >
-                  <Image src="/monitor.png" alt="" width={24} height={24} />
+                  Histórico
                   {patientAlertCount > 0 && (
                     <span
                       className="absolute -top-1.5 -right-2 min-w-[16px] h-[16px] flex items-center justify-center rounded-full text-[9px] font-bold px-1"
