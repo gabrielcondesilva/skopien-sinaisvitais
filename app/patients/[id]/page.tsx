@@ -14,6 +14,7 @@ import { CameraPlayer } from "@/components/CameraPlayer";
 import { FloatingCameraWindow } from "@/components/FloatingCameraWindow";
 import { SkinLesionTab, LESION_COUNT } from "@/components/SkinLesionTab";
 import { MedicationTab, MEDICATION_ALERT_COUNT } from "@/components/MedicationTab";
+import { VentiladorTab } from "@/components/VentiladorTab";
 import { PatientRecordPanel } from "@/components/PatientRecordPanel";
 import { ScorePill, BRADEN_COLOR } from "@/components/BedCard";
 import { AlertsPanel } from "@/components/AlertsPanel";
@@ -1428,6 +1429,8 @@ function PatientContent({ id }: { id: string }) {
                 alerts={patientAlerts}
                 showAlertTimesOnCharts={isAntonio && showAlertTimesOnCharts}
               />
+            ) : sinaisVitaisPage === "ventilador" ? (
+              <VentiladorTab internacao={internacao} />
             ) : (
               <div
                 className="flex items-center justify-center rounded-lg"
