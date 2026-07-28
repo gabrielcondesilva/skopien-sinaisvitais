@@ -836,14 +836,12 @@ function PatientContent({ id }: { id: string }) {
   const internacao = useSimulationStore((s) => s.internacoes[id] ?? null);
   const bed = useSimulationStore((s) => s.beds.find((b) => b.internacaoId === id) ?? null);
 
-  // Enfermaria (Antonio): abre direto no layout Matriz (grade compacta) — ver CHART_LAYOUT_DEFAULTS
-  const isEnfermariaCompact = isAntonio && internacao?.unit === "enfermaria";
-
   const [tab, setTab]                 = useState<Tab>("sinais-vitais");
-  const [slotMin, setSlotMin]         = useState<number>(() => CHART_LAYOUT_DEFAULTS[isEnfermariaCompact ? "matriz" : "linha"].slotMin);
-  const [windowMs, setWindowMs]       = useState<number>(() => CHART_LAYOUT_DEFAULTS[isEnfermariaCompact ? "matriz" : "linha"].windowMs);
+  // Default sempre Matriz — ver CHART_LAYOUT_DEFAULTS
+  const [slotMin, setSlotMin]         = useState<number>(() => CHART_LAYOUT_DEFAULTS.matriz.slotMin);
+  const [windowMs, setWindowMs]       = useState<number>(() => CHART_LAYOUT_DEFAULTS.matriz.windowMs);
   const [view, setView]               = useState<"graficos" | "heatmap">("graficos");
-  const [chartLayout, setChartLayout] = useState<"linha" | "matriz">(() => isEnfermariaCompact ? "matriz" : "linha");
+  const [chartLayout, setChartLayout] = useState<"linha" | "matriz">("matriz");
   const [cardsVisible, setCardsVisible] = useState(true);
   const [camOpen, setCamOpen]         = useState(false);
   const [camFullscreen, setCamFullscreen] = useState(false);
@@ -1290,22 +1288,6 @@ function PatientContent({ id }: { id: string }) {
           <div className="flex items-center gap-0.5 rounded-lg p-0.5 ml-auto" style={{ background: "rgba(255,255,255,0.06)" }}>
             <button
               onClick={() => {
-                setChartLayout("linha");
-                setSlotMin(CHART_LAYOUT_DEFAULTS.linha.slotMin);
-                setWindowMs(CHART_LAYOUT_DEFAULTS.linha.windowMs);
-              }}
-              aria-label="Ver gráficos em linha"
-              title="Linha — um gráfico abaixo do outro"
-              className="flex items-center justify-center w-6 h-6 rounded transition-colors"
-              style={{
-                background: chartLayout === "linha" ? "var(--accent)" : "transparent",
-                color: chartLayout === "linha" ? "#fff" : "var(--muted)",
-              }}
-            >
-              <Icon name="list" size={14} color="currentColor" />
-            </button>
-            <button
-              onClick={() => {
                 setChartLayout("matriz");
                 setSlotMin(CHART_LAYOUT_DEFAULTS.matriz.slotMin);
                 setWindowMs(CHART_LAYOUT_DEFAULTS.matriz.windowMs);
@@ -1319,6 +1301,22 @@ function PatientContent({ id }: { id: string }) {
               }}
             >
               <Icon name="layout-grid" size={14} color="currentColor" />
+            </button>
+            <button
+              onClick={() => {
+                setChartLayout("linha");
+                setSlotMin(CHART_LAYOUT_DEFAULTS.linha.slotMin);
+                setWindowMs(CHART_LAYOUT_DEFAULTS.linha.windowMs);
+              }}
+              aria-label="Ver gráficos em linha"
+              title="Linha — um gráfico abaixo do outro"
+              className="flex items-center justify-center w-6 h-6 rounded transition-colors"
+              style={{
+                background: chartLayout === "linha" ? "var(--accent)" : "transparent",
+                color: chartLayout === "linha" ? "#fff" : "var(--muted)",
+              }}
+            >
+              <Icon name="list" size={14} color="currentColor" />
             </button>
           </div>
         )}
