@@ -825,6 +825,29 @@ const TAB_LABELS: Record<Tab, string> = {
   "internacao":    "Predição de Internação",
 };
 
+// Sinais Vitais passa a ter 3 páginas internas — Monitor é a existente (gráficos
+// de sinais vitais), Ventilador e Bomba ainda serão construídas (placeholder).
+type SinaisVitaisPage = "monitor" | "ventilador" | "bomba";
+
+const SINAIS_VITAIS_PAGES: { key: SinaisVitaisPage; label: string }[] = [
+  { key: "monitor",    label: "Monitor" },
+  { key: "ventilador", label: "Ventilador" },
+  { key: "bomba",      label: "Bomba" },
+];
+
+// Separador "|" curto — igual ao que separa Slot e Janela na ControlsBar (altura
+// natural dos botões text-xs/py-1 de lá, ~24px). Altura fixa, não herda a altura
+// do botão de aba ao lado (senão iria da borda de baixo até a de cima da barra).
+function NavSeparator({ height = 24, className = "mx-6" }: { height?: number; className?: string }) {
+  return (
+    <span
+      aria-hidden
+      className={`shrink-0 ${className}`}
+      style={{ display: "inline-block", width: 1, height, background: "var(--border)" }}
+    />
+  );
+}
+
 function PatientContent({ id }: { id: string }) {
   const router = useRouter();
 
@@ -842,6 +865,7 @@ function PatientContent({ id }: { id: string }) {
   const [windowMs, setWindowMs]       = useState<number>(() => CHART_LAYOUT_DEFAULTS.matriz.windowMs);
   const [view, setView]               = useState<"graficos" | "heatmap">("graficos");
   const [chartLayout, setChartLayout] = useState<"linha" | "matriz">("matriz");
+  const [sinaisVitaisPage, setSinaisVitaisPage] = useState<SinaisVitaisPage>("monitor");
   const [cardsVisible, setCardsVisible] = useState(true);
   const [camOpen, setCamOpen]         = useState(false);
   const [camFullscreen, setCamFullscreen] = useState(false);
@@ -1188,15 +1212,40 @@ function PatientContent({ id }: { id: string }) {
 
       {/* ── Tab nav ── */}
       <div className="flex items-center px-6" style={{ borderBottom: "1px solid var(--border)" }}>
+        {/* Sinais Vitais: título + páginas Monitor/Ventilador/Bomba, mesmo padrão do Slot/Janela na ControlsBar */}
+        <div
+          className="flex items-center gap-2.5 px-4 py-3 text-sm"
+          style={{
+            color: tab === "sinais-vitais" ? "var(--foreground)" : "var(--muted)",
+            borderBottom: tab === "sinais-vitais" ? "2px solid var(--accent)" : "2px solid transparent",
+            marginBottom: "-1px",
+          }}
+        >
+          <span className="font-semibold" style={{ color: "var(--foreground)" }}>{TAB_LABELS["sinais-vitais"]}</span>
+          <div className="flex items-center gap-1.5 ml-2.5">
+            {SINAIS_VITAIS_PAGES.map((p) => (
+              <SelBtn
+                key={p.key}
+                active={tab === "sinais-vitais" && sinaisVitaisPage === p.key}
+                onClick={() => { setTab("sinais-vitais"); setSinaisVitaisPage(p.key); }}
+              >
+                {p.label}
+              </SelBtn>
+            ))}
+          </div>
+        </div>
+
         {(Object.keys(TAB_LABELS) as Tab[])
+          .filter((t) => t !== "sinais-vitais")
           .filter((t) => t !== "internacao" || internacao.unit === "pronto-socorro")
           .map((t) => {
           const active = tab === t;
           return (
             <Fragment key={t}>
+            <NavSeparator />
             <button
               onClick={() => setTab(t)}
-              className="flex items-center px-4 py-3 text-sm transition-colors"
+              className="flex items-center px-1 py-3 text-sm transition-colors"
               style={{
                 color: active ? "var(--foreground)" : "var(--muted)",
                 borderBottom: active ? "2px solid var(--accent)" : "2px solid transparent",
@@ -1208,7 +1257,7 @@ function PatientContent({ id }: { id: string }) {
                 {t === "lesao-pele" && (
                   <span
                     className="absolute -top-1.5 -right-2.5 min-w-[16px] h-[16px] flex items-center justify-center rounded-full text-[9px] font-bold px-1"
-                    style={{ background: "var(--accent)", color: "#fff" }}
+                    style={{ background: "var(--status-critical)", color: "#fff" }}
                   >
                     {LESION_COUNT}
                   </span>
@@ -1224,14 +1273,12 @@ function PatientContent({ id }: { id: string }) {
               </span>
             </button>
             {t === "medicamento" && isAntonio && (
+              <>
+              <NavSeparator />
               <div className="flex items-center gap-1">
                 <span
-                  className="flex items-center pl-4 pr-1.5 py-3 text-sm"
-                  style={{
-                    color: "var(--foreground)",
-                    borderBottom: "2px solid transparent",
-                    marginBottom: "-1px",
-                  }}
+                  className="flex items-center pr-1.5 text-sm"
+                  style={{ color: "var(--foreground)" }}
                 >
                   Alertas
                 </span>
@@ -1279,12 +1326,13 @@ function PatientContent({ id }: { id: string }) {
                   )}
                 </button>
               </div>
+              </>
             )}
             </Fragment>
           );
         })}
 
-        {isAntonio && tab === "sinais-vitais" && view === "graficos" && (
+        {isAntonio && tab === "sinais-vitais" && sinaisVitaisPage === "monitor" && view === "graficos" && (
           <div className="flex items-center gap-0.5 rounded-lg p-0.5 ml-auto" style={{ background: "rgba(255,255,255,0.06)" }}>
             <button
               onClick={() => {
@@ -1323,7 +1371,7 @@ function PatientContent({ id }: { id: string }) {
       </div>
 
       {/* ── Shared controls (view toggle + slot + window + legenda) ── */}
-      {tab !== "lesao-pele" && tab !== "medicamento" && (
+      {tab !== "lesao-pele" && tab !== "medicamento" && !(tab === "sinais-vitais" && sinaisVitaisPage !== "monitor") && (
         <ControlsBar
           slotMin={slotMin}
           setSlotMin={setSlotMin}
@@ -1365,16 +1413,25 @@ function PatientContent({ id }: { id: string }) {
       <div className={`flex-1 min-h-0 overflow-y-auto flex items-start gap-4 px-6 pb-6 min-w-0 ${tab === "sinais-vitais" ? "pt-2" : "pt-6"}`}>
         <div className="flex-1 min-w-0">
           {tab === "sinais-vitais" && (
-            <SinaisVitaisTab
-              internacao={internacao}
-              slotMin={slotMin}
-              windowMs={windowMs}
-              view={view}
-              cardsVisible={cardsVisible}
-              chartLayout={chartLayout}
-              alerts={patientAlerts}
-              showAlertTimesOnCharts={isAntonio && showAlertTimesOnCharts}
-            />
+            sinaisVitaisPage === "monitor" ? (
+              <SinaisVitaisTab
+                internacao={internacao}
+                slotMin={slotMin}
+                windowMs={windowMs}
+                view={view}
+                cardsVisible={cardsVisible}
+                chartLayout={chartLayout}
+                alerts={patientAlerts}
+                showAlertTimesOnCharts={isAntonio && showAlertTimesOnCharts}
+              />
+            ) : (
+              <div
+                className="flex items-center justify-center rounded-lg"
+                style={{ minHeight: 320, border: "1px dashed var(--border)", color: "var(--muted)" }}
+              >
+                Página em Desenvolvimento
+              </div>
+            )
           )}
           {tab === "ews" && (
             <EWSTab internacao={internacao} />
