@@ -327,6 +327,24 @@ export function EWSScoreChart({ slots, forecast, syncId, compact = false, collap
           <ReferenceLine y={4} stroke="#F59F00" strokeDasharray="3 3" strokeOpacity={0.4} />
           <ReferenceLine y={7} stroke="#F03E3E" strokeDasharray="3 3" strokeOpacity={0.5} />
 
+          {/* Divisor "agora" — mesmo padrão da página de Predição EWS (EWSForecastChart).
+              Eixo X aqui é categórico (valores de `t`), então o x precisa ser exatamente
+              o valor do ponto-ponte (último histórico == início da predição), não Date.now(). */}
+          {hasForecast && (
+            <ReferenceLine
+              x={lastHist.t}
+              stroke="rgba(255,255,255,0.2)"
+              strokeWidth={1}
+              label={{
+                value: "agora",
+                position: "insideTopRight",
+                fill: "#555",
+                fontSize: 9,
+                offset: 6,
+              }}
+            />
+          )}
+
           <Line
             dataKey="ewsTotal"
             stroke="#888888"
