@@ -7,6 +7,7 @@ import { AuthGuard } from "@/components/AuthGuard";
 import { Sidebar } from "@/components/Sidebar";
 import { TopBar } from "@/components/TopBar";
 import { VitalCard } from "@/components/VitalCard";
+import { VITALS_CFG } from "@/components/VitalsChart";
 import { VitalsHeatmap } from "@/components/VitalsHeatmap";
 import { ReorderableVitalsCharts } from "@/components/ReorderableVitalsCharts";
 import { EWSScoreChart } from "@/components/EWSScoreChart";
@@ -92,6 +93,13 @@ const WINDOW_OPTS = [
   { label: "3h",     ms: 10_800_000 },
   { label: "6h",     ms: 21_600_000 },
 ] as const;
+
+// Cor do título de cada card = cor da curva correspondente em ReorderableVitalsCharts
+// (VITALS_CFG, fonte única). NC não tem gráfico próprio — sem entrada aqui, cai no
+// cinza padrão do VitalCard.
+const VITAL_CHART_COLOR: Partial<Record<string, string>> = Object.fromEntries(
+  VITALS_CFG.map((v) => [v.key, v.color])
+);
 
 const VITALS = [
   { key: "fr"   as const, label: "FR",   unit: "rpm"  },
@@ -535,6 +543,7 @@ function SinaisVitaisTab({
                 max={minMax[v.key]?.max}
                 editOptions={v.key === "nc" ? NC_OPTIONS : undefined}
                 onEdit={v.key === "nc" ? (nc) => setNivelConsciencia(internacao.id, nc as NivelConsciencia) : undefined}
+                titleColor={VITAL_CHART_COLOR[v.key]}
               />
             ))}
           </div>

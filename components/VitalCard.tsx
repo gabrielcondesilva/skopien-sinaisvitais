@@ -13,9 +13,13 @@ interface Props {
   max?: number;
   editOptions?: readonly string[];
   onEdit?: (value: string) => void;
+  // Cor do gráfico que este vital representa (ver VITALS_CFG em VitalsChart.tsx) —
+  // deixa o título do card na mesma cor da curva correspondente. Sem gráfico
+  // associado (ex.: NC), cai no cinza padrão.
+  titleColor?: string;
 }
 
-export function VitalCard({ label, unit, value, score, min, max, editOptions, onEdit }: Props) {
+export function VitalCard({ label, unit, value, score, min, max, editOptions, onEdit, titleColor }: Props) {
   const color = VITAL_SEVERITY_COLOR[Math.min(score, 2)] ?? VITAL_SEVERITY_COLOR[0];
   const editable = !!editOptions && !!onEdit;
   const [open, setOpen] = useState(false);
@@ -38,7 +42,7 @@ export function VitalCard({ label, unit, value, score, min, max, editOptions, on
     >
       {/* Label · Min/Máx · editar — tudo na linha de cima, card fica mais baixo */}
       <div className="flex items-center justify-between gap-2">
-        <span className="text-sm" style={{ color: "var(--muted)" }}>{label}</span>
+        <span className="text-sm font-bold" style={{ color: titleColor ?? "var(--muted)" }}>{label}</span>
         <div className="flex items-center gap-2 shrink-0">
           {min !== undefined && max !== undefined && (
             <span className="text-[11px] whitespace-nowrap" style={{ color: "var(--muted)" }}>
