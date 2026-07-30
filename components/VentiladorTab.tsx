@@ -97,14 +97,16 @@ interface Props {
 
 // Grid dos 6 cards de parâmetros, isolado do resto da aba (gráficos, medição de
 // altura) pra poder ser reaproveitado na página de Monitor — Antonio pode trazer
-// esses cards pra lá via olhinho, sem duplicar GROUPS/paramValue.
-export function VentParamCardsRow({ internacao }: Props) {
+// esses cards pra lá via olhinho, sem duplicar GROUPS/paramValue. `className`
+// permite um grid mais compacto quando o card fica lado a lado com o painel de
+// Bomba (ver SectionPanel em app/patients/[id]/page.tsx).
+export function VentParamCardsRow({ internacao, className }: Props & { className?: string }) {
   const rawHistory = useSimulationStore((s) => s.internacoes[internacao.id]?.rawHistory ?? []);
   const simNow = rawHistory[rawHistory.length - 1]?.t ?? Date.now();
   const current = computeVentParams(internacao.id, simNow);
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+    <div className={className ?? "grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3"}>
       {GROUPS.map((g) => {
         const [leftItem, rightItem] = g.items;
         const toValue = (item: ParamCardCfg) => {

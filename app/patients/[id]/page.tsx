@@ -15,16 +15,19 @@ import { FloatingCameraWindow } from "@/components/FloatingCameraWindow";
 import { SkinLesionTab, LESION_COUNT } from "@/components/SkinLesionTab";
 import { MedicationTab, MEDICATION_ALERT_COUNT } from "@/components/MedicationTab";
 import { VentiladorTab, VentParamCardsRow } from "@/components/VentiladorTab";
+import { InfusionPumpsPanel } from "@/components/InfusionPumpsPanel";
 import { PatientRecordPanel } from "@/components/PatientRecordPanel";
 import { ScorePill, BRADEN_COLOR } from "@/components/BedCard";
 import { AlertsPanel } from "@/components/AlertsPanel";
 import { Icon } from "@/components/ui/Icon";
 import { StreamlineIcon, type IconName } from "@/components/ui/StreamlineIcon";
+import { SectionPanel } from "@/components/ui/SectionPanel";
 import { useSimulationStore } from "@/store/simulation";
 import { useSidebarStore } from "@/store/sidebar";
 import { useAlertStore } from "@/store/alerts";
 import { useAuthStore } from "@/store/auth";
 import { computeSlots, currentSlotValues, currentScoreVitals, computeScoreHistory, SCORE_WINDOW_MINUTES } from "@/lib/simulation/vitals";
+import { infusionPumpCount } from "@/lib/simulation/infusionPumps";
 import { calculateEWS } from "@/lib/ews";
 import { vitalSeverity } from "@/lib/vitalSeverity";
 import { ALARM_LABEL, alarmIconFor, type AlarmVitalKey } from "@/lib/vitalAlarm";
@@ -458,7 +461,7 @@ function useEnfermariaChartHeight(enabled: boolean) {
 
 function SinaisVitaisTab({
   internacao, slotMin, windowMs,
-  graficosVisible, heatmapVisible, monitorCardsVisible, ventCardsVisible,
+  graficosVisible, heatmapVisible, monitorCardsVisible, ventCardsVisible, bombaCardsVisible,
   chartLayout, alerts, showAlertTimesOnCharts,
 }: {
   internacao: Internacao | SurgicalInternacao;
@@ -468,6 +471,7 @@ function SinaisVitaisTab({
   heatmapVisible: boolean;
   monitorCardsVisible: boolean;
   ventCardsVisible: boolean;
+  bombaCardsVisible: boolean;
   chartLayout: "linha" | "matriz";
   alerts?: Alert[];
   showAlertTimesOnCharts?: boolean;
@@ -515,29 +519,65 @@ function SinaisVitaisTab({
 
   return (
     <div className="flex flex-col gap-2">
-      {/* Vital cards */}
-      {(!isAntonio || monitorCardsVisible) && (
-        <div className={isMatrix ? "flex gap-2" : "flex gap-3"}>
-          {VITALS.map((v) => (
-            <VitalCard
-              key={v.key}
-              label={v.label}
-              unit={v.unit}
-              value={current[v.key]}
-              score={vitalSeverity(v.key, current[v.key])}
-              min={minMax[v.key]?.min}
-              max={minMax[v.key]?.max}
-              editOptions={v.key === "nc" ? NC_OPTIONS : undefined}
-              onEdit={v.key === "nc" ? (nc) => setNivelConsciencia(internacao.id, nc as NivelConsciencia) : undefined}
-            />
-          ))}
-        </div>
-      )}
+      {/* Vital cards — pra Antonio, mesma caixa com título+emoji dos painéis de
+          Ventilador/Bomba (consistência visual entre os 3 olhinhos). */}
+      {(!isAntonio || monitorCardsVisible) && (() => {
+        const cards = (
+          <div className={isMatrix ? "flex gap-2" : "flex gap-3"}>
+            {VITALS.map((v) => (
+              <VitalCard
+                key={v.key}
+                label={v.label}
+                unit={v.unit}
+                value={current[v.key]}
+                score={vitalSeverity(v.key, current[v.key])}
+                min={minMax[v.key]?.min}
+                max={minMax[v.key]?.max}
+                editOptions={v.key === "nc" ? NC_OPTIONS : undefined}
+                onEdit={v.key === "nc" ? (nc) => setNivelConsciencia(internacao.id, nc as NivelConsciencia) : undefined}
+              />
+            ))}
+          </div>
+        );
+        return isAntonio ? (
+          <SectionPanel title="Monitor" icon={<StreamlineIcon name="monitor" size={15} />}>
+            {cards}
+          </SectionPanel>
+        ) : cards;
+      })()}
 
-      {/* Cards de Ventilador trazidos pra página de Monitor via olhinho — aparecem
-          logo abaixo dos cards de Monitor, mesmos 6 alinhados numa linha (Antonio). */}
-      {isAntonio && ventCardsVisible && (
-        <VentParamCardsRow internacao={internacao} />
+      {/* Ventilador e Bomba trazidos pra página de Monitor via olhinho — cada um
+          numa caixa própria (título + conteúdo), lado a lado quando os dois estão
+          visíveis, logo abaixo dos cards de Monitor (Antonio). */}
+      {isAntonio && (ventCardsVisible || bombaCardsVisible) && (
+        <div className="flex flex-col lg:flex-row gap-3 items-stretch">
+          {ventCardsVisible && (
+            <SectionPanel
+              className="flex-1 min-w-0"
+              title="Ventilador"
+              icon={<StreamlineIcon name="ventilador" size={15} />}
+            >
+              <VentParamCardsRow internacao={internacao} className="grid grid-cols-2 sm:grid-cols-3 gap-2.5" />
+            </SectionPanel>
+          )}
+          {bombaCardsVisible && (
+            <SectionPanel
+              className="flex-1 min-w-0"
+              title="Bombas de Infusão"
+              icon={<StreamlineIcon name="bomba_infusao" size={15} />}
+              badge={
+                <span
+                  className="text-[10px] font-medium px-2 py-0.5 rounded-full shrink-0"
+                  style={{ background: "rgba(255,255,255,0.06)", color: "var(--muted)" }}
+                >
+                  {infusionPumpCount(internacao.id)} drogas em curso
+                </span>
+              }
+            >
+              <InfusionPumpsPanel internacao={internacao} />
+            </SectionPanel>
+          )}
+        </div>
       )}
 
       {/* Linha: gráficos empilhados, largura total. Matriz: grid 2x3 ajustado à página.
@@ -1465,6 +1505,7 @@ function PatientContent({ id }: { id: string }) {
                 heatmapVisible={heatmapVisible}
                 monitorCardsVisible={monitorCardsVisible}
                 ventCardsVisible={ventCardsVisible}
+                bombaCardsVisible={bombaCardsVisible}
                 chartLayout={chartLayout}
                 alerts={patientAlerts}
                 showAlertTimesOnCharts={isAntonio && showAlertTimesOnCharts}
