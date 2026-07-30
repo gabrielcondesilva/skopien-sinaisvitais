@@ -14,7 +14,7 @@ import { CameraPlayer } from "@/components/CameraPlayer";
 import { FloatingCameraWindow } from "@/components/FloatingCameraWindow";
 import { SkinLesionTab, LESION_COUNT } from "@/components/SkinLesionTab";
 import { MedicationTab, MEDICATION_ALERT_COUNT } from "@/components/MedicationTab";
-import { VentiladorTab } from "@/components/VentiladorTab";
+import { VentiladorTab, VentParamCardsRow } from "@/components/VentiladorTab";
 import { PatientRecordPanel } from "@/components/PatientRecordPanel";
 import { ScorePill, BRADEN_COLOR } from "@/components/BedCard";
 import { AlertsPanel } from "@/components/AlertsPanel";
@@ -219,13 +219,19 @@ function SelBtn({ active, onClick, disabled, children }: {
 
 // ─── Shared controls bar (slot + window) ─────────────────────────────────────
 
-function ControlsBar({ slotMin, setSlotMin, windowMs, setWindowMs, view, setView, showViewToggle, legend }: {
+function ControlsBar({
+  slotMin, setSlotMin, windowMs, setWindowMs,
+  graficosVisible, setGraficosVisible, heatmapVisible, setHeatmapVisible,
+  showViewToggle, legend,
+}: {
   slotMin: number;
   setSlotMin: (v: number) => void;
   windowMs: number;
   setWindowMs: (v: number) => void;
-  view: "graficos" | "heatmap";
-  setView: (v: "graficos" | "heatmap") => void;
+  graficosVisible: boolean;
+  setGraficosVisible: (v: boolean) => void;
+  heatmapVisible: boolean;
+  setHeatmapVisible: (v: boolean) => void;
   showViewToggle: boolean;
   legend?: React.ReactNode;
 }) {
@@ -244,8 +250,8 @@ function ControlsBar({ slotMin, setSlotMin, windowMs, setWindowMs, view, setView
     >
       {showViewToggle && (
         <div className="flex items-center gap-1.5">
-          <SelBtn active={view === "graficos"} onClick={() => setView("graficos")}>Gráficos</SelBtn>
-          <SelBtn active={view === "heatmap"}  onClick={() => setView("heatmap")}>Heatmap</SelBtn>
+          <SelBtn active={graficosVisible} onClick={() => setGraficosVisible(!graficosVisible)}>Gráficos</SelBtn>
+          <SelBtn active={heatmapVisible}  onClick={() => setHeatmapVisible(!heatmapVisible)}>Heatmap</SelBtn>
         </div>
       )}
 
@@ -450,12 +456,18 @@ function useEnfermariaChartHeight(enabled: boolean) {
   return { gridRef, chartHeight };
 }
 
-function SinaisVitaisTab({ internacao, slotMin, windowMs, view, cardsVisible, chartLayout, alerts, showAlertTimesOnCharts }: {
+function SinaisVitaisTab({
+  internacao, slotMin, windowMs,
+  graficosVisible, heatmapVisible, monitorCardsVisible, ventCardsVisible,
+  chartLayout, alerts, showAlertTimesOnCharts,
+}: {
   internacao: Internacao | SurgicalInternacao;
   slotMin: number;
   windowMs: number;
-  view: "graficos" | "heatmap";
-  cardsVisible: boolean;
+  graficosVisible: boolean;
+  heatmapVisible: boolean;
+  monitorCardsVisible: boolean;
+  ventCardsVisible: boolean;
   chartLayout: "linha" | "matriz";
   alerts?: Alert[];
   showAlertTimesOnCharts?: boolean;
@@ -499,12 +511,12 @@ function SinaisVitaisTab({ internacao, slotMin, windowMs, view, cardsVisible, ch
   ) as Record<string, { min: number; max: number } | undefined>;
 
   const isMatrix = chartLayout === "matriz";
-  const { gridRef, chartHeight } = useEnfermariaChartHeight(isMatrix && view === "graficos");
+  const { gridRef, chartHeight } = useEnfermariaChartHeight(isMatrix && graficosVisible);
 
   return (
     <div className="flex flex-col gap-2">
       {/* Vital cards */}
-      {(!isAntonio || cardsVisible) && (
+      {(!isAntonio || monitorCardsVisible) && (
         <div className={isMatrix ? "flex gap-2" : "flex gap-3"}>
           {VITALS.map((v) => (
             <VitalCard
@@ -522,9 +534,17 @@ function SinaisVitaisTab({ internacao, slotMin, windowMs, view, cardsVisible, ch
         </div>
       )}
 
+      {/* Cards de Ventilador trazidos pra página de Monitor via olhinho — aparecem
+          logo abaixo dos cards de Monitor, mesmos 6 alinhados numa linha (Antonio). */}
+      {isAntonio && ventCardsVisible && (
+        <VentParamCardsRow internacao={internacao} />
+      )}
+
       {/* Linha: gráficos empilhados, largura total. Matriz: grid 2x3 ajustado à página.
-          Nos dois casos os gráficos podem ser arrastados e reordenados. */}
-      {view === "graficos" ? (
+          Nos dois casos os gráficos podem ser arrastados e reordenados. Gráficos e
+          Heatmap agora são independentes — dá pra ligar/desligar cada um, e com os
+          dois ligados o Heatmap aparece embaixo dos gráficos. */}
+      {graficosVisible && (
         <div ref={isMatrix ? gridRef : undefined}>
           <ReorderableVitalsCharts
             slots={slots}
@@ -538,9 +558,8 @@ function SinaisVitaisTab({ internacao, slotMin, windowMs, view, cardsVisible, ch
             vitalAlertSlotMap={vitalAlertSlotMap}
           />
         </div>
-      ) : (
-        <VitalsHeatmap slots={slots} />
       )}
+      {heatmapVisible && <VitalsHeatmap slots={slots} />}
     </div>
   );
 }
@@ -864,10 +883,17 @@ function PatientContent({ id }: { id: string }) {
   // Default sempre Matriz — ver CHART_LAYOUT_DEFAULTS
   const [slotMin, setSlotMin]         = useState<number>(() => CHART_LAYOUT_DEFAULTS.matriz.slotMin);
   const [windowMs, setWindowMs]       = useState<number>(() => CHART_LAYOUT_DEFAULTS.matriz.windowMs);
-  const [view, setView]               = useState<"graficos" | "heatmap">("graficos");
+  const [graficosVisible, setGraficosVisible] = useState(true);
+  const [heatmapVisible, setHeatmapVisible]   = useState(false);
   const [chartLayout, setChartLayout] = useState<"linha" | "matriz">("matriz");
   const [sinaisVitaisPage, setSinaisVitaisPage] = useState<SinaisVitaisPage>("monitor");
-  const [cardsVisible, setCardsVisible] = useState(true);
+  // Os 3 olhinhos (Monitor/Ventilador/Bomba) na página de Monitor — controlam a
+  // visibilidade de cada grupo de cards ali, independente da aba selecionada em
+  // SINAIS_VITAIS_PAGES. Ventilador/Bomba começam ocultos: são cards "trazidos"
+  // pra cá, não o padrão da tela.
+  const [monitorCardsVisible, setMonitorCardsVisible] = useState(true);
+  const [ventCardsVisible, setVentCardsVisible]       = useState(false);
+  const [bombaCardsVisible, setBombaCardsVisible]     = useState(false);
   const [camOpen, setCamOpen]         = useState(false);
   const [camFullscreen, setCamFullscreen] = useState(false);
   const [panelOpen, setPanelOpen]     = useState(false);
@@ -1337,7 +1363,7 @@ function PatientContent({ id }: { id: string }) {
           );
         })}
 
-        {isAntonio && tab === "sinais-vitais" && sinaisVitaisPage === "monitor" && view === "graficos" && (
+        {isAntonio && tab === "sinais-vitais" && sinaisVitaisPage === "monitor" && graficosVisible && (
           <div className="flex items-center gap-0.5 rounded-lg p-0.5 ml-auto" style={{ background: "rgba(255,255,255,0.06)" }}>
             <button
               onClick={() => {
@@ -1382,8 +1408,10 @@ function PatientContent({ id }: { id: string }) {
           setSlotMin={setSlotMin}
           windowMs={windowMs}
           setWindowMs={setWindowMs}
-          view={view}
-          setView={setView}
+          graficosVisible={graficosVisible}
+          setGraficosVisible={setGraficosVisible}
+          heatmapVisible={heatmapVisible}
+          setHeatmapVisible={setHeatmapVisible}
           showViewToggle={tab === "sinais-vitais"}
           legend={tab === "sinais-vitais" ? (
             <div className="flex items-center gap-4">
@@ -1398,15 +1426,25 @@ function PatientContent({ id }: { id: string }) {
                 </span>
               ))}
               {isAntonio && (
-                <button
-                  onClick={() => setCardsVisible((v) => !v)}
-                  aria-label={cardsVisible ? "Ocultar cartões" : "Mostrar cartões"}
-                  title={cardsVisible ? "Ocultar cartões" : "Mostrar cartões"}
-                  className="flex items-center justify-center w-6 h-6 rounded transition-colors hover:bg-white/5"
-                  style={{ color: "var(--muted)" }}
-                >
-                  <Icon name={cardsVisible ? "eye" : "eye-off"} size={15} color="currentColor" />
-                </button>
+                <div className="flex items-center gap-2">
+                  {[
+                    { label: "Monitor",    visible: monitorCardsVisible, toggle: () => setMonitorCardsVisible((v) => !v) },
+                    { label: "Ventilador", visible: ventCardsVisible,    toggle: () => setVentCardsVisible((v) => !v) },
+                    { label: "Bomba",      visible: bombaCardsVisible,   toggle: () => setBombaCardsVisible((v) => !v) },
+                  ].map(({ label, visible, toggle }) => (
+                    <button
+                      key={label}
+                      onClick={toggle}
+                      aria-label={visible ? `Ocultar cartões de ${label}` : `Mostrar cartões de ${label}`}
+                      title={visible ? `Ocultar cartões de ${label}` : `Mostrar cartões de ${label}`}
+                      className="flex items-center gap-1 h-6 px-1.5 rounded text-[11px] transition-colors hover:bg-white/5"
+                      style={{ color: "var(--muted)" }}
+                    >
+                      <Icon name={visible ? "eye" : "eye-off"} size={13} color="currentColor" />
+                      {label}
+                    </button>
+                  ))}
+                </div>
               )}
             </div>
           ) : undefined}
@@ -1423,8 +1461,10 @@ function PatientContent({ id }: { id: string }) {
                 internacao={internacao}
                 slotMin={slotMin}
                 windowMs={windowMs}
-                view={view}
-                cardsVisible={cardsVisible}
+                graficosVisible={graficosVisible}
+                heatmapVisible={heatmapVisible}
+                monitorCardsVisible={monitorCardsVisible}
+                ventCardsVisible={ventCardsVisible}
                 chartLayout={chartLayout}
                 alerts={patientAlerts}
                 showAlertTimesOnCharts={isAntonio && showAlertTimesOnCharts}

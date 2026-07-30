@@ -95,6 +95,36 @@ interface Props {
   internacao: Internacao | SurgicalInternacao;
 }
 
+// Grid dos 6 cards de parâmetros, isolado do resto da aba (gráficos, medição de
+// altura) pra poder ser reaproveitado na página de Monitor — Antonio pode trazer
+// esses cards pra lá via olhinho, sem duplicar GROUPS/paramValue.
+export function VentParamCardsRow({ internacao }: Props) {
+  const rawHistory = useSimulationStore((s) => s.internacoes[internacao.id]?.rawHistory ?? []);
+  const simNow = rawHistory[rawHistory.length - 1]?.t ?? Date.now();
+  const current = computeVentParams(internacao.id, simNow);
+
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+      {GROUPS.map((g) => {
+        const [leftItem, rightItem] = g.items;
+        const toValue = (item: ParamCardCfg) => {
+          const value = paramValue(current, item.key);
+          const score = item.key === "ie" ? 0 : ventSeverity(item.key as VentParamKey, value as number);
+          return { label: item.label, unit: item.unit, value, score };
+        };
+        return (
+          <VentParamPairCard
+            key={g.label}
+            groupLabel={g.label}
+            left={toValue(leftItem)}
+            right={toValue(rightItem)}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
 export function VentiladorTab({ internacao }: Props) {
   const rawHistory = useSimulationStore((s) => s.internacoes[internacao.id]?.rawHistory ?? []);
   // Timeline simulada, não Date.now() — mesmo motivo do resto do app (ver
@@ -103,10 +133,6 @@ export function VentiladorTab({ internacao }: Props) {
 
   const windowedReadings = rawHistory.filter((r) => r.t >= simNow - VENT_WINDOW_MS);
   const ventSeries = buildVentSeries(internacao.id, windowedReadings);
-  const current = ventSeries[ventSeries.length - 1] ?? {
-    ...computeVentParams(internacao.id, simNow),
-    t: simNow, paw: 0, flow: 0, volume: 0,
-  };
 
   const ewsSlots = computeScoreHistory(rawHistory, EWS_CHART_MIN_WINDOW_MS, simNow);
   const syncId = `vent-${internacao.id}`;
@@ -125,23 +151,8 @@ export function VentiladorTab({ internacao }: Props) {
 
       {/* Cards de parâmetros — cada grupo clínico unido num único card, os dois
           valores separados por uma linha vertical (ver VentParamPairCard) */}
-      <div ref={cardsRef} className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
-        {GROUPS.map((g) => {
-          const [leftItem, rightItem] = g.items;
-          const toValue = (item: ParamCardCfg) => {
-            const value = paramValue(current, item.key);
-            const score = item.key === "ie" ? 0 : ventSeverity(item.key as VentParamKey, value as number);
-            return { label: item.label, unit: item.unit, value, score };
-          };
-          return (
-            <VentParamPairCard
-              key={g.label}
-              groupLabel={g.label}
-              left={toValue(leftItem)}
-              right={toValue(rightItem)}
-            />
-          );
-        })}
+      <div ref={cardsRef}>
+        <VentParamCardsRow internacao={internacao} />
       </div>
     </div>
   );
