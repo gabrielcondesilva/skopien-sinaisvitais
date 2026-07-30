@@ -211,6 +211,26 @@ export function computeScoreHistory(
     });
 }
 
+export type EwsTrend = "up" | "down" | "stable";
+
+// Tendência do Escore exibida ao lado do pill "EWS X - Categoria": compara o
+// bucket fechado mais recente (Janela de Escore, 30min/mediana) com o bucket
+// fechado anterior — mesma cadência de currentEws/currentStatus (que só mudam
+// quando um bucket fecha, ver currentScoreVitals). "up" = piorou (subiu),
+// "down" = melhorou (desceu), "stable" = mesmo valor. null = ainda não há 2
+// buckets fechados (início da sessão) — nada a comparar.
+export function computeEwsTrend(history: RawReading[], now: number): EwsTrend | null {
+  const bucketMs = SCORE_WINDOW_MINUTES * 60_000;
+  const slots = computeScoreHistory(history, bucketMs * 2.5, now);
+  if (slots.length < 2) return null;
+
+  const curr = slots[slots.length - 1].ewsTotal;
+  const prev = slots[slots.length - 2].ewsTotal;
+  if (curr > prev) return "up";
+  if (curr < prev) return "down";
+  return "stable";
+}
+
 export interface ScoreTransitionEvent {
   firedAt: number;       // fechamento do bucket em que a categoria piorou
   status: StatusClinico;

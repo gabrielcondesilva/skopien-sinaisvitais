@@ -9,7 +9,7 @@ import { TopBar } from "@/components/TopBar";
 import { VitalCard } from "@/components/VitalCard";
 import { VitalsHeatmap } from "@/components/VitalsHeatmap";
 import { ReorderableVitalsCharts } from "@/components/ReorderableVitalsCharts";
-import { EWSForecastChart } from "@/components/EWSForecastChart";
+import { EWSScoreChart } from "@/components/EWSScoreChart";
 import { CameraPlayer } from "@/components/CameraPlayer";
 import { FloatingCameraWindow } from "@/components/FloatingCameraWindow";
 import { SkinLesionTab, LESION_COUNT } from "@/components/SkinLesionTab";
@@ -26,7 +26,7 @@ import { useSimulationStore } from "@/store/simulation";
 import { useSidebarStore } from "@/store/sidebar";
 import { useAlertStore } from "@/store/alerts";
 import { useAuthStore } from "@/store/auth";
-import { computeSlots, currentSlotValues, currentScoreVitals, computeScoreHistory, SCORE_WINDOW_MINUTES } from "@/lib/simulation/vitals";
+import { computeSlots, currentSlotValues, currentScoreVitals, computeScoreHistory, computeEwsTrend, SCORE_WINDOW_MINUTES } from "@/lib/simulation/vitals";
 import { infusionPumpCount } from "@/lib/simulation/infusionPumps";
 import { calculateEWS } from "@/lib/ews";
 import { vitalSeverity } from "@/lib/vitalSeverity";
@@ -617,9 +617,10 @@ function EWSTab({ internacao }: {
   const slots = computeScoreHistory(rawHistory, EWS_FORECAST_WINDOW_MS, Date.now());
 
   return (
-    <EWSForecastChart
-      internacao={internacao}
+    <EWSScoreChart
       slots={slots}
+      forecast={internacao.ewsForecast}
+      collapsible={false}
     />
   );
 }
@@ -957,6 +958,8 @@ function PatientContent({ id }: { id: string }) {
   // Escore EWS sempre canônico (Janela de Escore, 30min/mediana) — nunca segue o
   // Slot/Janela escolhidos nos gráficos de Sinais Vitais. Ver CONTEXT.md § Janela de Escore.
   const statusColor = STATUS_COLOR[internacao.currentStatus] ?? "var(--muted)";
+  const headerSimNow = internacao.rawHistory[internacao.rawHistory.length - 1]?.t ?? Date.now();
+  const ewsTrend = computeEwsTrend(internacao.rawHistory, headerSimNow);
   const proxyUrl = process.env.NEXT_PUBLIC_CAMERA_PROXY_URL;
   const isLiveCamera = bed?.label === "UTI-01" && !!proxyUrl;
   const streamUrl = `${proxyUrl}/stream/index.m3u8`;
@@ -1005,15 +1008,16 @@ function PatientContent({ id }: { id: string }) {
               className="absolute flex items-center gap-3"
               style={{ left: "50%", transform: "translateX(-50%)" }}
             >
-              <ScorePill text={`EWS ${internacao.currentEws} - ${internacao.currentStatus}`} color={statusColor} size="md" />
+              <ScorePill text={`EWS ${internacao.currentEws} - ${internacao.currentStatus}`} color={statusColor} size="md" trend={ewsTrend} />
 
-              {/* Braden — apenas para UTI-01 */}
+              {/* Braden — apenas para UTI-01, ainda sem histórico real ("melhorando" fixo) */}
               {bed?.label === "UTI-01" && (
                 <ScorePill
                   text="Braden 10 - Alto"
                   color={BRADEN_COLOR["Alto"]}
                   onClick={() => setTab("lesao-pele")}
                   size="md"
+                  trend="down"
                 />
               )}
             </div>
@@ -1138,15 +1142,16 @@ function PatientContent({ id }: { id: string }) {
                 ←
               </button>
               <h1 className="text-xl font-semibold">{internacao.patient.name}</h1>
-              <ScorePill text={`EWS ${internacao.currentEws} - ${internacao.currentStatus}`} color={statusColor} size="lg" />
+              <ScorePill text={`EWS ${internacao.currentEws} - ${internacao.currentStatus}`} color={statusColor} size="lg" trend={ewsTrend} />
 
-              {/* Badge Braden — apenas para UTI-01 */}
+              {/* Badge Braden — apenas para UTI-01, ainda sem histórico real ("melhorando" fixo) */}
               {bed?.label === "UTI-01" && (
                 <ScorePill
                   text="Braden 10 - Alto"
                   color={BRADEN_COLOR["Alto"]}
                   onClick={() => setTab("lesao-pele")}
                   size="lg"
+                  trend="down"
                 />
               )}
             </div>

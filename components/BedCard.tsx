@@ -7,7 +7,9 @@ import { useAuthStore } from "@/store/auth";
 import { useShallow } from "zustand/react/shallow";
 import type { Alert, Bed, Internacao, SurgicalInternacao } from "@/lib/simulation/types";
 import { ALARM_LABEL, alarmIconFor } from "@/lib/vitalAlarm";
+import { computeEwsTrend, type EwsTrend } from "@/lib/simulation/vitals";
 import { StreamlineIcon, type IconName } from "./ui/StreamlineIcon";
+import { Icon } from "./ui/Icon";
 import { UTI_TIPO_LABELS } from "@/lib/units";
 
 function bedDisplayLabel(bed: Bed): string {
@@ -39,14 +41,38 @@ const PILL_SIZE = {
   lg: "px-5 py-2 text-lg",
 } as const;
 
-export function ScorePill({ text, color, onClick, size = "sm" }: {
-  text: string; color: string; onClick?: () => void; size?: keyof typeof PILL_SIZE;
+const TREND_ICON_SIZE: Record<keyof typeof PILL_SIZE, number> = { sm: 12, md: 14, lg: 18 };
+const TREND_COLOR = { up: "#F03E3E", down: "#2F9E44" } as const; // piorando / melhorando
+
+// Seta de tendência do Escore (sobe/desce nos últimos 30min) ao lado do texto do
+// pill — "estável" usa um ponto na cor da própria categoria atual (color), não
+// verde/vermelho, já que não indica melhora nem piora.
+function EwsTrendGlyph({ trend, categoryColor, size }: { trend: EwsTrend; categoryColor: string; size: number }) {
+  if (trend === "stable") {
+    const title = "Estável — sem mudança na última meia hora";
+    return (
+      <span title={title} aria-label={title} className="inline-flex items-center justify-center shrink-0">
+        <span className="inline-block rounded-full" style={{ width: size * 0.5, height: size * 0.5, background: categoryColor }} />
+      </span>
+    );
+  }
+  const isUp = trend === "up";
+  const title = isUp ? "Piorando — Escore subiu na última meia hora" : "Melhorando — Escore desceu na última meia hora";
+  return (
+    <span title={title} aria-label={title} className="inline-flex items-center justify-center shrink-0">
+      <Icon name={isUp ? "trending-up" : "trending-down"} size={size} color={TREND_COLOR[isUp ? "up" : "down"]} />
+    </span>
+  );
+}
+
+export function ScorePill({ text, color, onClick, size = "sm", trend }: {
+  text: string; color: string; onClick?: () => void; size?: keyof typeof PILL_SIZE; trend?: EwsTrend | null;
 }) {
   const Tag = onClick ? "button" : "span";
   return (
     <Tag
       onClick={onClick}
-      className={`inline-flex items-center rounded-full font-bold tabular-nums leading-none whitespace-nowrap ${PILL_SIZE[size]}`}
+      className={`inline-flex items-center gap-1.5 rounded-full font-bold tabular-nums leading-none whitespace-nowrap ${PILL_SIZE[size]}`}
       style={{
         color,
         background: `${color}1F`,
@@ -56,6 +82,7 @@ export function ScorePill({ text, color, onClick, size = "sm" }: {
       }}
     >
       {text}
+      {trend && <EwsTrendGlyph trend={trend} categoryColor={color} size={TREND_ICON_SIZE[size]} />}
     </Tag>
   );
 }
@@ -163,6 +190,9 @@ export function BedCard({ bed, internacao }: Props) {
   }
 
   const statusColor = STATUS_COLOR[internacao.currentStatus] ?? "var(--muted)";
+  // Timeline simulada, não Date.now() — mesmo motivo do resto do app (ver store/simulation.ts § advance).
+  const simNow = internacao.rawHistory[internacao.rawHistory.length - 1]?.t ?? Date.now();
+  const ewsTrend = computeEwsTrend(internacao.rawHistory, simNow);
 
   return (
     <div
@@ -224,10 +254,12 @@ export function BedCard({ bed, internacao }: Props) {
         className="flex items-center justify-between gap-2 pt-2.5 mt-auto flex-wrap"
         style={{ borderTop: "1px solid var(--border)" }}
       >
-        <ScorePill text={`EWS ${internacao.currentEws} - ${internacao.currentStatus}`} color={statusColor} />
+        <ScorePill text={`EWS ${internacao.currentEws} - ${internacao.currentStatus}`} color={statusColor} trend={ewsTrend} />
 
         {bed.label === "UTI-01" && (
-          <ScorePill text="Braden 10 - Alto" color={BRADEN_COLOR["Alto"]} />
+          // Braden só existe pra este paciente por enquanto, sem histórico real —
+          // "melhorando" fixo até termos dado de verdade pra calcular a tendência.
+          <ScorePill text="Braden 10 - Alto" color={BRADEN_COLOR["Alto"]} trend="down" />
         )}
       </div>
     </div>
