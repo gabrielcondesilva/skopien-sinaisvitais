@@ -1,8 +1,8 @@
 import type { UserProfile } from "@/store/auth";
 
 export const PROFILE_HOME: Record<UserProfile, string> = {
-  assistencial: "/units/pronto-socorro",
-  gestor: "/units/pronto-socorro",
+  assistencial: "/units/uti",
+  gestor: "/units/uti",
   executivo: "/admin",
   paineis: "/command",
 };

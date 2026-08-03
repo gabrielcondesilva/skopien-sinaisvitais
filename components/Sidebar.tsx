@@ -13,9 +13,9 @@ import { RealtimeClock } from "./RealtimeClock";
 import type { UserProfile } from "@/store/auth";
 
 const UNITS = [
+  { id: "uti",              label: "UTI",              abbr: "UTI" },
   { id: "pronto-socorro",   label: "Pronto Socorro",  abbr: "PS"  },
   { id: "enfermaria",       label: "Enfermaria",       abbr: "ENF" },
-  { id: "uti",              label: "UTI",              abbr: "UTI" },
   { id: "centro-cirurgico", label: "Centro Cirúrgico", abbr: "CC"  },
 ] as const;
 
