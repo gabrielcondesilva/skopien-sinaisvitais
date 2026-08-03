@@ -66,6 +66,7 @@ export interface InfusionPump {
   dose: number;
   doseUnit: string;
   accentColor: string;
+  startedAt: number; // timestamp ms — quando a droga começou a correr
 }
 
 function formatDose(dose: number): number {
@@ -79,7 +80,10 @@ export function infusionPumpCount(internacaoId: string): number {
 }
 
 // 3 ou 4 drogas ativas por internação (variedade estável, sem sortear a cada render).
-export function computeInfusionPumps(internacaoId: string, t: number): InfusionPump[] {
+// `admittedAt` ancora a Data de Início de cada droga: sempre entre a admissão e
+// agora (t), numa fração estável por bomba — não pode cair no futuro nem
+// "andar" conforme t avança dentro da mesma sessão de demo.
+export function computeInfusionPumps(internacaoId: string, t: number, admittedAt: number): InfusionPump[] {
   const seed = hashSeed(internacaoId);
   const count = infusionPumpCount(internacaoId);
   const start = Math.abs(seed >> 3) % DRUG_CATALOG.length;
@@ -94,6 +98,9 @@ export function computeInfusionPumps(internacaoId: string, t: number): InfusionP
     );
     const rateRounded = Math.round(rate * 10) / 10;
 
+    const startFrac = 0.05 + noise(seed + drugIndex * 19.1) * 0.55;
+    const startedAt = admittedAt + (t - admittedAt) * startFrac;
+
     return {
       id: `B${i + 1}`,
       drug: def.name,
@@ -102,6 +109,7 @@ export function computeInfusionPumps(internacaoId: string, t: number): InfusionP
       dose: formatDose(rateRounded * def.doseFactor),
       doseUnit: def.doseUnit,
       accentColor: PUMP_ACCENT_COLORS[i % PUMP_ACCENT_COLORS.length],
+      startedAt,
     };
   });
 }

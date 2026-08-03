@@ -556,22 +556,21 @@ function SinaisVitaisTab({
       })()}
 
       {/* Ventilador e Bomba trazidos pra página de Monitor via olhinho — cada um
-          numa caixa própria (título + conteúdo), lado a lado quando os dois estão
-          visíveis, logo abaixo dos cards de Monitor (Antonio). */}
+          numa caixa própria (título + conteúdo), sempre empilhados um embaixo do
+          outro quando os dois estão visíveis, logo abaixo dos cards de Monitor
+          (Antonio). */}
       {isAntonio && (ventCardsVisible || bombaCardsVisible) && (
-        <div className="flex flex-col lg:flex-row gap-3 items-stretch">
+        <div className="flex flex-col gap-3">
           {ventCardsVisible && (
             <SectionPanel
-              className="flex-1 min-w-0"
               title="Ventilador"
               icon={<StreamlineIcon name="ventilador" size={15} />}
             >
-              <VentParamCardsRow internacao={internacao} className="grid grid-cols-2 sm:grid-cols-3 gap-2.5" />
+              <VentParamCardsRow internacao={internacao} />
             </SectionPanel>
           )}
           {bombaCardsVisible && (
             <SectionPanel
-              className="flex-1 min-w-0"
               title="Bombas de Infusão"
               icon={<StreamlineIcon name="bomba_infusao" size={15} />}
               badge={
