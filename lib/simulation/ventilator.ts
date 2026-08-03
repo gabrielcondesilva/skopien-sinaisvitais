@@ -61,6 +61,7 @@ function jitter(seed: number, salt: number, t: number, amplitude: number): numbe
 
 export interface VentParams {
   pip: number;    // cmH2O — Pressão de Pico
+  pplat: number;  // cmH2O — Pressão de Platô (derivado: pip − queda resistiva, entre PEEP e PIP)
   peep: number;   // cmH2O — Pressão Expiratória Final Positiva
   vte: number;    // mL — Volume Corrente Expirado
   vti: number;    // mL — Volume Corrente Inspirado
@@ -121,8 +122,13 @@ export function computeVentParams(internacaoId: string, t: number): VentParams {
     20, 60
   );
 
+  // Plat fica sempre abaixo do Pico — a diferença (queda resistiva) cresce com
+  // a Resistência (R), igual à física real (ΔP resistivo = R × Fluxo).
+  const pplat = clamp(pip - r * 0.6, peep + 3, pip - 1);
+
   return {
     pip: round1(pip),
+    pplat: round1(pplat),
     peep: round1(peep),
     vte: Math.round(vte),
     vti: Math.round(vti),

@@ -6,8 +6,38 @@ import { computeScoreHistory } from "@/lib/simulation/vitals";
 import { buildVentSeries, computeVentParams, ventSeverity, type VentParams, type VentParamKey } from "@/lib/simulation/ventilator";
 import type { Internacao, SurgicalInternacao } from "@/lib/simulation/types";
 import { EWSScoreChart } from "./EWSScoreChart";
-import { VentilatorChart, VENT_CHARTS_CFG } from "./VentilatorChart";
+import { VentTrendChart, type VentTrendSeries } from "./VentTrendChart";
 import { VentParamPairCard } from "./VentParamPairCard";
+
+// Cores das curvas dos painéis combinados (Pressões/Volumes/Oxigenação) — mesma
+// convenção de cor da referência (docs/ventilador-exemplo.png): Pico vermelho,
+// Plat laranja, PEEP azul. SpO₂ reaproveita a mesma cor cian usada no Monitor
+// (VitalsChart.tsx), pra manter consistência entre as duas telas. A legenda de
+// cada gráfico fica embutida no próprio VentTrendChart (mesmo array `series`
+// abaixo alimenta as curvas e a legenda) — sem legenda compartilhada à parte.
+const COLOR_PIP   = "#ef4444";
+const COLOR_PPLAT = "#f59e0b";
+const COLOR_PEEP  = "#3b82f6";
+const COLOR_VTE   = "#3b82f6";
+const COLOR_VTI   = "#a78bfa";
+const COLOR_VMEXP = "#22c55e";
+const COLOR_FIO2  = "#f97316";
+const COLOR_SPO2  = "#22d3ee";
+
+const PRESSURE_SERIES: VentTrendSeries[] = [
+  { key: "pip",   label: "Pico", unit: "cmH2O", color: COLOR_PIP },
+  { key: "pplat", label: "Plat", unit: "cmH2O", color: COLOR_PPLAT },
+  { key: "peep",  label: "PEEP", unit: "cmH2O", color: COLOR_PEEP },
+];
+const VOLUME_SERIES: VentTrendSeries[] = [
+  { key: "vte",   label: "VTe",    unit: "mL",    color: COLOR_VTE },
+  { key: "vti",   label: "VTi",    unit: "mL",    color: COLOR_VTI },
+  { key: "vmExp", label: "VM exp", unit: "L/min", color: COLOR_VMEXP, axis: "right" },
+];
+const OXYGEN_SERIES: VentTrendSeries[] = [
+  { key: "fio2", label: "FiO₂", unit: "%", color: COLOR_FIO2 },
+  { key: "spo2", label: "SpO₂", unit: "%", color: COLOR_SPO2 },
+];
 
 // Janela fixa das 3 curvas novas — não segue o Slot/Janela do Monitor (ControlsBar
 // fica oculta fora da página Monitor, mesmo padrão do EWSTab). 40min de leituras
@@ -43,20 +73,17 @@ function paramValue(params: VentParams, key: ParamCardCfg["key"]): number | stri
   return params[key as keyof VentParams];
 }
 
-// Em vez de altura fixa (sobrava espaço em branco embaixo dos cards), os 4
-// gráficos (grid 2x2) preenchem a altura vertical realmente disponível — mede o
-// topo do grid e a altura já renderizada do grid de cards (que vem depois) pra
-// descontar do que sobra na tela. Mesmo espírito de useEnfermariaChartHeight em
-// app/patients/[id]/page.tsx, adaptado pro layout desta aba (2 linhas, cards
-// abaixo em vez de acima).
+// Cards agora ficam ACIMA do grid de gráficos (pedido do usuário, pra caber a
+// aba inteira numa tela só sem rolagem) — o grid preenche o que sobrar de
+// altura vertical depois deles. Como nada mais fica abaixo do grid, só
+// precisamos do topo dele (já empurrado pra baixo pelos cards no fluxo normal
+// do documento), sem precisar medir a altura de nada à parte.
 const VENT_GRID_ROWS = 2;
-const VENT_GRID_ROW_GAP = 8; // gap-2 — mesmo espaçamento entre os gráficos e entre o grid e os cards
-const VENT_SECTION_GAP = 8; // gap-2 entre o grid de gráficos e o grid de cards
-const VENT_CARD_CHROME = 70; // padding + linha de título de cada gráfico, fora do canvas em si
-// As últimas reduções (até 88-96) foram feitas "às cegas" — o Fast Refresh não
-// tava aplicando o valor novo (ver nota acima), então cada ajuste empilhava em
-// cima do anterior sem refletir na tela de verdade. Voltando pra um tamanho
-// confortável agora que o refresh já mostra o valor real.
+const VENT_GRID_ROW_GAP = 8; // gap-2 — mesmo espaçamento entre os gráficos
+// Padding + título + legenda embutida de cada gráfico, fora do canvas em si —
+// os 3 painéis combinados (Pressões/Volumes/Oxigenação) agora têm uma linha de
+// legenda a mais entre o título e o canvas (ver VentTrendChart).
+const VENT_CARD_CHROME = 92;
 const VENT_CHART_MIN_HEIGHT = 197;
 const VENT_CHART_MAX_HEIGHT = 217;
 // O container que rola (app/patients/[id]/page.tsx) tem pb-6 (24px) — descontado
@@ -65,7 +92,6 @@ const VENT_BOTTOM_BUFFER = 32;
 
 function useVentChartHeight() {
   const gridRef = useRef<HTMLDivElement>(null);
-  const cardsRef = useRef<HTMLDivElement>(null);
   const [chartHeight, setChartHeight] = useState(VENT_CHART_MIN_HEIGHT);
 
   useLayoutEffect(() => {
@@ -73,8 +99,7 @@ function useVentChartHeight() {
       const gridEl = gridRef.current;
       if (!gridEl) return;
       const top = gridEl.getBoundingClientRect().top;
-      const cardsHeight = cardsRef.current?.getBoundingClientRect().height ?? 0;
-      const available = window.innerHeight - top - cardsHeight - VENT_SECTION_GAP - VENT_BOTTOM_BUFFER;
+      const available = window.innerHeight - top - VENT_BOTTOM_BUFFER;
       const perRow = (available - VENT_GRID_ROW_GAP * (VENT_GRID_ROWS - 1)) / VENT_GRID_ROWS;
       const next = Math.min(
         VENT_CHART_MAX_HEIGHT,
@@ -88,7 +113,7 @@ function useVentChartHeight() {
     return () => window.removeEventListener("resize", measure);
   }, []);
 
-  return { gridRef, cardsRef, chartHeight };
+  return { gridRef, chartHeight };
 }
 
 interface Props {
@@ -135,26 +160,52 @@ export function VentiladorTab({ internacao }: Props) {
 
   const windowedReadings = rawHistory.filter((r) => r.t >= simNow - VENT_WINDOW_MS);
   const ventSeries = buildVentSeries(internacao.id, windowedReadings);
+  // SpO₂ vem dos sinais vitais (rawHistory), não do ventilador — zipa pelo mesmo
+  // índice porque ventSeries é gerado 1:1 a partir de windowedReadings.
+  const oxygenData = ventSeries.map((v, i) => ({ t: v.t, fio2: v.fio2, spo2: windowedReadings[i]?.spo2 }));
 
   const ewsSlots = computeScoreHistory(rawHistory, EWS_CHART_MIN_WINDOW_MS, simNow);
   const syncId = `vent-${internacao.id}`;
 
-  const { gridRef, cardsRef, chartHeight } = useVentChartHeight();
+  const { gridRef, chartHeight } = useVentChartHeight();
 
   return (
     <div className="flex flex-col gap-2">
-      {/* 4 gráficos: EWS replicado + Pressão/Fluxo/Volume, grid 2x2 */}
+      {/* Cards de parâmetros — cada grupo clínico unido num único card, os dois
+          valores separados por uma linha vertical (ver VentParamPairCard).
+          Ficam no topo (pedido do usuário), acima dos gráficos. */}
+      <VentParamCardsRow internacao={internacao} />
+
+      {/* 4 painéis: EWS replicado + Pressões/Volumes/Oxigenação combinados
+          (várias curvas por painel, cada um com sua própria legenda embutida
+          logo abaixo do título — ver docs/ventilador-exemplo.png), grid 2x2 */}
       <div ref={gridRef} className="grid grid-cols-2 gap-2">
         <EWSScoreChart slots={ewsSlots} forecast={internacao.ewsForecast} syncId={syncId} chartHeight={chartHeight} />
-        {VENT_CHARTS_CFG.map((cfg) => (
-          <VentilatorChart key={cfg.key} cfg={cfg} data={ventSeries} syncId={syncId} chartHeight={chartHeight} />
-        ))}
-      </div>
-
-      {/* Cards de parâmetros — cada grupo clínico unido num único card, os dois
-          valores separados por uma linha vertical (ver VentParamPairCard) */}
-      <div ref={cardsRef}>
-        <VentParamCardsRow internacao={internacao} />
+        <VentTrendChart
+          title="Pressões"
+          data={ventSeries}
+          series={PRESSURE_SERIES}
+          leftDomain={[0, 40]}
+          syncId={syncId}
+          chartHeight={chartHeight}
+        />
+        <VentTrendChart
+          title="Volumes / Ventilação"
+          data={ventSeries}
+          series={VOLUME_SERIES}
+          leftDomain={[0, 650]}
+          rightDomain={[0, 20]}
+          syncId={syncId}
+          chartHeight={chartHeight}
+        />
+        <VentTrendChart
+          title="Oxigenação"
+          data={oxygenData}
+          series={OXYGEN_SERIES}
+          leftDomain={[0, 100]}
+          syncId={syncId}
+          chartHeight={chartHeight}
+        />
       </div>
     </div>
   );
