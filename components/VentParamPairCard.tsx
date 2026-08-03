@@ -26,7 +26,7 @@ export function VentParamPairCard({ groupLabel, left, right }: Props) {
       className="rounded-lg p-2.5 flex flex-col gap-1.5 flex-1 min-w-0"
       style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
     >
-      <span className="text-sm" style={{ color: "var(--muted)" }}>{groupLabel}</span>
+      <span className="text-sm text-center" style={{ color: "var(--muted)" }}>{groupLabel}</span>
       <div className="flex items-stretch gap-3">
         {values.map((v, i) => {
           const color = VITAL_SEVERITY_COLOR[Math.min(v.score, 2)] ?? VITAL_SEVERITY_COLOR[0];

@@ -102,15 +102,15 @@ function makeLabel(vitalKey: string, vitalColor: string) {
 // os limiares de vitalSeverity.ts (normal/atenção/crítico), índice alinhado com
 // VITAL_SEVERITY_COLOR (0=cinza, 1=amarelo, 2=vermelho).
 export const VITALS_CFG = [
-  { key: "fr"   as const, label: "FR",   unit: "rpm",  color: "#3b82f6", absMin: 4,  absMax: 60,  step: 2,
+  { key: "fr"   as const, label: "FR",   unit: "rpm",  color: "#facc15", absMin: 4,  absMax: 60,  step: 2,
     ranges: ["Normal 12–20", "Atenção 10–11 / 21–24", "Crítico ≤9 / ≥25"] as [string, string, string] },
-  { key: "spo2" as const, label: "SpO₂", unit: "%",    color: "#a78bfa", absMin: 70, absMax: 100, step: 1,
+  { key: "spo2" as const, label: "SpO₂", unit: "%",    color: "#22d3ee", absMin: 70, absMax: 100, step: 1,
     ranges: ["Normal ≥95", "Atenção 92–94", "Crítico ≤91"] as [string, string, string] },
-  { key: "pas"  as const, label: "PAS",  unit: "mmHg", color: "#fb923c", absMin: 40, absMax: 250, step: 5,
+  { key: "pas"  as const, label: "PAS",  unit: "mmHg", color: "#ef4444", absMin: 40, absMax: 250, step: 5,
     ranges: ["Normal 100–139", "Atenção 90–99 / 140–179", "Crítico ≤89 / ≥180"] as [string, string, string] },
-  { key: "fc"   as const, label: "FC",   unit: "bpm",  color: "#f472b6", absMin: 20, absMax: 220, step: 5,
+  { key: "fc"   as const, label: "FC",   unit: "bpm",  color: "#22c55e", absMin: 20, absMax: 220, step: 5,
     ranges: ["Normal 60–100", "Atenção 50–59 / 101–120", "Crítico ≤49 / ≥121"] as [string, string, string] },
-  { key: "temp" as const, label: "TEMP", unit: "°C",   color: "#facc15", absMin: 33, absMax: 43,  step: 0.5,
+  { key: "temp" as const, label: "TEMP", unit: "°C",   color: "#a855f7", absMin: 33, absMax: 43,  step: 0.5,
     ranges: ["Normal 36,0–37,4", "Atenção 35,5–35,9 / 37,5–38,4", "Crítico ≤35,4 / ≥38,5"] as [string, string, string] },
 ];
 
