@@ -25,6 +25,7 @@ interface Props {
   rightDomain?: [number, number];
   syncId?: string;
   chartHeight?: number;
+  lineType?: "linear" | "stepAfter"; // default "linear" (curva contínua); "stepAfter" pra doses em degrau (ver BombaTab)
 }
 
 // Painel combinado (várias curvas sobrepostas por categoria clínica — Pressões,
@@ -32,7 +33,7 @@ interface Props {
 // (docs/ventilador-exemplo.png). A legenda fica embutida logo abaixo do
 // título, gerada a partir do mesmo array `series` que alimenta as curvas —
 // não do lado do gráfico como na referência.
-export function VentTrendChart({ title, data, series, leftDomain, rightDomain, syncId, chartHeight = 180 }: Props) {
+export function VentTrendChart({ title, data, series, leftDomain, rightDomain, syncId, chartHeight = 180, lineType }: Props) {
   const hasRight = series.some((s) => s.axis === "right");
 
   return (
@@ -106,6 +107,7 @@ export function VentTrendChart({ title, data, series, leftDomain, rightDomain, s
           {series.map((s) => (
             <Line
               key={s.key}
+              type={lineType ?? "linear"}
               yAxisId={s.axis === "right" ? "right" : "left"}
               dataKey={s.key}
               stroke={s.color}

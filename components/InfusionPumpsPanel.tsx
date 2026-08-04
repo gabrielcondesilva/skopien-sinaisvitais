@@ -51,15 +51,42 @@ function InfusionPumpCard({ pump }: { pump: InfusionPump }) {
   );
 }
 
+// Grid tem 6 colunas (xl:grid-cols-6) mas cada internação só usa 3-4 bombas
+// (computeInfusionPumps) — sem preenchimento a última linha ficava com um
+// vão em branco de 2-3 colunas. Completa até 6 slots com cards "Bomba Livre",
+// mesmo padrão visual de estação de bombas real (slots sem droga carregada).
+const TOTAL_PUMP_SLOTS = 6;
+
+function EmptyPumpCard({ slot }: { slot: number }) {
+  return (
+    <div
+      className="rounded-lg p-2.5 flex flex-col items-center justify-center gap-1 flex-1 min-w-0 min-h-[86px]"
+      style={{ background: "var(--surface)", border: "1px dashed var(--border)" }}
+    >
+      <span
+        className="shrink-0 flex items-center justify-center text-[10px] font-bold rounded w-6 h-6"
+        style={{ background: "rgba(255,255,255,0.06)", color: "var(--muted)" }}
+      >
+        B{slot}
+      </span>
+      <span className="text-[11px]" style={{ color: "var(--muted)" }}>Bomba Livre</span>
+    </div>
+  );
+}
+
 export function InfusionPumpsPanel({ internacao }: Props) {
   const rawHistory = useSimulationStore((s) => s.internacoes[internacao.id]?.rawHistory ?? []);
   const simNow = rawHistory[rawHistory.length - 1]?.t ?? Date.now();
   const pumps = computeInfusionPumps(internacao.id, simNow, internacao.patient.admittedAt);
+  const emptySlots = Math.max(0, TOTAL_PUMP_SLOTS - pumps.length);
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
       {pumps.map((pump) => (
         <InfusionPumpCard key={pump.id} pump={pump} />
+      ))}
+      {Array.from({ length: emptySlots }, (_, i) => (
+        <EmptyPumpCard key={`empty-${i}`} slot={pumps.length + i + 1} />
       ))}
     </div>
   );

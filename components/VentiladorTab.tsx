@@ -11,12 +11,11 @@ import { VentParamPairCard } from "./VentParamPairCard";
 
 // Cores das curvas dos painéis combinados (Pressões/Volumes/Oxigenação) — mesma
 // convenção de cor da referência (docs/ventilador-exemplo.png): Pico vermelho,
-// Plat laranja, PEEP azul. SpO₂ reaproveita a mesma cor cian usada no Monitor
+// PEEP azul. SpO₂ reaproveita a mesma cor cian usada no Monitor
 // (VitalsChart.tsx), pra manter consistência entre as duas telas. A legenda de
 // cada gráfico fica embutida no próprio VentTrendChart (mesmo array `series`
 // abaixo alimenta as curvas e a legenda) — sem legenda compartilhada à parte.
 const COLOR_PIP   = "#ef4444";
-const COLOR_PPLAT = "#f59e0b";
 const COLOR_PEEP  = "#3b82f6";
 const COLOR_VTE   = "#3b82f6";
 const COLOR_VTI   = "#a78bfa";
@@ -26,7 +25,6 @@ const COLOR_SPO2  = "#22d3ee";
 
 const PRESSURE_SERIES: VentTrendSeries[] = [
   { key: "pip",   label: "Pico", unit: "cmH2O", color: COLOR_PIP },
-  { key: "pplat", label: "Plat", unit: "cmH2O", color: COLOR_PPLAT },
   { key: "peep",  label: "PEEP", unit: "cmH2O", color: COLOR_PEEP },
 ];
 const VOLUME_SERIES: VentTrendSeries[] = [

@@ -16,6 +16,7 @@ import { FloatingCameraWindow } from "@/components/FloatingCameraWindow";
 import { SkinLesionTab, LESION_COUNT } from "@/components/SkinLesionTab";
 import { MedicationTab, MEDICATION_ALERT_COUNT } from "@/components/MedicationTab";
 import { VentiladorTab, VentParamCardsRow } from "@/components/VentiladorTab";
+import { BombaTab } from "@/components/BombaTab";
 import { InfusionPumpsPanel } from "@/components/InfusionPumpsPanel";
 import { PatientRecordPanel } from "@/components/PatientRecordPanel";
 import { ScorePill, BRADEN_COLOR } from "@/components/BedCard";
@@ -1526,12 +1527,7 @@ function PatientContent({ id }: { id: string }) {
             ) : sinaisVitaisPage === "ventilador" ? (
               <VentiladorTab internacao={internacao} />
             ) : (
-              <div
-                className="flex items-center justify-center rounded-lg"
-                style={{ minHeight: 320, border: "1px dashed var(--border)", color: "var(--muted)" }}
-              >
-                Página em Desenvolvimento
-              </div>
+              <BombaTab internacao={internacao} />
             )
           )}
           {tab === "ews" && (
