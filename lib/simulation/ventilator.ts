@@ -1,4 +1,5 @@
 import type { RawReading } from "./types";
+import { lastValidInSlot } from "./vitals";
 
 // ─── Dados de ventilador — gerador puro e determinístico ──────────────────────
 // Sem backend (ADR-0002): tudo é derivado só de (internacaoId, t), onde t já vem
@@ -195,6 +196,46 @@ export function buildVentSeries(internacaoId: string, readings: RawReading[]): V
     const wave = computeVentWavePoint(params, internacaoId, r.t);
     return { t: r.t, ...params, ...wave };
   });
+}
+
+export interface VentSlotPoint extends VentSeriesPoint {
+  spo2: number; // vem dos Sinais Vitais (rawHistory), não do ventilador — última leitura válida do slot
+}
+
+// Mesmo Slot Temporal usado no Monitor (CONTEXT.md): último ponto de cada
+// bucket representa o slot inteiro, plotado na borda de início do bucket —
+// mesma regra de computeSlots (lib/simulation/vitals.ts). Os parâmetros do
+// ventilador são sempre um cálculo determinístico de (internacaoId, t), sem
+// conceito de leitura "inválida" (diferente dos sinais vitais) — por isso
+// usam sempre a leitura cronologicamente mais recente do bucket; só o SpO₂
+// (que vem dos sinais vitais) aplica o fallback de "última leitura válida".
+export function buildVentSlots(
+  internacaoId: string,
+  history: RawReading[],
+  slotMinutes: number,
+  windowMs: number,
+  now: number
+): VentSlotPoint[] {
+  const slotMs = slotMinutes * 60_000;
+  const windowStart = now - windowMs;
+
+  const buckets = new Map<number, RawReading[]>();
+  for (const r of history) {
+    if (r.t < windowStart) continue;
+    const slotKey = Math.floor(r.t / slotMs) * slotMs;
+    if (!buckets.has(slotKey)) buckets.set(slotKey, []);
+    buckets.get(slotKey)!.push(r);
+  }
+
+  return Array.from(buckets.entries())
+    .sort(([a], [b]) => a - b)
+    .map(([slotStart, readings]) => {
+      const last = readings[readings.length - 1];
+      const params = computeVentParams(internacaoId, last.t);
+      const wave = computeVentWavePoint(params, internacaoId, last.t);
+      const spo2 = lastValidInSlot(readings, "spo2");
+      return { t: slotStart, ...params, ...wave, spo2 };
+    });
 }
 
 // ─── Severidade visual por parâmetro (mesmo padrão de lib/vitalSeverity.ts) ────

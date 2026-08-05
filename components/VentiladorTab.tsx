@@ -3,28 +3,38 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { useSimulationStore } from "@/store/simulation";
 import { computeScoreHistory } from "@/lib/simulation/vitals";
-import { buildVentSeries, computeVentParams, ventSeverity, type VentParams, type VentParamKey } from "@/lib/simulation/ventilator";
+import { buildVentSlots, computeVentParams, type VentParams, type VentParamKey } from "@/lib/simulation/ventilator";
 import type { Internacao, SurgicalInternacao } from "@/lib/simulation/types";
 import { EWSScoreChart } from "./EWSScoreChart";
 import { VentTrendChart, type VentTrendSeries } from "./VentTrendChart";
 import { VentParamPairCard } from "./VentParamPairCard";
 
-// Cores das curvas dos painéis combinados (Pressões/Volumes/Oxigenação) — mesma
-// convenção de cor da referência (docs/ventilador-exemplo.png): Pico vermelho,
-// PEEP azul. SpO₂ reaproveita a mesma cor cian usada no Monitor
-// (VitalsChart.tsx), pra manter consistência entre as duas telas. A legenda de
-// cada gráfico fica embutida no próprio VentTrendChart (mesmo array `series`
-// abaixo alimenta as curvas e a legenda) — sem legenda compartilhada à parte.
-const COLOR_PIP   = "#ef4444";
-const COLOR_PEEP  = "#3b82f6";
-const COLOR_VTE   = "#3b82f6";
-const COLOR_VTI   = "#a78bfa";
-const COLOR_VMEXP = "#22c55e";
-const COLOR_FIO2  = "#f97316";
+// Cores por parâmetro — convenção de fabricante de ventilador trazida pelo
+// usuário (mesma família de cor por grandeza: pressão em amarelo, volume em
+// verde, etc.). Fonte única: alimenta tanto o valor/título de cada card
+// (GROUPS, abaixo) quanto a curva correspondente nos painéis combinados
+// (Pressões/Volumes/Oxigenação), pra manter as duas telas na mesma cor por
+// parâmetro. PIP e PEEP (e VTe/VM exp) compartilham a mesma cor de propósito
+// — "mesma família" pedida pelo usuário; a legenda embutida do VentTrendChart
+// (mesmo array `series` abaixo alimenta curva + legenda) segue distinguindo
+// as duas pelo texto. SpO₂ não tem cor definida pelo usuário — mantém a cor
+// cian já usada no Monitor (VitalsChart.tsx), pra consistência entre telas.
+const COLOR_PIP   = "#FFD400";
+const COLOR_PEEP  = "#FFD400";
+const COLOR_VTE   = "#00E676";
+const COLOR_VTI   = "#00C853";
+const COLOR_CDIN  = "#00E5FF";
+const COLOR_R     = "#40C4FF";
+const COLOR_VMEXP = "#00E676";
+const COLOR_FUGA  = "#FF6D00";
+const COLOR_FR    = "#FFD400";
+const COLOR_FIO2  = "#448AFF";
+const COLOR_IE    = "#FFFFFF";
+const COLOR_ETCO2 = "#FF6D00";
 const COLOR_SPO2  = "#22d3ee";
 
 const PRESSURE_SERIES: VentTrendSeries[] = [
-  { key: "pip",   label: "Pico", unit: "cmH2O", color: COLOR_PIP },
+  { key: "pip",   label: "PIP", unit: "cmH2O", color: COLOR_PIP },
   { key: "peep",  label: "PEEP", unit: "cmH2O", color: COLOR_PEEP },
 ];
 const VOLUME_SERIES: VentTrendSeries[] = [
@@ -37,34 +47,77 @@ const OXYGEN_SERIES: VentTrendSeries[] = [
   { key: "spo2", label: "SpO₂", unit: "%", color: COLOR_SPO2 },
 ];
 
-// Janela fixa das 3 curvas novas — não segue o Slot/Janela do Monitor (ControlsBar
-// fica oculta fora da página Monitor, mesmo padrão do EWSTab). 40min de leituras
-// brutas (1/min) dá ~6-7 macro-ciclos visíveis com o CYCLE_MS de ventilator.ts.
-const VENT_WINDOW_MS = 40 * 60_000;
-
 // Gráfico de EWS "replicado" — mesma fonte de dados do Monitor (Janela de Escore
-// fixa, 30min/mediana, mínimo 3h). Ver CONTEXT.md § Janela de Escore.
+// fixa, 30min/mediana, mínimo 3h — cresce com a Janela escolhida, nunca reduz
+// abaixo disso). Ver CONTEXT.md § Janela de Escore.
 const EWS_CHART_MIN_WINDOW_MS = 3 * 3_600_000;
 
 interface ParamCardCfg {
   key: VentParamKey | "ie";
   label: string;
   unit: string;
+  // Cor fixa do valor (pedido do usuário, convenção de fabricante de
+  // ventilador) — substitui a cor por severidade (ventSeverity) nesse valor,
+  // já que as faixas de Atenção/Crítico da Ventilação ainda não foram
+  // clinicamente validadas pelo usuário.
+  color: string;
 }
 
 interface ParamGroup {
   label: string;
   items: ParamCardCfg[];
+  // Cor do título do card (pedido do usuário) — só Pressão/Volume têm cor por
+  // enquanto, os demais grupos ficam no cinza padrão (undefined).
+  titleColor?: string;
 }
 
-// 6 grupos clínicos, 2 parâmetros cada — mesma ordem pedida pelo usuário.
+// 6 grupos clínicos, 2 parâmetros cada — mesma ordem pedida pelo usuário. Cor
+// de cada valor segue a convenção clínica trazida pelo usuário (mesma família
+// de cor por grandeza — pressão em amarelo, volume em verde, etc.). Título do
+// card sem cor própria (titleColor) — mesmo cinza padrão dos demais grupos.
 const GROUPS: ParamGroup[] = [
-  { label: "Pressão",           items: [{ key: "pip",   label: "PIP",   unit: "cmH2O" },      { key: "peep",  label: "PEEP",  unit: "cmH2O" }] },
-  { label: "Volume",            items: [{ key: "vte",   label: "VTe",   unit: "mL" },          { key: "vti",   label: "VTi",   unit: "mL" }] },
-  { label: "Mecânica Pulmonar", items: [{ key: "cdin",  label: "Cdin",  unit: "mL/cmH2O" },    { key: "r",     label: "R",     unit: "cmH2O/L/s" }] },
-  { label: "Ventilação",        items: [{ key: "vmExp", label: "VM exp", unit: "L/min" },      { key: "fuga",  label: "% Fuga", unit: "%" }] },
-  { label: "Respiração",        items: [{ key: "fr",    label: "FR",    unit: "rpm" },         { key: "fio2",  label: "FiO₂",  unit: "%" }] },
-  { label: "Tempo/Gases",       items: [{ key: "ie",    label: "I:E",   unit: "" },            { key: "etco2", label: "EtCO₂", unit: "mmHg" }] },
+  {
+    label: "Pressão",
+    items: [
+      { key: "pip",  label: "PIP",  unit: "cmH2O", color: COLOR_PIP },
+      { key: "peep", label: "PEEP", unit: "cmH2O", color: COLOR_PEEP },
+    ],
+  },
+  {
+    label: "Volume",
+    items: [
+      { key: "vte", label: "VTe", unit: "mL", color: COLOR_VTE },
+      { key: "vti", label: "VTi", unit: "mL", color: COLOR_VTI },
+    ],
+  },
+  {
+    label: "Mecânica Pulmonar",
+    items: [
+      { key: "cdin", label: "Cdin", unit: "mL/cmH2O",  color: COLOR_CDIN },
+      { key: "r",    label: "R",    unit: "cmH2O/L/s", color: COLOR_R },
+    ],
+  },
+  {
+    label: "Ventilação",
+    items: [
+      { key: "vmExp", label: "VM exp",  unit: "L/min", color: COLOR_VMEXP },
+      { key: "fuga",  label: "% Fuga",  unit: "%",      color: COLOR_FUGA },
+    ],
+  },
+  {
+    label: "Respiração",
+    items: [
+      { key: "fr",   label: "FR",   unit: "rpm", color: COLOR_FR },
+      { key: "fio2", label: "FiO₂", unit: "%",   color: COLOR_FIO2 },
+    ],
+  },
+  {
+    label: "Tempo/Gases",
+    items: [
+      { key: "ie",    label: "I:E",   unit: "",     color: COLOR_IE },
+      { key: "etco2", label: "EtCO₂", unit: "mmHg", color: COLOR_ETCO2 },
+    ],
+  },
 ];
 
 function paramValue(params: VentParams, key: ParamCardCfg["key"]): number | string {
@@ -75,8 +128,10 @@ function paramValue(params: VentParams, key: ParamCardCfg["key"]): number | stri
 // aba inteira numa tela só sem rolagem) — o grid preenche o que sobrar de
 // altura vertical depois deles. Como nada mais fica abaixo do grid, só
 // precisamos do topo dele (já empurrado pra baixo pelos cards no fluxo normal
-// do documento), sem precisar medir a altura de nada à parte.
-const VENT_GRID_ROWS = 2;
+// do documento), sem precisar medir a altura de nada à parte. Só a Matriz (2x2)
+// se ajusta à tela sem rolar — a Linha (4 painéis empilhados) usa altura fixa
+// e deixa o container rolar, mesmo padrão do Monitor (ver comentário em
+// app/patients/[id]/page.tsx § Linha/Matriz).
 const VENT_GRID_ROW_GAP = 8; // gap-2 — mesmo espaçamento entre os gráficos
 // Padding + título + legenda embutida de cada gráfico, fora do canvas em si —
 // os 3 painéis combinados (Pressões/Volumes/Oxigenação) agora têm uma linha de
@@ -88,17 +143,23 @@ const VENT_CHART_MAX_HEIGHT = 217;
 // aqui + uma pequena folga de segurança.
 const VENT_BOTTOM_BUFFER = 32;
 
-function useVentChartHeight() {
+function useVentChartHeight(layout: "matriz" | "linha") {
   const gridRef = useRef<HTMLDivElement>(null);
   const [chartHeight, setChartHeight] = useState(VENT_CHART_MIN_HEIGHT);
 
   useLayoutEffect(() => {
+    if (layout !== "matriz") {
+      setChartHeight(VENT_CHART_MAX_HEIGHT);
+      return;
+    }
+
     function measure() {
       const gridEl = gridRef.current;
       if (!gridEl) return;
+      const rows = 2; // grid 2x2 da Matriz
       const top = gridEl.getBoundingClientRect().top;
       const available = window.innerHeight - top - VENT_BOTTOM_BUFFER;
-      const perRow = (available - VENT_GRID_ROW_GAP * (VENT_GRID_ROWS - 1)) / VENT_GRID_ROWS;
+      const perRow = (available - VENT_GRID_ROW_GAP * (rows - 1)) / rows;
       const next = Math.min(
         VENT_CHART_MAX_HEIGHT,
         Math.max(VENT_CHART_MIN_HEIGHT, Math.round(perRow - VENT_CARD_CHROME))
@@ -109,7 +170,7 @@ function useVentChartHeight() {
     measure();
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
-  }, []);
+  }, [layout]);
 
   return { gridRef, chartHeight };
 }
@@ -134,13 +195,13 @@ export function VentParamCardsRow({ internacao, className }: Props & { className
         const [leftItem, rightItem] = g.items;
         const toValue = (item: ParamCardCfg) => {
           const value = paramValue(current, item.key);
-          const score = item.key === "ie" ? 0 : ventSeverity(item.key as VentParamKey, value as number);
-          return { label: item.label, unit: item.unit, value, score };
+          return { label: item.label, unit: item.unit, value, color: item.color };
         };
         return (
           <VentParamPairCard
             key={g.label}
             groupLabel={g.label}
+            titleColor={g.titleColor}
             left={toValue(leftItem)}
             right={toValue(rightItem)}
           />
@@ -150,22 +211,33 @@ export function VentParamCardsRow({ internacao, className }: Props & { className
   );
 }
 
-export function VentiladorTab({ internacao }: Props) {
+interface VentiladorTabProps extends Props {
+  slotMin: number;
+  windowMs: number;
+  layout: "matriz" | "linha";
+}
+
+export function VentiladorTab({ internacao, slotMin, windowMs, layout }: VentiladorTabProps) {
   const rawHistory = useSimulationStore((s) => s.internacoes[internacao.id]?.rawHistory ?? []);
   // Timeline simulada, não Date.now() — mesmo motivo do resto do app (ver
   // store/simulation.ts § advance).
   const simNow = rawHistory[rawHistory.length - 1]?.t ?? Date.now();
 
-  const windowedReadings = rawHistory.filter((r) => r.t >= simNow - VENT_WINDOW_MS);
-  const ventSeries = buildVentSeries(internacao.id, windowedReadings);
-  // SpO₂ vem dos sinais vitais (rawHistory), não do ventilador — zipa pelo mesmo
-  // índice porque ventSeries é gerado 1:1 a partir de windowedReadings.
-  const oxygenData = ventSeries.map((v, i) => ({ t: v.t, fio2: v.fio2, spo2: windowedReadings[i]?.spo2 }));
+  // Mesmo Slot Temporal do Monitor (última leitura válida do bucket) — ver
+  // buildVentSlots. SpO₂ já vem embutido no ponto (vem dos Sinais Vitais, não
+  // do ventilador), sem precisar zipar por índice.
+  const ventSeries = buildVentSlots(internacao.id, rawHistory, slotMin, windowMs, simNow);
+  const oxygenData = ventSeries.map((v) => ({ t: v.t, fio2: v.fio2, spo2: v.spo2 }));
 
-  const ewsSlots = computeScoreHistory(rawHistory, EWS_CHART_MIN_WINDOW_MS, simNow);
+  // Janela de Escore só cresce a partir do mínimo de 3h, nunca reduz abaixo
+  // disso, mesmo com uma Janela menor escolhida pro resto dos gráficos — mesma
+  // regra do Monitor (CONTEXT.md § Janela de Escore).
+  const ewsWindowMs = Math.max(windowMs, EWS_CHART_MIN_WINDOW_MS);
+  const ewsSlots = computeScoreHistory(rawHistory, ewsWindowMs, simNow);
   const syncId = `vent-${internacao.id}`;
 
-  const { gridRef, chartHeight } = useVentChartHeight();
+  const { gridRef, chartHeight } = useVentChartHeight(layout);
+  const isMatriz = layout === "matriz";
 
   return (
     <div className="flex flex-col gap-2">
@@ -176,8 +248,10 @@ export function VentiladorTab({ internacao }: Props) {
 
       {/* 4 painéis: EWS replicado + Pressões/Volumes/Oxigenação combinados
           (várias curvas por painel, cada um com sua própria legenda embutida
-          logo abaixo do título — ver docs/ventilador-exemplo.png), grid 2x2 */}
-      <div ref={gridRef} className="grid grid-cols-2 gap-2">
+          logo abaixo do título — ver docs/ventilador-exemplo.png). Matriz: grid
+          2x2 ajustado à tela. Linha: os 4 empilhados, largura total, container
+          rola (mesmo padrão do Monitor). */}
+      <div ref={gridRef} className={isMatriz ? "grid grid-cols-2 gap-2" : "flex flex-col gap-2"}>
         <EWSScoreChart slots={ewsSlots} forecast={internacao.ewsForecast} syncId={syncId} chartHeight={chartHeight} />
         <VentTrendChart
           title="Pressões"

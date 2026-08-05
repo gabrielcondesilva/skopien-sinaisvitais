@@ -92,7 +92,7 @@ export function buildHistory(
   return history;
 }
 
-type VitalKey = "fr" | "spo2" | "pas" | "fc" | "temp";
+export type VitalKey = "fr" | "spo2" | "pas" | "fc" | "temp";
 
 // 0/null/undefined/NaN indicam leitura ausente ou falha do equipamento.
 function isValidReading(v: number): boolean {
@@ -103,7 +103,7 @@ function isValidReading(v: number): boolean {
 // sempre a leitura mais recente. Se ela vier vazia/zerada (falha do equipamento), cai
 // para a leitura válida anterior dentro do mesmo slot. Leituras simuladas nunca são
 // inválidas (ver BOUNDS), então esse fallback só entra em jogo com dados reais.
-function lastValidInSlot(readings: RawReading[], key: VitalKey): number {
+export function lastValidInSlot(readings: RawReading[], key: VitalKey): number {
   for (let i = readings.length - 1; i >= 0; i--) {
     const v = readings[i][key];
     if (isValidReading(v)) return v;

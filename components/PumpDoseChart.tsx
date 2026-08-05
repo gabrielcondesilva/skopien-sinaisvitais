@@ -20,20 +20,20 @@ const BAND_HEIGHT = 30;
 const BAND_GAP = 20;
 const BAND_STRIDE = BAND_HEIGHT + BAND_GAP;
 
-// Eixo X em grade fixa de 15 em 15 min, nos horários redondos do relógio
-// (13:00, 13:15, 13:30, 13:45, ...) — mesmo princípio do Slot Temporal usado
-// nos gráficos de Monitor (CONTEXT.md): o "agora" do gráfico é o início do
-// slot de 15min em andamento, não o milissegundo exato do relógio — por isso
-// a última bolinha fica parada em (ex.) 14:45 até a simulação realmente bater
-// 15:00, e não flutua solta um pouco à frente da última marca do eixo (o que
-// não fazia sentido visualmente). Eventos reais (horários "quebrados", ex.:
-// 13:22) são encaixados na PRÓXIMA marca de grade (13:30) — mesma regra da
+// Eixo X em grade fixa no tamanho do Slot escolhido (ControlsBar — mesmo
+// princípio do Slot Temporal usado nos gráficos de Monitor, CONTEXT.md): o
+// "agora" do gráfico é o início do slot em andamento, não o milissegundo
+// exato do relógio — por isso a última bolinha fica parada na marca anterior
+// até a simulação realmente fechar o slot seguinte, e não flutua solta um
+// pouco à frente da última marca do eixo (o que não fazia sentido
+// visualmente). Eventos reais (horários "quebrados", ex.: 13:22 com slot de
+// 15min) são encaixados na PRÓXIMA marca de grade (13:30) — mesma regra da
 // curva em degrau, que só reflete a nova dose a partir do primeiro horário de
-// grade igual ou posterior ao evento — pra as bolinhas das 4 bombas ficarem
-// alinhadas verticalmente. O horário exato de cada evento continua disponível
-// ao passar o mouse (tooltip).
-const GRID_MS = 15 * 60_000;
-
+// grade igual ou posterior ao evento — pra as bolinhas das bombas ficarem
+// alinhadas verticalmente. Com slot de 1min cada evento cai na própria marca
+// (equivalente a "sem bucket"), já que os eventos reais nunca ficam mais
+// densos que 1/min. O horário exato de cada evento continua disponível ao
+// passar o mouse (tooltip).
 function fmtTime(t: number) {
   return new Date(t).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
@@ -42,23 +42,20 @@ function fmtRate(v: number) {
   return v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 }
 
-function floorTo15(t: number): number {
-  const d = new Date(t);
-  d.setSeconds(0, 0);
-  d.setMinutes(Math.floor(d.getMinutes() / 15) * 15);
-  return d.getTime();
+function floorToGrid(t: number, gridMs: number): number {
+  return Math.floor(t / gridMs) * gridMs;
 }
 
-function ceilTo15(t: number): number {
-  const floored = floorTo15(t);
-  return floored === t ? floored : floored + GRID_MS;
+function ceilToGrid(t: number, gridMs: number): number {
+  const floored = floorToGrid(t, gridMs);
+  return floored === t ? floored : floored + gridMs;
 }
 
-function buildGrid(windowStart: number, simNow: number): number[] {
-  const start = floorTo15(windowStart);
-  const end = floorTo15(simNow);
+function buildGrid(windowStart: number, simNow: number, gridMs: number): number[] {
+  const start = floorToGrid(windowStart, gridMs);
+  const end = floorToGrid(simNow, gridMs);
   const ticks: number[] = [];
-  for (let g = start; g <= end; g += GRID_MS) {
+  for (let g = start; g <= end; g += gridMs) {
     ticks.push(g);
   }
   return ticks;
@@ -87,6 +84,7 @@ interface HoverInfo {
 interface Props {
   timelines: PumpTimeline[];
   height: number;
+  slotMin: number;
 }
 
 // Gráfico único com uma curva em degrau por bomba, cada uma na sua própria
@@ -102,18 +100,19 @@ interface Props {
 // que queremos aqui. Em vez disso, cada bolinha (marcador de evento) tem seu
 // próprio onMouseEnter/onMouseLeave, e um tooltip HTML simples é posicionado
 // à mão em cima das coordenadas (cx, cy) daquele ponto específico.
-export function PumpDoseChart({ timelines, height }: Props) {
+export function PumpDoseChart({ timelines, height, slotMin }: Props) {
   const [hover, setHover] = useState<HoverInfo | null>(null);
 
   const n = timelines.length;
+  const gridMs = slotMin * 60_000;
   // windowStart/simNow vêm dos boundaries que computePumpTimelines já injeta
   // em rateSeries[0] e rateSeries[último] — iguais pra todas as bombas.
   const windowStart = timelines[0]?.rateSeries[0]?.t ?? 0;
   const simNow = timelines[0]?.rateSeries[timelines[0].rateSeries.length - 1]?.t ?? windowStart;
-  const grid = buildGrid(windowStart, simNow);
-  // Último ponto plotado = última marca da grade (o slot de 15min em
-  // andamento) — não o milissegundo exato de "agora", pro "agora" do gráfico
-  // não ficar solto à frente do último rótulo do eixo.
+  const grid = buildGrid(windowStart, simNow, gridMs);
+  // Último ponto plotado = última marca da grade (o slot em andamento) — não
+  // o milissegundo exato de "agora", pro "agora" do gráfico não ficar solto à
+  // frente do último rótulo do eixo.
   const lastT = grid[grid.length - 1];
 
   // Por bomba: eventos (todos os tipos) encaixados na PRÓXIMA marca de grade
@@ -124,7 +123,7 @@ export function PumpDoseChart({ timelines, height }: Props) {
   const eventsByPumpAtGrid = new Map(
     timelines.map((tl) => {
       const byGrid = new Map<number, PumpEvent>();
-      for (const ev of tl.events) byGrid.set(Math.min(ceilTo15(ev.t), lastT), ev);
+      for (const ev of tl.events) byGrid.set(Math.min(ceilToGrid(ev.t, gridMs), lastT), ev);
       return [tl.pump.id, byGrid];
     })
   );

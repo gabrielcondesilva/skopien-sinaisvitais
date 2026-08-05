@@ -74,6 +74,12 @@ const CHART_LAYOUT_DEFAULTS = {
   matriz: { slotMin: 30, windowMs: 21_600_000 }, // 6h
 } as const;
 
+// Default de Slot/Janela ao abrir a página Bomba — mesmo Slot da Matriz, mas
+// Janela maior (12h) porque os eventos de bomba são bem mais espaçados
+// (EVENT_INTERVAL_MS em lib/simulation/infusionPumps.ts, ~12min) do que os
+// sinais vitais.
+const BOMBA_PAGE_DEFAULTS = { slotMin: 30, windowMs: 43_200_000 }; // 12h
+
 // Gráfico de Early Warning Score (aba Sinais Vitais) não segue o Slot escolhido —
 // é sempre a Janela de Escore (30min/mediana). A Janela dele só aumenta a partir de
 // um mínimo de 3h, nunca reduz abaixo disso, mesmo que o usuário escolha uma Janela
@@ -226,6 +232,45 @@ function SelBtn({ active, onClick, disabled, children }: {
     >
       {children}
     </button>
+  );
+}
+
+// ─── Layout toggle (matriz / linha) ──────────────────────────────────────────
+// Reaproveitado pela página Monitor (grid de Sinais Vitais) e pela página
+// Ventilador (grid de 4 painéis) — cada uma passa o próprio estado de layout,
+// já que são grids de gráficos totalmente diferentes.
+
+function LayoutToggle({ layout, onChange }: {
+  layout: "matriz" | "linha";
+  onChange: (l: "matriz" | "linha") => void;
+}) {
+  return (
+    <div className="flex items-center gap-0.5 rounded-lg p-0.5 ml-auto" style={{ background: "rgba(255,255,255,0.06)" }}>
+      <button
+        onClick={() => onChange("matriz")}
+        aria-label="Ver gráficos em matriz"
+        title="Matriz — gráficos em grade, ajustados à tela"
+        className="flex items-center justify-center w-6 h-6 rounded transition-colors"
+        style={{
+          background: layout === "matriz" ? "var(--accent)" : "transparent",
+          color: layout === "matriz" ? "#fff" : "var(--muted)",
+        }}
+      >
+        <Icon name="layout-grid" size={14} color="currentColor" />
+      </button>
+      <button
+        onClick={() => onChange("linha")}
+        aria-label="Ver gráficos em linha"
+        title="Linha — um gráfico abaixo do outro"
+        className="flex items-center justify-center w-6 h-6 rounded transition-colors"
+        style={{
+          background: layout === "linha" ? "var(--accent)" : "transparent",
+          color: layout === "linha" ? "#fff" : "var(--muted)",
+        }}
+      >
+        <Icon name="list" size={14} color="currentColor" />
+      </button>
+    </div>
   );
 }
 
@@ -936,6 +981,10 @@ function PatientContent({ id }: { id: string }) {
   const [graficosVisible, setGraficosVisible] = useState(true);
   const [heatmapVisible, setHeatmapVisible]   = useState(false);
   const [chartLayout, setChartLayout] = useState<"linha" | "matriz">("matriz");
+  // Independente do chartLayout do Monitor — grid de painéis da aba Ventilador
+  // é um conjunto de gráficos totalmente diferente, sem resetar Slot/Janela ao
+  // trocar (diferente do toggle do Monitor, que tem defaults próprios por modo).
+  const [ventChartLayout, setVentChartLayout] = useState<"linha" | "matriz">("matriz");
   const [sinaisVitaisPage, setSinaisVitaisPage] = useState<SinaisVitaisPage>("monitor");
   // Os 3 olhinhos (Monitor/Ventilador/Bomba) na página de Monitor — controlam a
   // visibilidade de cada grupo de cards ali, independente da aba selecionada em
@@ -1311,7 +1360,17 @@ function PatientContent({ id }: { id: string }) {
               <SelBtn
                 key={p.key}
                 active={tab === "sinais-vitais" && sinaisVitaisPage === p.key}
-                onClick={() => { setTab("sinais-vitais"); setSinaisVitaisPage(p.key); }}
+                onClick={() => {
+                  setTab("sinais-vitais");
+                  // Ao entrar na Bomba (não ao permanecer nela), Slot/Janela
+                  // voltam pro default da página (30min/12h) — ver
+                  // BOMBA_PAGE_DEFAULTS.
+                  if (p.key === "bomba" && sinaisVitaisPage !== "bomba") {
+                    setSlotMin(BOMBA_PAGE_DEFAULTS.slotMin);
+                    setWindowMs(BOMBA_PAGE_DEFAULTS.windowMs);
+                  }
+                  setSinaisVitaisPage(p.key);
+                }}
               >
                 {p.label}
               </SelBtn>
@@ -1418,45 +1477,22 @@ function PatientContent({ id }: { id: string }) {
         })}
 
         {isAntonio && tab === "sinais-vitais" && sinaisVitaisPage === "monitor" && graficosVisible && (
-          <div className="flex items-center gap-0.5 rounded-lg p-0.5 ml-auto" style={{ background: "rgba(255,255,255,0.06)" }}>
-            <button
-              onClick={() => {
-                setChartLayout("matriz");
-                setSlotMin(CHART_LAYOUT_DEFAULTS.matriz.slotMin);
-                setWindowMs(CHART_LAYOUT_DEFAULTS.matriz.windowMs);
-              }}
-              aria-label="Ver gráficos em matriz"
-              title="Matriz — gráficos em grade, ajustados à tela"
-              className="flex items-center justify-center w-6 h-6 rounded transition-colors"
-              style={{
-                background: chartLayout === "matriz" ? "var(--accent)" : "transparent",
-                color: chartLayout === "matriz" ? "#fff" : "var(--muted)",
-              }}
-            >
-              <Icon name="layout-grid" size={14} color="currentColor" />
-            </button>
-            <button
-              onClick={() => {
-                setChartLayout("linha");
-                setSlotMin(CHART_LAYOUT_DEFAULTS.linha.slotMin);
-                setWindowMs(CHART_LAYOUT_DEFAULTS.linha.windowMs);
-              }}
-              aria-label="Ver gráficos em linha"
-              title="Linha — um gráfico abaixo do outro"
-              className="flex items-center justify-center w-6 h-6 rounded transition-colors"
-              style={{
-                background: chartLayout === "linha" ? "var(--accent)" : "transparent",
-                color: chartLayout === "linha" ? "#fff" : "var(--muted)",
-              }}
-            >
-              <Icon name="list" size={14} color="currentColor" />
-            </button>
-          </div>
+          <LayoutToggle
+            layout={chartLayout}
+            onChange={(l) => {
+              setChartLayout(l);
+              setSlotMin(CHART_LAYOUT_DEFAULTS[l].slotMin);
+              setWindowMs(CHART_LAYOUT_DEFAULTS[l].windowMs);
+            }}
+          />
+        )}
+        {isAntonio && tab === "sinais-vitais" && sinaisVitaisPage === "ventilador" && (
+          <LayoutToggle layout={ventChartLayout} onChange={setVentChartLayout} />
         )}
       </div>
 
       {/* ── Shared controls (view toggle + slot + window + legenda) ── */}
-      {tab !== "lesao-pele" && tab !== "medicamento" && !(tab === "sinais-vitais" && sinaisVitaisPage !== "monitor") && (
+      {tab !== "lesao-pele" && tab !== "medicamento" && (
         <ControlsBar
           slotMin={slotMin}
           setSlotMin={setSlotMin}
@@ -1466,8 +1502,8 @@ function PatientContent({ id }: { id: string }) {
           setGraficosVisible={setGraficosVisible}
           heatmapVisible={heatmapVisible}
           setHeatmapVisible={setHeatmapVisible}
-          showViewToggle={tab === "sinais-vitais"}
-          legend={tab === "sinais-vitais" ? (
+          showViewToggle={tab === "sinais-vitais" && sinaisVitaisPage === "monitor"}
+          legend={tab === "sinais-vitais" && sinaisVitaisPage === "monitor" ? (
             <div className="flex items-center gap-4">
               {[
                 { color: "#888888", label: "Normal" },
@@ -1525,9 +1561,9 @@ function PatientContent({ id }: { id: string }) {
                 showAlertTimesOnCharts={isAntonio && showAlertTimesOnCharts}
               />
             ) : sinaisVitaisPage === "ventilador" ? (
-              <VentiladorTab internacao={internacao} />
+              <VentiladorTab internacao={internacao} slotMin={slotMin} windowMs={windowMs} layout={ventChartLayout} />
             ) : (
-              <BombaTab internacao={internacao} />
+              <BombaTab internacao={internacao} slotMin={slotMin} windowMs={windowMs} />
             )
           )}
           {tab === "ews" && (

@@ -74,14 +74,16 @@ function EmptyPumpCard({ slot }: { slot: number }) {
   );
 }
 
-export function InfusionPumpsPanel({ internacao }: Props) {
-  const rawHistory = useSimulationStore((s) => s.internacoes[internacao.id]?.rawHistory ?? []);
-  const simNow = rawHistory[rawHistory.length - 1]?.t ?? Date.now();
-  const pumps = computeInfusionPumps(internacao.id, simNow, internacao.patient.admittedAt);
+// Grid de cards isolado do resto do painel (cálculo das bombas, medição de
+// altura) pra poder ser reaproveitado onde já tivermos os `pumps` computados
+// (ex.: aba Bomba, que já os deriva de `computePumpTimelines`) sem duplicar a
+// chamada a computeInfusionPumps. `className` permite um grid mais compacto
+// quando o card fica lado a lado com a tabela de eventos (ver BombaTab).
+export function InfusionPumpsGrid({ pumps, className }: { pumps: InfusionPump[]; className?: string }) {
   const emptySlots = Math.max(0, TOTAL_PUMP_SLOTS - pumps.length);
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+    <div className={className ?? "grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3"}>
       {pumps.map((pump) => (
         <InfusionPumpCard key={pump.id} pump={pump} />
       ))}
@@ -90,4 +92,12 @@ export function InfusionPumpsPanel({ internacao }: Props) {
       ))}
     </div>
   );
+}
+
+export function InfusionPumpsPanel({ internacao }: Props) {
+  const rawHistory = useSimulationStore((s) => s.internacoes[internacao.id]?.rawHistory ?? []);
+  const simNow = rawHistory[rawHistory.length - 1]?.t ?? Date.now();
+  const pumps = computeInfusionPumps(internacao.id, simNow, internacao.patient.admittedAt);
+
+  return <InfusionPumpsGrid pumps={pumps} />;
 }
