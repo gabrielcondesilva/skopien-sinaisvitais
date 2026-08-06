@@ -72,6 +72,7 @@ export interface InfusionPump {
   doseUnit: string;
   accentColor: string;
   startedAt: number; // timestamp ms — quando a droga começou a correr
+  endsAt: number; // timestamp ms — próxima "Troca de Bolsa" prevista (fim da bolsa atual)
 }
 
 export type PumpEventType = "Ajuste de Dose" | "Bolus Adicional" | "Troca de Bolsa";
@@ -118,6 +119,10 @@ const EVENT_LOOKBACK = 40;
 // visível começar, e a curva apareceria travada no chão o tempo todo em vez
 // de mostrar a queda de fato.
 const TREND_BIAS_EVENTS = 16;
+// Teto de eventos futuros a varrer procurando a próxima "Troca de Bolsa" (pra
+// achar "fim previsto" da bolsa atual). Chance de ~22% por evento, então isso
+// cobre até ~12h de busca — nunca deveria estourar na prática.
+const BAG_END_SEARCH_EVENTS = 60;
 
 function pickEventType(seed: number, drugIndex: number, k: number): PumpEventType {
   const r = noise(seed + drugIndex * 5.5 + k * 2.9);
@@ -191,6 +196,18 @@ function computePumpTimeline(
   const startFrac = 0.05 + noise(seed + drugIndex * 19.1) * 0.55;
   const startedAt = admittedAt + (t - admittedAt) * startFrac;
 
+  // Varre pra frente a partir de "agora" até achar a próxima "Troca de Bolsa"
+  // — é o fim previsto da bolsa em curso.
+  let endsAt = t;
+  for (let k = k0 + 1; k <= k0 + BAG_END_SEARCH_EVENTS; k++) {
+    const et = phase + k * EVENT_INTERVAL_MS;
+    if (pickEventType(seed, drugIndex, k) === "Troca de Bolsa") {
+      endsAt = et;
+      break;
+    }
+    endsAt = et; // fallback se o teto for atingido sem achar troca
+  }
+
   return {
     pump: {
       id,
@@ -201,6 +218,7 @@ function computePumpTimeline(
       doseUnit: def.doseUnit,
       accentColor,
       startedAt,
+      endsAt,
     },
     rateDomain: [0, Math.ceil(def.rateMax * 1.15)],
     rateSeries: [

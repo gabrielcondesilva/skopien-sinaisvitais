@@ -14,9 +14,21 @@ function formatPumpStart(ts: number): string {
   });
 }
 
+// "Fim" reaproveita o mesmo formato de "Início" — só o rótulo muda.
+const formatPumpEnd = formatPumpStart;
+
+// Tempo restante até a próxima "Troca de Bolsa" prevista, em "Xh Ymin".
+function formatRemaining(ms: number): string {
+  const totalMin = Math.max(0, Math.round(ms / 60_000));
+  const h = Math.floor(totalMin / 60);
+  const min = totalMin % 60;
+  if (h === 0) return `${min}min`;
+  return `${h}h ${min.toString().padStart(2, "0")}min`;
+}
+
 // Mesmo padrão visual dos cards de Monitor/Ventilador (VitalCard/VentParamPairCard):
 // caixa própria por bomba, valor principal em destaque, secundários em cinza.
-function InfusionPumpCard({ pump }: { pump: InfusionPump }) {
+function InfusionPumpCard({ pump, now }: { pump: InfusionPump; now: number }) {
   return (
     <div
       className="rounded-lg p-2.5 flex flex-col gap-1.5 flex-1 min-w-0"
@@ -32,9 +44,6 @@ function InfusionPumpCard({ pump }: { pump: InfusionPump }) {
           </span>
           <span className="text-sm font-bold truncate" style={{ color: "var(--foreground)" }}>{pump.drug}</span>
         </div>
-        <span className="text-[11px] whitespace-nowrap shrink-0" style={{ color: "var(--muted)" }}>
-          Início {formatPumpStart(pump.startedAt)}
-        </span>
       </div>
 
       <div className="flex items-baseline gap-1">
@@ -47,6 +56,15 @@ function InfusionPumpCard({ pump }: { pump: InfusionPump }) {
       <span className="text-[11px] truncate" style={{ color: "var(--muted)" }}>
         {pump.dose.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} {pump.doseUnit} · {pump.concentration}
       </span>
+
+      <div className="flex flex-col gap-0.5 pt-0.5" style={{ borderTop: "1px solid var(--border)" }}>
+        <span className="text-[11px] whitespace-nowrap" style={{ color: "var(--muted)" }}>
+          Início {formatPumpStart(pump.startedAt)} · Fim previsto {formatPumpEnd(pump.endsAt)}
+        </span>
+        <span className="text-[11px] font-medium whitespace-nowrap" style={{ color: pump.accentColor }}>
+          {formatRemaining(pump.endsAt - now)} restantes
+        </span>
+      </div>
     </div>
   );
 }
@@ -79,13 +97,13 @@ function EmptyPumpCard({ slot }: { slot: number }) {
 // (ex.: aba Bomba, que já os deriva de `computePumpTimelines`) sem duplicar a
 // chamada a computeInfusionPumps. `className` permite um grid mais compacto
 // quando o card fica lado a lado com a tabela de eventos (ver BombaTab).
-export function InfusionPumpsGrid({ pumps, className }: { pumps: InfusionPump[]; className?: string }) {
+export function InfusionPumpsGrid({ pumps, now, className }: { pumps: InfusionPump[]; now: number; className?: string }) {
   const emptySlots = Math.max(0, TOTAL_PUMP_SLOTS - pumps.length);
 
   return (
     <div className={className ?? "grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3"}>
       {pumps.map((pump) => (
-        <InfusionPumpCard key={pump.id} pump={pump} />
+        <InfusionPumpCard key={pump.id} pump={pump} now={now} />
       ))}
       {Array.from({ length: emptySlots }, (_, i) => (
         <EmptyPumpCard key={`empty-${i}`} slot={pumps.length + i + 1} />
@@ -99,5 +117,5 @@ export function InfusionPumpsPanel({ internacao }: Props) {
   const simNow = rawHistory[rawHistory.length - 1]?.t ?? Date.now();
   const pumps = computeInfusionPumps(internacao.id, simNow, internacao.patient.admittedAt);
 
-  return <InfusionPumpsGrid pumps={pumps} />;
+  return <InfusionPumpsGrid pumps={pumps} now={simNow} />;
 }

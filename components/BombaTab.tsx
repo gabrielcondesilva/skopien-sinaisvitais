@@ -250,7 +250,7 @@ export function BombaTab({ internacao, slotMin, windowMs }: Props) {
           >
             <p className="text-sm font-semibold mb-2" style={{ color: "var(--muted)" }}>Bombas de Infusão</p>
             <div className="overflow-y-auto" style={{ maxHeight: tableHeight }}>
-              <InfusionPumpsGrid pumps={timelines.map((tl) => tl.pump)} className="grid grid-cols-2 gap-2" />
+              <InfusionPumpsGrid pumps={timelines.map((tl) => tl.pump)} now={simNow} className="grid grid-cols-2 gap-2" />
             </div>
           </div>
         </div>
