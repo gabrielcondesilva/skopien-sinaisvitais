@@ -22,10 +22,10 @@ function getLastUpdateLabel(): string {
 // ─── constants ────────────────────────────────────────────────────────────────
 
 const UNITS = [
-  { id: "pronto-socorro",   label: "Pronto Socorro",  total: 12, color: "#3b82f6" },
-  { id: "enfermaria",       label: "Enfermaria",       total: 15, color: "#8b5cf6" },
-  { id: "uti",              label: "UTI",              total: 10, color: "#ef4444" },
-  { id: "centro-cirurgico", label: "Centro Cirúrgico", total:  6, color: "#f59e0b" },
+  { id: "pronto-socorro",   label: "Pronto Socorro",  color: "#3b82f6" },
+  { id: "enfermaria",       label: "Enfermaria",       color: "#8b5cf6" },
+  { id: "uti",              label: "UTI",              color: "#ef4444" },
+  { id: "centro-cirurgico", label: "Centro Cirúrgico", color: "#f59e0b" },
 ] as const;
 
 function formatElapsed(ms: number): string {
@@ -50,12 +50,18 @@ function KpiCard({ label, value, sub, compact }: { label: string; value: string;
   );
 }
 
-function UnitCard({ unitId, label, total, color, compact }: {
-  unitId: string; label: string; total: number; color: string; compact?: boolean;
+// `total` não é mais fixo por unidade (UTI, por ex., soma os 3 tipos —
+// adulto/neonatal/pediátrica — 36 leitos, não só os 12 do tipo adulto) — conta
+// direto os leitos reais da store, igual à página de unidade (app/units/[unit]),
+// e desconta os inoperantes da capacidade (leito fora de uso não é capacidade
+// disponível pra ocupar).
+function UnitCard({ unitId, label, color, compact }: {
+  unitId: string; label: string; color: string; compact?: boolean;
 }) {
   const beds     = useSimulationStore(useShallow((s) => s.beds.filter((b) => b.unit === unitId)));
+  const total    = beds.filter((b) => !b.inoperante).length;
   const occupied = beds.filter((b) => b.internacaoId).length;
-  const pct      = Math.round((occupied / total) * 100);
+  const pct      = total > 0 ? Math.round((occupied / total) * 100) : 0;
   return (
     <div
       className={compact ? "rounded-lg p-2.5 flex flex-col gap-0.5" : "rounded-lg p-4 flex flex-col gap-1"}
@@ -404,7 +410,7 @@ export default function EmergencyUnitPage() {
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
               {UNITS.map((u) => (
-                <UnitCard key={u.id} compact unitId={u.id} label={u.label} total={u.total} color={u.color} />
+                <UnitCard key={u.id} compact unitId={u.id} label={u.label} color={u.color} />
               ))}
             </div>
           </div>
